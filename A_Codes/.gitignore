@@ -6,3 +6,9 @@ dist/
 *.tsbuildinfo
 .env
 var/
+
+# Playwright mock-up parity harness (AF_e2e) — reports are regenerated on every run.
+# The findings that matter are committed under D_Reviews/, not these raw artefacts.
+playwright-report/
+test-results/
+.playwright/

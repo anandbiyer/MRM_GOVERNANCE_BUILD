@@ -1,0 +1,14 @@
+{
+  "name": "mrm-mis-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Mock-up parity harness: drives the HTML mock-up and the running app side by side.",
+  "scripts": {
+    "test": "playwright test",
+    "test:mockup": "playwright test --project=mockup",
+    "test:app": "playwright test --project=app"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

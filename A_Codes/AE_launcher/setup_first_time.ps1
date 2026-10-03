@@ -1,31 +1,47 @@
 # One-time setup on a new machine after `git clone` (e.g. the office laptop).
-# Creates the Python environment, installs frontend packages and creates the start/stop shortcuts
-# in this folder. Nothing is written outside the project folder.
+# Creates the Python environment, installs frontend and mock-up-parity packages and creates the
+# start/stop shortcuts in this folder. Nothing is written outside the project folder.
 #   powershell -ExecutionPolicy Bypass -File "A_Codes\AE_launcher\setup_first_time.ps1"
-# Needs: Python 3.11+ and Node.js 20+ installed, and access to the Python (pip) and npm package registries.
+# Needs: Python 3.14 exactly, Node.js 20+, and access to the Python (pip) and npm package registries.
+# Python 3.14 is required, not merely 3.11+: CI and requirements-lock.txt both pin 3.14, and the lock's
+# exact versions are not guaranteed to resolve on another minor version.
 
 $ErrorActionPreference = "Stop"
 $codes    = Split-Path $PSScriptRoot -Parent
 $backend  = Join-Path $codes "AB_backend"
 $frontend = Join-Path $codes "AC_frontend"
+$e2e      = Join-Path $codes "AF_e2e"
 $venvPy   = Join-Path $backend ".venv\Scripts\python.exe"
+$pyVersion = "3.14"
 
 function Step([string]$text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cyan }
 function Fail([string]$text) { Write-Host ""; Write-Host $text -ForegroundColor Red; Read-Host "Press Enter to close"; exit 1 }
 
-Step "Finding Python 3.11 or newer"
+Step "Finding Python $pyVersion"
 $python = $null
-foreach ($v in "3.14", "3.13", "3.12", "3.11") {
-    if (Get-Command py -ErrorAction SilentlyContinue) {
-        & py "-$v" -c "import sys" 2>$null
-        if ($LASTEXITCODE -eq 0) { $python = @("py", "-$v"); break }
-    }
+if (Get-Command py -ErrorAction SilentlyContinue) {
+    & py "-$pyVersion" -c "import sys" 2>$null
+    if ($LASTEXITCODE -eq 0) { $python = @("py", "-$pyVersion") }
 }
 if (-not $python -and (Get-Command python -ErrorAction SilentlyContinue)) {
-    & python -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)" 2>$null
+    # Exactly 3.14: an older or newer minor version is refused rather than silently used.
+    & python -c "import sys; sys.exit(0 if sys.version_info[:2] == (3, 14) else 1)" 2>$null
     if ($LASTEXITCODE -eq 0) { $python = @("python") }
 }
-if (-not $python) { Fail "Python 3.11 or newer was not found. Install it (python.org or your company software centre) and run this again." }
+if (-not $python) {
+    $found = "none found"
+    if (Get-Command python -ErrorAction SilentlyContinue) { $found = (& python -V 2>&1) }
+    Fail @"
+Python $pyVersion is required and was not found (detected: $found).
+
+This project pins Python ${pyVersion}: .github/workflows/ci.yml runs the tests on it and
+A_Codes\AB_backend\requirements-lock.txt holds the exact versions resolved for it. Installing the lock
+on another minor version is not guaranteed to work, so setup stops here rather than building an
+environment that differs from CI.
+
+Install Python $pyVersion (python.org or your company software centre) and run this again.
+"@
+}
 Write-Host "Using: $($python -join ' ')"
 
 Step "Creating the Python environment (A_Codes\AB_backend\.venv)"
@@ -52,6 +68,30 @@ if ($LASTEXITCODE -ne 0) { npm install --no-fund --no-audit }
 $ok = $LASTEXITCODE -eq 0
 Pop-Location
 if (-not $ok) { Fail "npm could not install the packages. If your office uses a proxy, configure npm (npm config set proxy ...) and run this again." }
+
+# The mock-up parity harness (review agent 3). Deliberately not part of CI: it needs a running app.
+Step "Installing the mock-up parity harness (A_Codes\AF_e2e) and the Chromium browser"
+if (Test-Path (Join-Path $e2e "package.json")) {
+    Push-Location $e2e
+    if (Test-Path (Join-Path $e2e "package-lock.json")) {
+        npm ci --no-fund --no-audit
+    } else {
+        npm install --no-fund --no-audit
+    }
+    $e2eOk = $LASTEXITCODE -eq 0
+    if ($e2eOk) {
+        npx playwright install chromium
+        $e2eOk = $LASTEXITCODE -eq 0
+    }
+    Pop-Location
+    if (-not $e2eOk) {
+        # Not fatal: the app itself runs without the harness, only /review-build's parity pass needs it.
+        Write-Host "The parity harness could not be installed. The application is unaffected;" -ForegroundColor Yellow
+        Write-Host "re-run this script or 'npm ci; npx playwright install chromium' in A_Codes\AF_e2e later." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "A_Codes\AF_e2e not present - skipping." -ForegroundColor Yellow
+}
 
 Step "Creating local settings files from the examples"
 foreach ($dir in (Join-Path $codes "AA_infra"), $backend) {
