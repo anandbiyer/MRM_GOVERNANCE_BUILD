@@ -1,4 +1,7 @@
-"""Command Center tie-out tests: every tile and chart must equal what its drill-down list shows (REQ-CC-01..04)."""
+"""Command Center tie-out tests: every tile and chart must equal what its drill-down list shows.
+
+Criteria: BRD §76A CC-01..CC-04 (superseding design.md REQ-CC-01..04).
+"""
 from decimal import Decimal
 
 from tests.conftest import ADMIN, EXECUTIVE, login
@@ -11,6 +14,7 @@ def _get(client, h, path, **params):
 
 
 def test_tiles_tie_out_to_lists(loaded_client):
+    """CC-01: every tile equals the count returned by its own drill-down list."""
     h = login(loaded_client, *EXECUTIVE)
     d = _get(loaded_client, h, "/api/dashboard/summary")
     t = d["tiles"]
@@ -38,6 +42,7 @@ def test_tiles_tie_out_to_lists(loaded_client):
 
 
 def test_distributions_sum_and_match_filters(loaded_client):
+    """CC-02: distributions sum to the portfolio total, percentages to 100 ± 1, and match their filters."""
     h = login(loaded_client, *EXECUTIVE)
     d = _get(loaded_client, h, "/api/dashboard/summary")
     total = d["tiles"]["total_models"]
@@ -56,6 +61,7 @@ def test_distributions_sum_and_match_filters(loaded_client):
 
 
 def test_revalidation_timeline_is_the_revalidation_column(loaded_client):
+    """CC-03: the timeline contains exactly the Revalidation column, most urgent first."""
     h = login(loaded_client, *EXECUTIVE)
     d = _get(loaded_client, h, "/api/dashboard/summary")
     column = {m["model_id"] for m in _get(loaded_client, h, "/api/models", column="Revalidation")}
@@ -67,6 +73,7 @@ def test_revalidation_timeline_is_the_revalidation_column(loaded_client):
 
 
 def test_insights_are_generated_from_data(loaded_client):
+    """CC-04: insight counts equal the underlying data and every insight links to a real model."""
     h = login(loaded_client, *EXECUTIVE)
     d = _get(loaded_client, h, "/api/dashboard/summary")
     rules = d["insight_counts_by_rule"]
@@ -82,7 +89,7 @@ def test_insights_are_generated_from_data(loaded_client):
 
 
 def test_insight_disappears_when_resolved(loaded_client):
-    """TC-CC-04-2: close the overdue Critical finding and its insight goes away."""
+    """CC-04 (TC-CC-04-2): close the overdue Critical finding and its insight goes away."""
     admin = login(loaded_client, *ADMIN)
     before = _get(loaded_client, admin, "/api/dashboard/summary")["insight_counts_by_rule"]["critical_finding_overdue"]
     f = next(x for x in _get(loaded_client, admin, "/api/findings", model_id="M-0012", overdue_only=True)

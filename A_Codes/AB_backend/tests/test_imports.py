@@ -1,4 +1,7 @@
-"""Import engine tests (BRD §41–§47, IMP-01..09; design TC-IMP-*)."""
+"""Import engine tests (BRD §41–§47, IMP-01..IMP-09; also §76A GEN-01..GEN-03, SEC-02).
+
+Function names keep the superseded design.md §12 condition IDs (TC-*); BRD §76A.13 maps the two sets.
+"""
 import csv
 import io
 
@@ -28,6 +31,7 @@ def _csv(rows: list[dict]) -> bytes:
 
 
 def test_template_registry_listing(client):
+    """IMP-02, IMP-06: the registry drives availability, load order, prerequisites and allowed values."""
     t = {x["template_id"]: x for x in client.get("/api/imports/templates", headers=login(client, *ADMIN)).json()}
     assert all(t[k]["available"] for k in ("T12", "T01", "T02", "T03", "T04", "T05"))
     assert not t["T06"]["available"] and t["T06"]["phase"] == "Phase 7"
@@ -39,6 +43,7 @@ def test_template_registry_listing(client):
 
 
 def test_tc_imp_06_blank_templates_match_registry(client):
+    """IMP-02: every blank template's header row equals its registry columns exactly."""
     h = login(client, *ADMIN)
     templates = client.get("/api/imports/templates", headers=h).json()
     for t in (x for x in templates if x["available"]):
@@ -52,12 +57,14 @@ def test_tc_imp_06_blank_templates_match_registry(client):
 
 
 def test_tc_usr_03_only_importers_can_upload(client, demo_dir):
+    """SEC-02: a role without the import permission is refused at the API, not just in the UI."""
     data = (demo_dir / "T02_new_models_demo.xlsx").read_bytes()
     for who in (AUDITOR, VALIDATOR):
         assert _upload(client, login(client, *who), [("T02_new_models_demo.xlsx", data)]).status_code == 403
 
 
 def test_tc_imp_03_1_preview_then_partial_load(client, demo_dir):
+    """IMP-01, IMP-04, IMP-05, IMP-08: preview persists nothing; valid rows load, the bad row is reported."""
     h = login(client, *ADMIN)
     resp = _upload(client, h, [("T02_new_models_demo.xlsx", (demo_dir / "T02_new_models_demo.xlsx").read_bytes())])
     assert resp.status_code == 201, resp.text
@@ -93,6 +100,7 @@ def test_tc_imp_03_1_preview_then_partial_load(client, demo_dir):
 
 
 def test_tc_imp_05_reimport_updates_and_is_idempotent(client, demo_dir):
+    """IMP-07, IMP-08: re-importing is idempotent, a real change upserts, and both are audited."""
     h = login(client, *ADMIN)
     data = (demo_dir / "T02_new_models_demo.xlsx").read_bytes()
     b1 = _upload(client, h, [("T02_new_models_demo.xlsx", data)]).json()
@@ -118,6 +126,7 @@ def test_tc_imp_05_reimport_updates_and_is_idempotent(client, demo_dir):
 
 
 def test_tc_imp_01_2_wrong_file_for_template(client):
+    """IMP-03: a file whose columns do not match its template is isolated before preview."""
     h = login(client, *ADMIN)
     rows = [{"finding_id": "F-0001", "model_id": "M-0012", "title": "x"}]
     batch = _upload(client, h, [("T02_models.csv", _csv(rows))]).json()
@@ -127,16 +136,19 @@ def test_tc_imp_01_2_wrong_file_for_template(client):
 
 
 def test_tc_imp_01_3_non_spreadsheet_rejected(client):
+    """IMP-03: only .xlsx and .csv are accepted by the structured channel."""
     resp = _upload(client, login(client, *ADMIN), [("report.pdf", b"%PDF-1.7")])
     assert resp.status_code == 422 and "only .xlsx and .csv" in resp.json()["detail"]
 
 
 def test_path_traversal_rejected(client):
+    """BRD §65: a relative path escaping the upload root is refused."""
     resp = _upload(client, login(client, *ADMIN), [("x.csv", b"a,b\n1,2\n")], paths=["../../etc/T01.csv"])
     assert resp.status_code == 422
 
 
 def test_row_level_errors_by_type(loaded_client, demo_dir):
+    """IMP-05: allowed-value, reference, rule and date errors are each recorded against their row."""
     h = login(loaded_client, *ADMIN)
     name = "T04_findings_demo_errors.csv"
     batch = _upload(loaded_client, h, [(name, (demo_dir / name).read_bytes())]).json()
@@ -150,6 +162,7 @@ def test_row_level_errors_by_type(loaded_client, demo_dir):
 
 
 def test_tc_imp_02_4_duplicate_keys_in_file(client):
+    """IMP-05: two rows sharing one key are both flagged as duplicate keys."""
     h = login(client, *ADMIN)
     base = {"user_id": "U-500", "full_name": "A Person", "email": "a@demo-bank.example", "role": "Validator",
             "business_line": "", "active": "Y"}
@@ -160,7 +173,7 @@ def test_tc_imp_02_4_duplicate_keys_in_file(client):
 
 
 def test_cross_file_dependencies_in_one_batch(client, demo_dir):
-    """Findings referencing models created by another file in the same batch validate and load (IMP-06)."""
+    """IMP-06: findings referencing models created by another file in the same batch validate and load."""
     h = login(client, *ADMIN)
     finding = {"finding_id": "F-0100", "model_id": "M-0301", "validation_id": "", "title": "Sample gap",
                "description": "Sample excludes 2025 vintages.", "severity": "Medium", "category": "Data",
@@ -176,6 +189,7 @@ def test_cross_file_dependencies_in_one_batch(client, demo_dir):
 
 
 def test_load_requires_validated_batch_and_cancel(client):
+    """IMP-09: a failed batch cannot be loaded, can be cancelled, and stays in the history."""
     h = login(client, *ADMIN)
     rows = [{"finding_id": "F-0001", "model_id": "M-0012"}]
     batch = _upload(client, h, [("T02_x.csv", _csv(rows))]).json()
@@ -188,6 +202,7 @@ def test_load_requires_validated_batch_and_cancel(client):
 
 
 def test_user_can_remap_file_template(client, demo_dir):
+    """IMP-02: the template is detected from the columns and the user may override the mapping."""
     h = login(client, *ADMIN)
     data = (demo_dir / "T02_new_models_demo.xlsx").read_bytes()
     batch = _upload(client, h, [("inventory_update.xlsx", data)]).json()
@@ -200,6 +215,7 @@ def test_user_can_remap_file_template(client, demo_dir):
 
 
 def test_on_existing_reject(client, demo_dir):
+    """IMP-07: the configured upsert rule is honoured — 'reject' refuses rows that already exist."""
     h = login(client, *ADMIN)
     data = (demo_dir / "T02_new_models_demo.xlsx").read_bytes()
     b1 = _upload(client, h, [("T02_new_models_demo.xlsx", data)]).json()
@@ -209,6 +225,7 @@ def test_on_existing_reject(client, demo_dir):
 
 
 def test_tc_gen_01_reset_to_seed(client, test_settings):
+    """GEN-01, GEN-02, AUD-01: reset reproduces the seed portfolio, is refused for Auditor, and is audited."""
     h = login(client, *ADMIN)
     assert client.post("/api/admin/reset", headers=login(client, *AUDITOR)).status_code == 403
     resp = client.post("/api/admin/reset", headers=h)
@@ -240,6 +257,7 @@ def test_tc_gen_01_reset_to_seed(client, test_settings):
 
 
 def test_reset_disabled(client, test_settings):
+    """GEN-02: reset is refused outright when the environment does not allow it."""
     test_settings.allow_reset = False
     resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
     assert resp.status_code == 403

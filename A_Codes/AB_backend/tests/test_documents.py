@@ -1,4 +1,8 @@
-"""Document Centre tests (BRD §27–§40; acceptance criteria DOC-01..DOC-20)."""
+"""Document Centre tests (BRD §27–§40; acceptance criteria DOC-01..DOC-20).
+
+A criterion ID appears in this file only where a test actually verifies it, so a grep for an ID is a
+true coverage signal. Known gaps are recorded in BRD §76A.14, not here.
+"""
 import csv
 import io
 import zipfile
@@ -27,11 +31,13 @@ KEYWORDS = document_rules.parse_keywords([
     ("Storage.pdf", [], "Other", "none"),  # 'tor' inside a word is not a match
 ])
 def test_classification(name, folders, expected, source):
+    """DOC-14: the document type is suggested from the file name, else the folder, with its source."""
     guess = document_rules.classify_type(name, folders, KEYWORDS)
     assert (guess.document_type, guess.source) == (expected, source)
 
 
 def test_model_detection_and_versions():
+    """DOC-13, DOC-14: the model is detected from the path or file name, and the next version derived."""
     assert document_rules.detect_model_id(["Credit_Risk", "M-0012", "Validation"], "VR.pdf") == ("M-0012", "folder")
     assert document_rules.detect_model_id([], "M0042_MDD.pdf") == ("M-0042", "filename")
     assert document_rules.parse_version("Validation_Report_v2.1.pdf") == "2.1"
@@ -42,6 +48,7 @@ def test_model_detection_and_versions():
 
 
 def test_required_types_by_phase():
+    """DOC-20: required documents come from the lifecycle phase and drive the completeness score."""
     phases = ["Initiation", "Development", "Validation", "Implementation", "Monitoring", "Reg/Audit", "Retirement"]
     args = (phases, ["ToR"], ["ToR", "MDD"], ["ToR", "MDD", "VR"])
     assert document_rules.required_types("Initiation", *args) == []
@@ -59,6 +66,7 @@ def _single(client, headers, name, data, **form):
 
 
 def test_doc_01_17_single_pdf_upload_and_download(loaded_client, make_pdf):
+    """DOC-01, DOC-07, DOC-17, AUD-01: a single PDF stores with a checksum, downloads intact and audits."""
     h = login(loaded_client, *ADMIN)
     data = make_pdf(["Validation Report", "M-0012"])
     resp = _single(loaded_client, h, "Validation_Report_2026.pdf", data)
@@ -74,6 +82,7 @@ def test_doc_01_17_single_pdf_upload_and_download(loaded_client, make_pdf):
 
 
 def test_doc_02_docx_upload_by_assigned_validator_only(loaded_client):
+    """DOC-02, SEC-03: a DOCX uploads, but only for a model the validator is assigned to."""
     v = login(loaded_client, *VALIDATOR)  # U-014 validates M-0012
     ok = _single(loaded_client, v, "MDD.docx", make_docx("Model development document"),
                  document_type="Model Development Document")
@@ -91,17 +100,20 @@ def test_doc_02_docx_upload_by_assigned_validator_only(loaded_client):
     ("fake.docx", b"%PDF-1.4 not a docx", "not an Office document"),
 ])
 def test_file_validation(loaded_client, name, data, message):
+    """BRD §65: extension, signature and type are checked, not just the file name."""
     resp = _single(loaded_client, login(loaded_client, *ADMIN), name, data)
     assert resp.status_code == 422 and message in resp.json()["detail"]
 
 
 def test_oversized_document_rejected(loaded_client):
+    """BRD §65: the configured per-document size limit is enforced."""
     big = b"%PDF-1.4\n" + b"0" * (10 * 1024 * 1024 + 1)
     resp = _single(loaded_client, login(loaded_client, *ADMIN), "big.pdf", big)
     assert resp.status_code == 422 and "limit is 10 MB" in resp.json()["detail"]
 
 
 def test_doc_08_exact_duplicate_and_versioning(loaded_client, make_pdf):
+    """DOC-08, DOC-17: an exact duplicate is refused unless a new version is asked for; versions persist."""
     h = login(loaded_client, *ADMIN)
     data = make_pdf(["TOR v1"])
     first = _single(loaded_client, h, "TOR.pdf", data, document_type="Terms of Reference").json()
@@ -144,10 +156,12 @@ def _folder_upload(make_pdf):
 
 
 def test_doc_03_04_06_folder_upload_review_and_confirm(loaded_client, make_pdf):
+    """DOC-03, DOC-04, DOC-06, DOC-07, DOC-09, DOC-10, DOC-12, DOC-13, DOC-15, DOC-18, DOC-19."""
     h = login(loaded_client, *ADMIN)
     resp = _batch(loaded_client, h, _folder_upload(make_pdf))
     assert resp.status_code == 201, resp.text
     b = resp.json()
+    # DOC-09: the batch carries its own identifier
     assert b["batch_id"].startswith("B-20260930-") and b["batch_type"] == "documents" and b["status"] == "Ready"
     items = {i["relative_path"].split("/")[-1]: i for i in b["items"]}
     assert (items["TOR.pdf"]["model_id"], items["TOR.pdf"]["document_type"]) == ("M-0012", "Terms of Reference")
@@ -188,6 +202,7 @@ def test_doc_03_04_06_folder_upload_review_and_confirm(loaded_client, make_pdf):
 
 
 def test_doc_05_zip_upload_and_safety(loaded_client, make_pdf):
+    """DOC-05, DOC-06: a ZIP loads with its paths preserved; traversal and zip bombs are refused."""
     h = login(loaded_client, *ADMIN)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
@@ -212,6 +227,7 @@ def test_doc_05_zip_upload_and_safety(loaded_client, make_pdf):
 
 
 def test_manifest_overrides_heuristics(loaded_client, make_pdf):
+    """DOC-15: a T17 manifest overrides the detected model, type and version."""
     h = login(loaded_client, *ADMIN)
     manifest = "relative_path,model_id,document_type,version,effective_date\nMisc/file1.pdf,M-0015,Backtesting Report,1.2,2026-06-30\n"
     b = _batch(loaded_client, h, [("Misc/file1.pdf", make_pdf(["bt"])), ("manifest.csv", manifest.encode())]).json()
@@ -222,6 +238,7 @@ def test_manifest_overrides_heuristics(loaded_client, make_pdf):
 
 
 def test_duplicates_in_batch_and_against_register(loaded_client, make_pdf):
+    """DOC-08: duplicates are detected both within the batch and against already-stored documents."""
     h = login(loaded_client, *ADMIN)
     data = make_pdf(["same"])
     stored = _single(loaded_client, h, "TOR.pdf", data, document_type="Terms of Reference").json()
@@ -235,6 +252,7 @@ def test_duplicates_in_batch_and_against_register(loaded_client, make_pdf):
 
 
 def test_doc_20_completeness_and_documentation_score(loaded_client, make_pdf):
+    """DOC-20, SCR-05: completeness recalculates after upload and feeds the documentation component."""
     h = login(loaded_client, *ADMIN)
     c = loaded_client.get("/api/documents/completeness", headers=h, params={"model_id": "M-0012"}).json()[0]
     assert c["present"] == [] and len(c["missing"]) == 5
@@ -248,6 +266,7 @@ def test_doc_20_completeness_and_documentation_score(loaded_client, make_pdf):
 
 
 def test_archive_legal_hold_and_links(loaded_client, make_pdf):
+    """DOC-19, BRD §68: links are validated, legal hold blocks archiving, archived evidence survives."""
     h = login(loaded_client, *ADMIN)
     d = _single(loaded_client, h, "VR.pdf", make_pdf(["vr"])).json()
     validation = loaded_client.get("/api/validations", headers=h, params={"model_id": "M-0012"}).json()[0]
@@ -275,6 +294,7 @@ def test_archive_legal_hold_and_links(loaded_client, make_pdf):
 
 
 def test_document_manifest_templates_are_document_channel(loaded_client):
+    """BRD §71: T17 belongs to the documents channel and its blank template downloads."""
     h = login(loaded_client, *ADMIN)
     t = {x["template_id"]: x for x in loaded_client.get("/api/imports/templates", headers=h).json()}
     assert t["T17"]["available"] and t["T17"]["channel"] == "documents"

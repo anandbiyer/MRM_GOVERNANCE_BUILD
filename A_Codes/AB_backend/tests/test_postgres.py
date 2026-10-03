@@ -35,6 +35,7 @@ def test_migration_created_foundation_tables(conn):
     "DELETE FROM audit_event WHERE event_id = :id",
 ])
 def test_audit_event_is_append_only(conn, statement):
+    """AUD-02: the database itself refuses an update or delete of an audit event."""
     event_id = conn.scalar(text(
         "INSERT INTO audit_event (action, entity, entity_id) VALUES ('create', 'test', 'x') RETURNING event_id"
     ))

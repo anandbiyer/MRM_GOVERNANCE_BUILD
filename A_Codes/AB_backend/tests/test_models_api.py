@@ -1,4 +1,7 @@
-"""Model inventory, tiering, lifecycle and governance-record API tests against the sample data."""
+"""Model inventory, tiering, lifecycle and governance-record API tests against the sample data.
+
+Criteria verified here: BRD §76A INV-*, TIR-*, LIF-*, VAL-*, FND-*, APR-*, SCR-*, SEC-03.
+"""
 from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, MRC, VALIDATOR, login
 
 NEW_MODEL = {
@@ -16,6 +19,7 @@ def _model(client, headers, model_id):
 
 
 def test_sample_portfolio_loads(loaded_client):
+    """VAL-04, LIF-02: revalidation status and displayed column are derived on read."""
     rows = loaded_client.get("/api/models", headers=login(loaded_client, *EXECUTIVE)).json()
     assert len(rows) == 79
     m12 = next(r for r in rows if r["model_id"] == "M-0012")
@@ -26,6 +30,7 @@ def test_sample_portfolio_loads(loaded_client):
 
 
 def test_filters_combine(loaded_client):
+    """VAL-04: filters combine, and the Overdue filter agrees with the derived status."""
     h = login(loaded_client, *EXECUTIVE)
     rows = loaded_client.get("/api/models", headers=h,
                              params={"model_type": "CCAR/Stress Testing", "tier": "High"}).json()
@@ -35,6 +40,7 @@ def test_filters_combine(loaded_client):
 
 
 def test_tc_inv_02_1_admin_creates_model_with_calculated_tier(loaded_client):
+    """INV-01, INV-02, TIR-01, LIF-01: registration calculates the tier, opens phase history and audits."""
     h = login(loaded_client, *ADMIN)
     resp = loaded_client.post("/api/models", headers=h, json=NEW_MODEL)
     assert resp.status_code == 201, resp.text
@@ -48,6 +54,7 @@ def test_tc_inv_02_1_admin_creates_model_with_calculated_tier(loaded_client):
 
 
 def test_tc_inv_03_1_sod_blocks_create(loaded_client):
+    """INV-03: segregation of duties is enforced on manual creation, naming the conflict."""
     resp = loaded_client.post("/api/models", headers=login(loaded_client, *ADMIN),
                               json={**NEW_MODEL, "validator_id": "U-003"})
     assert resp.status_code == 422
@@ -55,6 +62,7 @@ def test_tc_inv_03_1_sod_blocks_create(loaded_client):
 
 
 def test_phase_requirements_enforced_on_create(loaded_client):
+    """INV-05: creating a model in Monitoring requires the phase's mandatory fields."""
     resp = loaded_client.post("/api/models", headers=login(loaded_client, *ADMIN),
                               json={**NEW_MODEL, "lifecycle_phase": "Monitoring"})
     assert resp.status_code == 422
@@ -63,17 +71,20 @@ def test_phase_requirements_enforced_on_create(loaded_client):
 
 
 def test_unknown_owner_is_rejected(loaded_client):
+    """INV-04: an owner reference that does not exist is refused, naming the user ID."""
     resp = loaded_client.post("/api/models", headers=login(loaded_client, *ADMIN),
                               json={**NEW_MODEL, "owner_id": "U-999"})
     assert resp.status_code == 422 and "User U-999 does not exist." in resp.json()["detail"]
 
 
 def test_executive_and_auditor_cannot_create_or_edit(loaded_client):
+    """SEC-02: the read-only roles are refused server-side, not merely hidden in the UI."""
     for who in (EXECUTIVE, AUDITOR):
         assert loaded_client.post("/api/models", headers=login(loaded_client, *who), json=NEW_MODEL).status_code == 403
 
 
 def test_model_owner_can_only_edit_own_models(loaded_client):
+    """SEC-03: record-level access — a Model Owner may edit their own model but not another owner's."""
     admin = login(loaded_client, *ADMIN)
     m12 = _model(loaded_client, admin, "M-0012")["model"]
     owner = login(loaded_client, m12["owner_id"], "Model Owner")
@@ -93,6 +104,7 @@ def test_model_owner_can_only_edit_own_models(loaded_client):
 
 
 def test_stale_model_update_is_conflict(loaded_client):
+    """INV-06: a second write against a stale row version is refused as a conflict."""
     h = login(loaded_client, *ADMIN)
     m = _model(loaded_client, h, "M-0023")["model"]
     body = {"to_phase": "Reg/Audit", "reason": "Supervisory review", "row_version": m["row_version"]}
@@ -102,6 +114,7 @@ def test_stale_model_update_is_conflict(loaded_client):
 
 
 def test_phase_transition_recorded_with_reason(loaded_client):
+    """LIF-01, INV-05: phase rules apply to transitions, not only to creation and editing."""
     h = login(loaded_client, *ADMIN)
     m = _model(loaded_client, h, "M-0085")["model"]
     resp = loaded_client.post("/api/models/M-0085/transition", headers=h,
@@ -111,6 +124,7 @@ def test_phase_transition_recorded_with_reason(loaded_client):
 
 
 def test_tc_tir_02_override_keeps_calculated_tier(loaded_client):
+    """TIR-04, TIR-05: an override records the previous tier and reason and keeps the calculated tier."""
     h = login(loaded_client, *ADMIN)
     m = _model(loaded_client, h, "M-0012")["model"]
     resp = loaded_client.post("/api/models/M-0012/tier-override", headers=h,
@@ -124,6 +138,7 @@ def test_tc_tir_02_override_keeps_calculated_tier(loaded_client):
 
 
 def test_tc_tir_02_2_override_requires_reason_and_admin(loaded_client):
+    """TIR-04: an override needs a reason, and an unauthorised role is refused."""
     admin = login(loaded_client, *ADMIN)
     m = _model(loaded_client, admin, "M-0012")["model"]
     no_reason = loaded_client.post("/api/models/M-0012/tier-override", headers=admin,
@@ -135,6 +150,7 @@ def test_tc_tir_02_2_override_requires_reason_and_admin(loaded_client):
 
 
 def test_tier_threshold_change_recalculates_models(loaded_client):
+    """TIR-03, CFG-02: changing a threshold re-derives every calculated tier and audits the recalculation."""
     h = login(loaded_client, *ADMIN)
     setting = next(s for s in loaded_client.get("/api/admin/policy", headers=h).json()
                    if s["setting_key"] == "tier_high_min")
@@ -151,6 +167,7 @@ def test_tier_threshold_change_recalculates_models(loaded_client):
 
 
 def test_invalid_tier_thresholds_rejected(loaded_client):
+    """TIR-03: a threshold combination outside 4 < medium < high ≤ 12 is refused."""
     h = login(loaded_client, *ADMIN)
     s = next(s for s in loaded_client.get("/api/admin/policy", headers=h).json() if s["setting_key"] == "tier_medium_min")
     resp = loaded_client.put("/api/admin/policy/tier_medium_min", headers=h, json={"value": "11", "row_version": s["row_version"]})
@@ -158,12 +175,14 @@ def test_invalid_tier_thresholds_rejected(loaded_client):
 
 
 def test_tier_preview(loaded_client):
+    """TIR-01: the preview endpoint scores answers with the same rule as registration."""
     resp = loaded_client.post("/api/models/tier-preview", headers=login(loaded_client, *EXECUTIVE),
                               json={"q_materiality": 2, "q_complexity": 2, "q_reliance": 2, "q_regulatory_use": 1})
     assert resp.json()["tier"] == "Medium" and resp.json()["tier_score"] == 7
 
 
 def test_tc_inv_05_1_successor_relationship_both_directions(loaded_client):
+    """INV-08: a successor link is visible from the retired model and as a predecessor from the new one."""
     h = login(loaded_client, *EXECUTIVE)
     old = _model(loaded_client, h, "M-0003")["relationships"]
     new = _model(loaded_client, h, "M-0012")["relationships"]
@@ -172,12 +191,14 @@ def test_tc_inv_05_1_successor_relationship_both_directions(loaded_client):
 
 
 def test_legacy_sod_breach_is_visible(loaded_client):
+    """INV-09: a legacy independence breach loaded through the import flag stays visible and flagged."""
     m = _model(loaded_client, login(loaded_client, *EXECUTIVE), "M-0078")
     assert m["model"]["legacy_sod_exception"] is True
     assert "also the model owner" in m["state"]["sod_breach"]
 
 
 def test_score_is_explainable_and_retired_not_scored(loaded_client):
+    """SCR-05, SCR-06: every component shows inputs, explanation and gaps; a retired model has no score."""
     h = login(loaded_client, *EXECUTIVE)
     m12 = _model(loaded_client, h, "M-0012")
     comps = {c["key"]: c for c in m12["score"]["components"]}
@@ -193,6 +214,7 @@ def test_score_is_explainable_and_retired_not_scored(loaded_client):
 
 
 def test_tc_cfg_02_weight_change_changes_score(loaded_client):
+    """SCR-04, CFG-02: changing a component weight changes the score on the next read, with no restart."""
     h = login(loaded_client, *ADMIN)
     # M-0012 components: documentation 0 (25), validation currency 100 (25), remediation 55 (20), MRC 70 (15)
     assert _model(loaded_client, h, "M-0012")["score"]["overall"] == "54.7"  # 4650 / 85
@@ -206,6 +228,7 @@ def test_tc_cfg_02_weight_change_changes_score(loaded_client):
 # --- validations, findings, approvals ------------------------------------------------------
 
 def test_assigned_validator_records_validation_and_updates_currency(loaded_client):
+    """VAL-06, SEC-03: recording a validation updates currency; an unassigned validator is refused."""
     admin = login(loaded_client, *ADMIN)
     m = _model(loaded_client, admin, "M-0012")["model"]
     assert m["validator_id"] == "U-014"
@@ -225,6 +248,7 @@ def test_assigned_validator_records_validation_and_updates_currency(loaded_clien
 
 
 def test_validation_sod_enforced(loaded_client):
+    """VAL-05: independence is checked when the validation is recorded, not only on the model."""
     admin = login(loaded_client, *ADMIN)
     m = _model(loaded_client, admin, "M-0012")["model"]
     resp = loaded_client.post("/api/validations", headers=admin, json={
@@ -234,6 +258,7 @@ def test_validation_sod_enforced(loaded_client):
 
 
 def test_findings_ageing_and_overdue_filter(loaded_client):
+    """FND-02: days overdue is calculated and the overdue filter returns exactly those findings."""
     h = login(loaded_client, *EXECUTIVE)
     overdue = loaded_client.get("/api/findings", headers=h, params={"model_id": "M-0012", "overdue_only": True}).json()
     assert [f["title"] for f in overdue] == ["CRE obligor data gap"]
@@ -241,6 +266,7 @@ def test_findings_ageing_and_overdue_filter(loaded_client):
 
 
 def test_finding_lifecycle_close_and_audit(loaded_client):
+    """FND-04, AUD-01: closing a finding sets the closed date and writes an audit event with the reason."""
     admin = login(loaded_client, *ADMIN)
     m = _model(loaded_client, admin, "M-0012")["model"]
     owner = login(loaded_client, m["owner_id"], "Model Owner")
@@ -259,6 +285,7 @@ def test_finding_lifecycle_close_and_audit(loaded_client):
 
 
 def test_finding_invalid_values_rejected(loaded_client):
+    """FND-03: an invalid severity is refused and the message lists the allowed values."""
     resp = loaded_client.post("/api/findings", headers=login(loaded_client, *ADMIN), json={
         "model_id": "M-0012", "title": "X", "description": "Y", "severity": "Severe", "category": "Data",
         "due_date": "2026-12-31"})
@@ -266,6 +293,7 @@ def test_finding_invalid_values_rejected(loaded_client):
 
 
 def test_approvals_mrc_only_and_conditional_rules(loaded_client):
+    """APR-01, APR-02, APR-03: only MRC may record; Conditional needs conditions and tracks their status."""
     body = {"model_id": "M-0071", "decision_date": "2026-09-30", "forum": "MRC", "decision_type": "Pre-implementation",
             "decision": "Conditional"}
     assert loaded_client.post("/api/approvals", headers=login(loaded_client, *VALIDATOR), json=body).status_code == 403
@@ -282,6 +310,7 @@ def test_approvals_mrc_only_and_conditional_rules(loaded_client):
 
 
 def test_model_360_panels(loaded_client):
+    """APR-04: Model 360 returns approvals newest first, alongside findings and validations."""
     m = _model(loaded_client, login(loaded_client, *EXECUTIVE), "M-0071")
     assert len(m["approvals"]) == 3 and m["approvals"][0]["decision_type"] == "Pre-implementation"
     assert len(m["findings"]) == 4 and m["validations"]

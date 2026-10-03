@@ -1,3 +1,218 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> This file is both the repository guide (Part 0) and the Business Requirements Document (from §1 onwards).
+> The BRD is the business specification; Part 0 describes how the code that implements it is organised and run.
+> Section references like "BRD §57" throughout the codebase point at the numbered sections below.
+
+---
+
+# Part 0 — Working in this repository
+
+## Commands
+
+All paths are relative to the repository root. PowerShell is the primary shell.
+
+```powershell
+# Run the whole app (dev mode: SQLite + local file storage, no Docker)
+A_Codes\AE_launcher\start_mrm.ps1        # backend :8000 + frontend :5173, seeds on first run
+A_Codes\AE_launcher\stop_mrm.ps1
+A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env, shortcuts
+
+# Backend (from A_Codes\AB_backend)
+.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+.venv\Scripts\python -m pytest                              # 135 tests, in-memory SQLite, no infra
+.venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
+$env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
+.venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
+.venv\Scripts\python -m alembic upgrade head
+.venv\Scripts\python -m alembic revision --autogenerate -m "0005_monitoring"
+
+# Backend CLI (from A_Codes\AB_backend) — same service path as the UI
+.venv\Scripts\python -m app.cli bootstrap        # policy settings + users only
+.venv\Scripts\python -m app.cli reset            # regenerate + load the 256-model seed; keeps the audit trail
+.venv\Scripts\python -m app.cli import FILE ...  # validate and load files as one batch
+
+# Frontend (from A_Codes\AC_frontend)
+npm run dev          # :5173, proxies /api to 127.0.0.1:8000
+npm run typecheck    # tsc -b
+npm run build        # typecheck + build — the only lint/type gate in the repo
+
+# Mock-up parity harness (from A_Codes\AF_e2e) — needs the app running on :5173
+npx playwright test
+
+# Review agents (inside Claude Code, from the repository root) — reports go to D_Reviews\
+/review-build              # all three review agents, one consolidated summary
+/review-build phase 6      # scope to a phase, a BRD section (§25) or a criterion prefix (MON)
+
+# Infra (optional; only needed for PostgreSQL/MinIO/Redis)
+docker compose -f A_Codes/AA_infra/docker-compose.yml --env-file A_Codes/AA_infra/.env up -d
+```
+
+There is no linter or formatter configured. `npm run build` and `pytest` are the gates, and
+`.github/workflows/ci.yml` runs them on every push to `main` and every pull request in three jobs:
+
+| Job | What it runs |
+|---|---|
+| `backend` | `pytest -q` on Python 3.14 against `requirements-lock.txt`, SQLite, no infrastructure |
+| `backend-postgres` | `alembic upgrade head` then `pytest tests/test_postgres.py` against a `postgres:16` service — the only coverage for migrations, schema drift and the append-only audit trigger |
+| `frontend` | `npm ci` then `npm run build` (`tsc -b` + `vite build`) on Node 22 |
+
+CI installs the **lock** with no fallback to `requirements.txt`, unlike `setup_first_time.ps1`: a lock
+that no longer installs is a failure worth seeing. The PostgreSQL job treats a *skipped* test as a
+failure, because `tests/test_postgres.py` self-skips when `MRM_TEST_POSTGRES_URL` is unset and would
+otherwise report green while asserting nothing.
+
+`.github/workflows/` and `.claude/` (review agents and commands) are the only paths exempt from the
+`A_`/`B_`/`C_`/`D_` prefix convention — GitHub and Claude Code require those exact locations.
+
+## Repository layout
+
+Top-level folders and the folders inside `A_Codes/` carry a letter prefix in build/run order.
+
+| Path | Contents |
+|---|---|
+| `A_Codes/AA_infra/` | docker-compose: PostgreSQL 16, MinIO, Redis |
+| `A_Codes/AB_backend/` | FastAPI + SQLAlchemy 2.0 + Alembic (Python 3.14, the same as CI; `.venv` in-folder) |
+| `A_Codes/AC_frontend/` | React 19 + TypeScript + Vite + TanStack Query + React Router |
+| `A_Codes/AD_seed/` | `generate_seed.py` — deterministic 256-model seed + ~1,100 synthetic evidence PDFs |
+| `A_Codes/AE_launcher/` | One-click start/stop/setup PowerShell scripts and shortcuts |
+| `A_Codes/AF_e2e/` | Playwright harness and the `mockup-parity.md` checklist; drives the app and the HTML mock-up side by side (review agent 3). Not in CI: it needs a running app |
+| `A_Codes/AZ_tools/snapshot.sh` | Copies a file into `_OLD/` before it is edited |
+| `B_Inputs/` | Input data: `AA_bootstrap` (policy + core users), `AB_sample_data`, `AC_seed`, `AD_demo_files` (deliberate errors for demos) |
+| `C_Requirements/_OLD/` | Earlier requirements and the original HTML prototype (visual reference) |
+| `D_Reviews/` | Review agent reports: `DA_code_review/`, `DB_test_review/`, `DC_mockup_review/`, plus a dated consolidated summary. Committed history, like `_OLD/` |
+| `.claude/agents/`, `.claude/commands/` | The three review agents and the `/review-build` command (see Review agents below) |
+
+## Two repository conventions that override normal practice
+
+1. **Never delete or silently rewrite code.** Before editing any existing file under `A_Codes/` or
+   `B_Inputs/`, snapshot it first:
+   `bash A_Codes/AZ_tools/snapshot.sh A_Codes AB_backend/app/main.py`
+   This copies it to `A_Codes/_OLD/<same relative path>/<name>_v<N>_<YYYYMMDD>.<ext>`. The `_OLD/`
+   trees are intentionally committed history; never clean them up.
+2. **Do not create files outside the repository folder** (no desktop shortcuts, no system temp output
+   the user is expected to find).
+
+`Reset to seed` regenerates `B_Inputs/AC_seed` and `B_Inputs/AD_demo_files` for the current business
+date, so git will show those as modified after any reset. That is expected.
+
+## Backend architecture — the layering that matters
+
+Request flow, and the rule that no layer may be skipped:
+
+```
+app/api/*          FastAPI routers. Auth via deps.require(Permission.X). No business logic.
+app/services/*     The only place that writes. Validates, applies rules, writes audit, commits.
+app/rules/*        Pure functions. No Session, no I/O. Tiering, revalidation, score, insights, doc rules.
+app/models/*       SQLAlchemy ORM (source of truth for metadata).
+app/schemas/*      Pydantic request/response models — deliberately separate from ORM models.
+app/storage.py     Object store for bytes only (MinioStore | LocalStore behind one Protocol).
+```
+
+Key invariants, all enforced in code and covered by tests:
+
+- **Every material write goes through a service**, which calls
+  `app.audit.service.record(...)` **in the same transaction** — business change and audit event commit
+  or roll back together. Importers and document batches use the same services (`app/ingestion/adapters.py`
+  deliberately never touches tables directly), so a CLI import and a UI edit produce identical audit trails.
+- **No business number in code.** Thresholds, weights, frequencies, lifecycle phases, required documents
+  and keyword lists all live in the `policy_setting` table, read through `app/services/policy_access.Policy`
+  (`policy.int("reval_lead_days")`, `policy.score_weights()`, `policy.phase_requirements`). `Policy` is
+  cached per `Session` in `session.info` and invalidated on write and on any rollback. If you need a new
+  constant, add a policy setting and a `T12` bootstrap row — do not hard-code it.
+- **Authorization is two-layered.** `app/auth/roles.py` holds the role→permission matrix ("what may this
+  role do"); `app/services/access.py` holds record-level checks ("on which models"). The frontend's
+  `navigation.ts` permissions are display-only.
+- **The business date is `app.clock.today()`**, never `date.today()` — `MRM_TODAY_OVERRIDE` fixes it for
+  demos and tests so seeded overdue/revalidation states are reproducible.
+- **Derived governance state is computed on read**, not stored: `app/services/governance_view.py`
+  recomputes revalidation status, finding ageing, MRC status and the explainable score from the database
+  each time, so a policy change shows up immediately.
+- **Background jobs** go through `app/workers/runner.submit`. Job functions take a *session factory* plus
+  IDs (never a live `Session`) so they can move to Celery/RQ unchanged. `MRM_JOB_MODE=inline` runs them
+  synchronously; tests always use `inline`.
+
+## Ingestion engine
+
+`app/ingestion/registry.py` is the single source of truth for structured templates (T01–T18): blank
+template downloads, import validation and the seed generator all read the same `Template`/`Column` specs.
+Allowed values that are configurable point at `"policy:<key>"` rather than being listed in the registry.
+
+`app/ingestion/engine.py` runs **the same code path for preview and load** — preview is a full run that is
+always rolled back; load re-validates and never trusts the preview. Files in a batch are processed in
+template `order` inside one transaction (so T02 models created in a batch satisfy T04 finding references
+in the same batch), and **every row runs in its own SAVEPOINT** so a bad row is reported while valid rows
+load (partial acceptance). Upserts are idempotent, so a crashed load can simply be re-run.
+
+Because SQLite is used for dev and tests, `app/db.configure_sqlite` is required for SAVEPOINTs and
+foreign keys to behave — don't create engines without it.
+
+## Documents
+
+`app/documents/batch.py` handles single/multi/folder/ZIP uploads:
+upload → stage bytes → analyse in background (checksum, detect model from `M-0012`-style paths, guess type
+from policy `document_type_keywords`, find duplicates/versions) → user reviews and corrects the mapping →
+Confirm → store in background. **Nothing becomes a governance document before Confirm.** A failing file
+never stops the others. Every stored file is an immutable `DocumentVersion`; an exact SHA-256 re-upload is
+refused unless the caller explicitly asks for a new version; documents are archived, never deleted.
+A `T17` manifest in the upload overrides all heuristics.
+
+## Frontend
+
+Routes in `src/App.tsx`, sidebar in `src/navigation.ts`, API access via `src/api/client.ts` (`api<T>()`
+attaches the bearer token and turns FastAPI error bodies into readable messages) and TanStack Query hooks
+in `src/api/queries.ts`. Dev auth is a no-password user+role picker (`SignInPage`, `RoleSwitcher`).
+Visual language: dark-first, flat cards, thin borders, no shadows, dense tables, status pills — all in the
+single stylesheet `src/styles/app.css`. `C_Requirements/_OLD/MRM_Governance_MIS_Demo.html` is the visual
+reference only, not an architectural one.
+
+## Build status by phase
+
+Phase numbers in §81 are identifiers, not the build order.
+
+Implemented: Phases 1–4 and the core of Phase 8 — foundation/RBAC, governance core (inventory, tiering, lifecycle,
+validation, findings, approvals, score), the import engine (T12, T01–T05), the Document Centre
+(single/batch/folder/ZIP, versioning, completeness), Command Center, Operations Board, Model 360, Import
+Centre, Admin, Audit Trail.
+
+Not yet built (registry entries and `PlannedPage` placeholders already exist), in build order:
+
+1. **Regulatory alignment (SR 26-2)** — Phase 2A, §12A, templates T19–T21. Extends the built inventory,
+   tiering, validation and Command Center; needs no §81A decision. REG-07 waits for Phase 6.
+2. **Monitoring** — Phase 6, templates T13–T16 and T07–T09
+3. **Data Audit / CDE-DQ** — Phase 7, templates T06 and T10
+4. **AI extraction** — Phase 5
+5. **Audit Copilot** — Phase 9, then hardening (Phase 10)
+
+**Do not start Phase 6 until decisions D1–D7 in §81A are recorded.** Phase 7 also needs D8, and Phase 9
+needs D11. When adding these, follow the existing seams: new `app/monitoring/` service package,
+new rules modules, new Alembic revision, new registry templates, replace the `PlannedPage` route.
+
+## Review agents
+
+Three Claude Code subagents in `.claude/agents/` check the build. `/review-build` runs them and writes one
+consolidated summary to `D_Reviews/<YYYYMMDD>_summary.md`.
+
+| Agent | Checks | Writes |
+|---|---|---|
+| `requirements-reviewer` | Code against the BRD, the acceptance criteria and the Part 0 invariants: traceability per BRD section, layering, audit in the same transaction, no business numbers in code, server-side authorization, `app.clock.today()`, the snapshot convention | `D_Reviews/DA_code_review/` |
+| `test-outcome-reviewer` | Runs the CI gates, maps every test to its criterion ID, judges whether each assertion proves the criterion's expected result, and recalculates the §76A.14 coverage table | `D_Reviews/DB_test_review/` |
+| `mockup-parity-tester` | Resets the seed with a fixed business date, runs the app and compares each screen with the HTML mock-up through the `A_Codes/AF_e2e` harness and its `mockup-parity.md` checklist | `D_Reviews/DC_mockup_review/`, `A_Codes/AF_e2e/` |
+
+Rules for the agents:
+
+- They report; they never edit product code, backend or frontend tests, seed data, `B_Inputs/` or this
+  file. Only `mockup-parity-tester` maintains `A_Codes/AF_e2e/` (snapshot convention applies).
+  Findings are fixed afterwards in the main session.
+- Run `/review-build` at the end of every phase and before merging to `main`.
+- When the BRD and the mock-up disagree, the BRD wins; the difference is recorded, not fixed.
+- Capabilities not yet built are reported as "Not built (Phase N)", never as failures.
+- Where the BRD contradicts itself, the agent reports a spec issue for a decision instead of guessing.
+
+---
+
 # Model Governance Management Information System (MRM/MIS)
 ## Business Requirements Document (BRD) — Development Specification
 
@@ -452,6 +667,156 @@ Decisions:
 - Rejected
 
 Conditional decisions shall remain visible until all conditions are closed.
+
+---
+
+# 12A. Regulatory Alignment — SR 26-2 / OCC Bulletin 2026-13
+
+Numbered 12A so no existing section shifts.
+
+## 12A.1 Basis
+
+On 17 April 2026 the Federal Reserve and the OCC issued revised interagency guidance on model risk
+management (SR 26-2 / OCC Bulletin 2026-13). It replaces SR 11-7 (2011) and SR 21-8 (2021, BSA/AML
+models). It is aimed mainly at banking organisations with more than $30 billion in assets, and applies
+to smaller ones in proportion to their model risk. The main points this system must support:
+
+- **Model definition.** Simple arithmetic calculations (for example in spreadsheets) are not models;
+  tools that forecast or estimate still are.
+- **Materiality and proportionality.** Practices are tailored to the number and complexity of models and
+  to each model's materiality — its exposure and its purpose.
+- **Development, validation, monitoring and governance** remain the core elements, with effective
+  challenge by qualified, independent people with the standing to require change.
+- **Third-party models.** The bank stays fully responsible, must understand the model conceptually, and
+  relies on outcomes analysis and monitoring where the vendor's code is not available.
+- **Aggregate model risk.** Risk from dependencies and shared assumptions across models is assessed and
+  reported to senior management and the board, not only model by model.
+- **Generative and agentic AI** are not addressed by SR 26-2; the agencies expect to issue separate
+  guidance. Models that such systems call remain in scope.
+
+This section turns those points into system requirements. It does not make the system interpret
+regulation (§4): every threshold, list and label below is a policy setting (T12), so each bank sets its
+own framework. The label shown on screens and reports is the policy key `regulatory_framework`, seeded
+as "SR 26-2 / OCC Bulletin 2026-13".
+
+## 12A.2 Requirements
+
+### REQ-REG-01 — Inventory classification
+Every inventory record shall carry an `inventory_class`:
+- **Model** — in full MRM scope.
+- **Tool** — a calculation that is not a model under the bank's definition (for example simple arithmetic
+  or deterministic business rules). Tracked with owner, purpose and business line; not tiered, validated
+  or scored.
+- **AI system** — a generative or agentic AI system. Tracked with owner, purpose, provider and the models
+  it uses; governed outside formal MRM until the bank's AI policy says otherwise.
+
+Tool and AI system records require a `classification_reason`. Only a user with the `REG_CLASSIFY`
+permission (Validator and Admin by default) may change the class; every change is audited with the
+reason. Tools and AI systems are excluded from model counts, tiering, revalidation, the governance score
+and the Operations Board unless a class filter asks for them.
+
+### REQ-REG-02 — AI systems that use models
+An AI system may be linked to the models it calls. The linked models stay in full scope, and each shows
+"Used by AI system" on Model 360.
+
+### REQ-REG-03 — Materiality: exposure and purpose
+The model record shall hold `exposure_amount`, `exposure_currency` and `exposure_basis` (for example
+portfolio balance, P&L at risk, capital impact). Where an exposure amount is given, the tiering screen
+shall suggest a Materiality answer from the policy bands `materiality_exposure_bands`; the user's answer
+is kept and the suggestion never overwrites it. Purpose is covered by the existing Reliance and
+Regulatory use answers. The tier formula in §7 is unchanged.
+
+A `tier_rationale` is required when the tier is High and when a tier override is applied.
+
+### REQ-REG-04 — Proportionate revalidation
+The default revalidation frequency for a new model comes from the policy map `reval_frequency_by_tier`.
+A frequency longer than the tier default requires a `frequency_deviation_reason`. Changing the policy
+does not rewrite existing models; models now longer than their tier default are listed as an insight.
+
+### REQ-REG-05 — Third-party (vendor) models
+The model record shall hold `is_vendor`, `vendor_name`, `vendor_product`, `vendor_version` and
+`vendor_customisation` (customisations, settings or overlays applied by the bank). A vendor model
+requires vendor name and product. The documents in the policy list `vendor_required_documents` (by
+default: vendor methodology document, conceptual soundness review, outcomes analysis) count towards
+document completeness (§40) for vendor models only.
+
+A vendor model in the Monitoring phase with no outcomes-analysis or backtest run within
+`vendor_outcomes_max_age_days` raises an insight. This part needs Phase 6.
+
+### REQ-REG-06 — Effective challenge log
+Each validation may hold challenge records: what the validator challenged, to whom, the owner's or
+developer's response, and the resolution (Accepted, Response accepted, Escalated, Finding raised).
+"Finding raised" creates the linked finding in the same transaction. A challenge cannot be raised by the
+model's owner or developer (the independence check of REQ-INV-03). A challenge still open after its due
+date raises an insight.
+
+### REQ-REG-07 — Limitations, overlays and use exceptions
+Each model may hold records of type:
+- **Limitation** — a known weakness or condition of use.
+- **Overlay** — a management adjustment to model output, with amount or description.
+- **Use exception** — approval to keep using a model whose validation is overdue or whose latest outcome
+  is Rejected.
+
+Overlays and use exceptions require a rationale, an approver, an approval date and an expiry date; the
+approver cannot be the model's owner or developer, and the `OVERLAY_APPROVE` permission (MRC Member by
+default) is required. Expired overlays and exceptions raise an insight and show a badge on Model 360. A
+model in Implementation or Monitoring whose latest validation outcome is Rejected, or whose revalidation
+is Overdue, without an active use exception raises a Critical insight.
+
+### REQ-REG-08 — Model dependencies
+REQ-INV-05 relationships shall add a **Uses output of** dependency, with an optional `shared_component`
+(for example "macroeconomic scenario generator"). A model cannot depend on itself, and a dependency that
+would create a cycle is refused. When an upstream model has an open Critical finding, a Critical
+monitoring breach, a Rejected latest outcome or an overdue revalidation, every downstream model shows
+"Upstream issue" and an insight is raised.
+
+### REQ-REG-09 — Aggregate model risk view
+The Command Center shall show aggregate model risk alongside the existing portfolio view:
+- Models by tier and by validation status (a tier × status grid).
+- Share of High-tier models with overdue validation, open Critical findings, active overlays or active
+  use exceptions.
+- Vendor model share and vendor models without recent outcomes analysis.
+- Dependency concentration: upstream models ranked by number of dependent models, with their own status.
+- Tools and AI systems count, shown separately from models.
+
+Every figure drills down to the list of models behind it and agrees with the Operations Board and
+Model 360.
+
+### REQ-REG-10 — Model risk report for senior management and the board
+The system shall generate a model risk report for a chosen business date containing: inventory summary
+by class and tier; validation status and overdue validations; open and overdue findings; active overlays,
+limitations and use exceptions; vendor models; dependency concentration; open effective challenges; and
+changes since the previous report. Figures equal the Command Center on the same business date. Report
+generation is audited. The report may later include AI commentary (Phase 9), which is labelled as such
+and needs human confirmation (Principle 10); the report is complete without it. This is the BRD basis for
+the MRC report shown in the mock-up (§81A D9).
+
+### REQ-REG-11 — Internal audit access
+The Auditor role can read every record in this section and download the model risk report and a model's
+evidence (documents, validations, challenges, findings, overlays, audit trail) as one package. Every write
+by the Auditor role is refused on the server.
+
+## 12A.3 Templates
+
+Registered in the template registry like T01–T18 (§71):
+
+- **T02 Model Inventory** gains optional columns `inventory_class` (default Model),
+  `classification_reason`, `exposure_amount`, `exposure_currency`, `exposure_basis`, `tier_rationale`,
+  `is_vendor`, `vendor_name`, `vendor_product`, `vendor_version`, `vendor_customisation`,
+  `frequency_deviation_reason`. Existing T02 files without them still load.
+- **T19 Effective Challenge** — challenge_id, validation_id, model_id, raised_by, raised_to, raised_date,
+  due_date, topic, challenge, response, response_date, resolution, finding_id.
+- **T20 Limitations, Overlays and Exceptions** — record_id, model_id, record_type, description,
+  amount, rationale, approver, approval_date, effective_from, expiry_date, status.
+- **T21 Model Dependencies** — model_id, depends_on_model_id, dependency_type, shared_component, note.
+
+## 12A.4 Seed
+
+The seed adds, deterministically: vendor models among the existing 256; a small set of Tool and AI
+system records **in addition to** the 256 models, so existing model counts and tests do not change;
+dependencies around at least one shared upstream model (a macroeconomic scenario model used by credit,
+provisioning and stress-testing models); overlays, limitations and use exceptions including expired
+ones; and challenge records on recent validations. Seed targets are documented with the §70 targets.
 
 ---
 
@@ -1458,15 +1823,20 @@ Additional tables recommended:
 - unit
 - frequency
 - active
+- effective_from
+- effective_to
 
 ### monitoring_run
 - monitoring_run_id
 - model_id
 - monitoring_plan_id
 - model_version
+- monitoring_type
 - period
+- data_period
 - run_date
 - status
+- overall_result
 - reviewer_id
 - signoff_date
 
@@ -1478,8 +1848,15 @@ Additional tables recommended:
 - expected_value
 - previous_value
 - change_pct
+- threshold_applied
+- warning_threshold_applied
+- breach_threshold_applied
+- direction_applied
 - status
 - commentary
+
+The thresholds in force on the run date are copied onto each result when it is evaluated, so a later
+threshold change never alters a historical outcome (§16, MON-05, Principle 5).
 
 ### monitoring_breach
 - breach_id
@@ -1539,14 +1916,68 @@ Additional tables recommended:
 ### document_extraction
 - extraction_id
 - document_id
+- document_version_id
 - extraction_type
+- provider
 - model_used
+- prompt_version
 - status
 - extracted_json
 - confidence
 - created_at
 - reviewed_by
 - reviewed_at
+
+### model — columns added by §12A
+- inventory_class
+- classification_reason
+- exposure_amount
+- exposure_currency
+- exposure_basis
+- tier_rationale
+- frequency_deviation_reason
+- is_vendor
+- vendor_name
+- vendor_product
+- vendor_version
+- vendor_customisation
+
+### model_dependency
+Extends the REQ-INV-05 relationship store; if relationships already live in one table, add the
+dependency type there rather than a second table.
+- model_id
+- depends_on_model_id
+- dependency_type
+- shared_component
+- note
+
+### effective_challenge
+- challenge_id
+- validation_id
+- model_id
+- raised_by
+- raised_to
+- raised_date
+- due_date
+- topic
+- challenge
+- response
+- response_date
+- resolution
+- finding_id
+
+### model_limitation
+- record_id
+- model_id
+- record_type (Limitation, Overlay, Use exception)
+- description
+- amount
+- rationale
+- approver_id
+- approval_date
+- effective_from
+- expiry_date
+- status
 
 ### document_link
 Generic many-to-many association between documents and:
@@ -1657,7 +2088,8 @@ Recommended:
 - React Router.
 - TanStack Query.
 - Recharts.
-- Component library such as MUI or shadcn/ui.
+- Component library such as MUI or shadcn/ui. *(Not adopted: the build uses the single stylesheet
+  `src/styles/app.css`, see Part 0.)*
 
 The existing HTML prototype's visual language shall be preserved:
 
@@ -1678,7 +2110,7 @@ The existing prototype should be treated as the visual reference, not as the app
 
 Recommended:
 
-- Python 3.11+.
+- Python 3.14 (the version CI uses; local setup must match).
 - FastAPI.
 - SQLAlchemy.
 - Alembic.
@@ -1741,6 +2173,7 @@ Portfolio view:
 - Monitoring completion.
 - DQ health.
 - Portfolio governance score.
+- Aggregate model risk (§12A REQ-REG-09).
 
 ## 55.2 Operations Board
 Filters:
@@ -1767,6 +2200,10 @@ Sections:
 - CDE/DQ.
 - Governance score.
 - Audit history.
+- Classification, exposure and vendor details (§12A).
+- Limitations, overlays and use exceptions.
+- Effective challenges.
+- Dependencies: upstream and downstream models, "Upstream issue", "Used by AI system".
 
 ## 55.4 Monitoring Dashboard
 Dedicated monitoring portfolio view.
@@ -1826,6 +2263,9 @@ Filter by:
 - Batch.
 - Document.
 
+## 55.10 Model Risk Report
+Generate, preview and download the §12A REQ-REG-10 report for a business date; list earlier reports.
+
 ---
 
 # 56. Command Center Insights
@@ -1845,6 +2285,12 @@ Examples:
 - Monitoring evidence missing.
 - Repeated monitoring breach.
 - Significant performance deterioration.
+- Model in use with a Rejected outcome or overdue revalidation and no use exception (§12A).
+- Overlay or use exception expired.
+- Effective challenge overdue.
+- Upstream model issue affecting dependent models.
+- Vendor model without recent outcomes analysis.
+- Revalidation frequency longer than the tier default.
 
 Insights shall contain:
 - Severity.
@@ -2220,6 +2666,12 @@ New recommended templates:
 ### T17 Document Manifest
 ### T18 Folder/Package Manifest
 
+Templates added by §12A (column lists in §12A.3):
+
+### T19 Effective Challenge
+### T20 Limitations, Overlays and Exceptions
+### T21 Model Dependencies
+
 The template registry shall remain the single source of truth for validation and blank template generation.
 
 ---
@@ -2253,6 +2705,7 @@ Columns:
 - unit
 - frequency
 - active
+- effective_from
 
 ## T15 Monitoring Results
 
@@ -2267,6 +2720,10 @@ Columns:
 - expected_value
 - status
 - commentary
+
+`status` is optional and accepts only `Not Applicable`. Pass, Warn, Fail and Not Available are always
+calculated by the system against the metric threshold in force on `run_date` (MON-01, MON-05); a file that
+supplies any other status has that row rejected.
 
 ## T16 Monitoring Breaches
 
@@ -2427,6 +2884,357 @@ Monitoring Dashboard
       |
 Governance Score
 ```
+
+---
+
+# 76A. Acceptance Criteria — Governance Core
+
+Ported from the test conditions in `C_Requirements/_OLD/design.md` §12, which covered the governance
+core in detail but was superseded by this BRD before §77–§79 were written. Without these, the BRD's
+acceptance criteria covered only Monitoring, Documents and Structured import — that is, three areas of
+which only two are built.
+
+This section is numbered **76A** deliberately: code comments throughout `A_Codes/AB_backend` cite
+sections by number (`BRD §44`, `§50`, `§57`, `§59`, `§71`), so the existing numbering must not shift.
+Later acceptance-criteria sets should follow the same convention (76B, 76C, …) rather than renumber.
+
+Each criterion carries a stable ID. Automated tests name the IDs they verify, so
+`grep -r "INV-03" A_Codes/AB_backend/tests` answers "what proves this?".
+
+## 76A.1 Model inventory (INV)
+
+### INV-01
+Model registration refuses a missing mandatory field (§6.1) and names the field.
+
+### INV-02
+Every model edit writes an audit event carrying user, role, timestamp, entity, entity ID, before value
+and after value.
+
+### INV-03
+A validator who is also the model owner or the model developer is refused — on manual creation, on
+manual editing and on structured import.
+
+### INV-04
+An owner, developer or validator reference that does not exist is refused, naming the user ID.
+
+### INV-05
+Mandatory data for the target lifecycle phase is enforced on creation and on editing.
+
+### INV-06
+A concurrent edit of the same model is refused as a conflict; the later write never silently overwrites.
+
+### INV-07
+Model version is tracked independently of model ID.
+
+### INV-08
+A successor relationship is visible from both models; a successor on a model not in Retirement is refused.
+
+### INV-09
+A legacy segregation-of-duties exception loaded through the import flag remains visible on the model and
+as a governance insight.
+
+## 76A.2 Risk tiering (TIR)
+
+### TIR-01
+Tier score equals the sum of the four tiering answers, and the High/Medium/Low band comes from policy,
+never from code.
+
+### TIR-02
+A tiering answer outside 1–3 is refused.
+
+### TIR-03
+Changing `tier_high_min` or `tier_medium_min` re-derives every model's calculated tier; a threshold
+combination that is not `4 < medium < high ≤ 12` is refused.
+
+### TIR-04
+A tier override requires a reason and an authorised role; an override by an unauthorised role is refused.
+
+### TIR-05
+Applying an override retains the calculated tier alongside it and never deletes it.
+
+## 76A.3 Lifecycle (LIF)
+
+### LIF-01
+A phase transition records previous phase, new phase, transition date, the user and any reason given.
+
+### LIF-02
+The displayed pipeline column equals the lifecycle phase, except that a model in Monitoring whose next
+due date falls within the configured lead time, or is past, is shown in Revalidation.
+
+## 76A.4 Validation and revalidation (VAL)
+
+### VAL-01
+A validation whose completion date precedes its start date is refused.
+
+### VAL-02
+Next validation date equals last validation date plus the configured frequency, with month-end dates
+clamped to the last day of the target month.
+
+### VAL-03
+A model with no last validation date has no due date and does not appear in the revalidation queue.
+
+### VAL-04
+Models are classified Scheduled, Due Soon or Overdue using the configured lead time and due-soon window.
+
+### VAL-05
+Validator independence is enforced when a validation is recorded, not only when the model is edited.
+
+### VAL-06
+Recording a validation updates the model's validation currency and its next due date.
+
+## 76A.5 Findings and remediation (FND)
+
+### FND-01
+A finding with status Closed and no closed date is refused.
+
+### FND-02
+Days open, days overdue and overdue status are calculated from the raised date, due date and business date.
+
+### FND-03
+An invalid severity or status is refused and the message lists the allowed values.
+
+### FND-04
+Closing a finding writes an audit event and removes it from the overdue work queue.
+
+## 76A.6 Approvals and MRC decisions (APR)
+
+### APR-01
+A Conditional decision with no conditions recorded is refused.
+
+### APR-02
+Only a role holding the approval permission may record a decision.
+
+### APR-03
+A Conditional decision stays visible as outstanding until every condition is closed.
+
+### APR-04
+Decisions for a model are listed newest first.
+
+## 76A.7 Governance score (SCR)
+
+### SCR-01
+Every component score and the overall score match an independent hand calculation to one decimal place.
+
+### SCR-02
+A component that is not applicable is dropped and the remaining weights are rescaled to 100%.
+
+### SCR-03
+The issue-remediation component floors at zero and never goes negative.
+
+### SCR-04
+Changing a component weight in policy changes the model and portfolio scores accordingly.
+
+### SCR-05
+The score is explainable: each component shows its weight, effective weight, calculation inputs,
+explanation and any missing information.
+
+### SCR-06
+A model with no applicable component has no score and states the reason instead of showing zero.
+
+## 76A.8 Configuration (CFG)
+
+### CFG-01
+Every configurable value is read from `policy_setting`; a value of the wrong type is refused with a
+human-readable message.
+
+### CFG-02
+A policy change takes effect on the next read without restarting the application.
+
+### CFG-03
+A policy edit writes an audit event with before and after values, and a stale edit is refused as a conflict.
+
+### CFG-04
+An unknown policy key returns not-found rather than creating a setting.
+
+## 76A.9 Roles and access control (SEC)
+
+### SEC-01
+Every role has a defined permission set, and an unknown role has no permissions.
+
+### SEC-02
+Auditor and Executive hold no write permission; a direct API write by either is refused and nothing is saved.
+
+### SEC-03
+A Model Owner may edit only the models assigned to them; editing another owner's model is refused.
+
+### SEC-04
+Signing in with a role the user does not hold is refused.
+
+### SEC-05
+Deactivating a user, or removing their role, invalidates an already-issued token on its next use.
+
+### SEC-06
+A missing or malformed token is refused as unauthenticated.
+
+## 76A.10 Audit trail (AUD)
+
+### AUD-01
+Every material write creates an audit event in the same transaction as the business change, so the two
+commit or roll back together.
+
+### AUD-02
+No application route updates or deletes an audit event, and the database enforces append-only.
+
+### AUD-03
+The audit trail filters by user, model, entity, action, date, import batch and document.
+
+### AUD-04
+Audit access is restricted to roles holding the audit-read permission.
+
+## 76A.11 Command Center and insights (CC)
+
+### CC-01
+Every tile equals the count returned by its own drill-down list.
+
+### CC-02
+Distribution charts sum to the portfolio total and percentages sum to 100 ± 1.
+
+### CC-03
+The revalidation timeline contains exactly the models in the Revalidation column.
+
+### CC-04
+Insights are generated from current data, and resolving the underlying cause removes the insight.
+
+## 76A.12 Seed and reset (GEN)
+
+### GEN-01
+Reset to seed is deterministic: the same business date reproduces the same row counts and the documented
+portfolio distribution.
+
+### GEN-02
+Reset is refused for a role without the required permission.
+
+### GEN-03
+The demo files with deliberate errors produce the documented valid/rejected split.
+
+## 76A.13 Traceability to the superseded conditions
+
+| New ID | Superseded condition (`design.md` §12) |
+|---|---|
+| INV-01, INV-05 | TC-INV-01-1, TC-INV-02-1 |
+| INV-02 | TC-INV-02-2 |
+| INV-03 | TC-INV-03-1, TC-INV-03-2 |
+| INV-08 | TC-INV-05-1, TC-INV-05-2 |
+| TIR-01, TIR-02 | TC-TIR-01-1, TC-TIR-01-2, TC-TIR-01-3 |
+| TIR-04, TIR-05 | TC-TIR-02-1, TC-TIR-02-2, TC-TIR-02-3 |
+| LIF-02 | TC-OPS-01-1 |
+| VAL-01 | TC-HIS-01-1, TC-HIS-01-2 |
+| VAL-02, VAL-03 | TC-INV-04-1, TC-INV-04-2 |
+| FND-01 | TC-HIS-02-1, TC-HIS-02-2 |
+| APR-01 | TC-HIS-03-1, TC-HIS-03-2 |
+| SCR-01, SCR-02, SCR-03 | TC-SCR-01-1, TC-SCR-01-2, TC-SCR-01-3 |
+| SCR-04 | TC-CFG-02-1 |
+| CFG-01 | TC-CFG-01-1, TC-CFG-01-3 |
+| CFG-02 | TC-CFG-02-2 |
+| SEC-01, SEC-04 | TC-USR-01-1, TC-USR-01-2, TC-USR-02-1 |
+| SEC-02, SEC-03 | TC-USR-03-1, TC-USR-03-2, TC-USR-03-3 |
+| AUD-01, AUD-02 | TC-AUD-01-1, TC-AUD-01-2 |
+| CC-01, CC-02, CC-03 | TC-CC-01-1, TC-CC-02-1, TC-CC-02-2 |
+| CC-04 | TC-CC-04-1, TC-CC-04-2 |
+| GEN-01, GEN-02 | TC-GEN-01-1, TC-GEN-01-2 |
+| GEN-03 | TC-GEN-02-1 |
+
+Conditions in `design.md` §12 for capabilities that are not yet built — `TC-CDE-*`, `TC-KPI-*`,
+`TC-DA-*`, `TC-COP-*`, `TC-M360-*` (E2E), `TC-OPS-02/03`, `TC-NFR-*` — are deliberately **not** ported
+here. They belong with Phases 6, 7 and 9 and should be written as MON-, DQ- and COP- criteria when those
+phases are specified.
+
+## 76A.14 Known coverage gaps
+
+A criterion ID appears in a test file only where a test actually verifies it, so
+`grep -rn "<ID>" A_Codes/AB_backend/tests` is a true coverage signal. Gaps are recorded here rather
+than in the test files, so that grep is never polluted by a mention of something not covered.
+
+Coverage at the time of writing: **82 of 112** criteria (§76A, §76D, §77, §78, §79) referenced by at
+least one automated test — 82 of 86 once the 12 unbuilt monitoring criteria and the 14 unbuilt regulatory
+criteria (§76D) are excluded.
+
+| Criterion | Gap | Reason |
+|---|---|---|
+| INV-07 | Model version tracked independently of model ID | `model_version` rows are created and asserted incidentally (`versions[0]`), but no test drives two versions of one model ID. |
+| AUD-03 | Audit trail filters by user, model, entity, action, date, batch, document | Individual filters are used throughout the suite to *find* events; none asserts the filter contract itself, and the date range is never exercised. |
+| DOC-11 | A user can see batch progress | The progress store (`app/workers/runner.ProgressStore`) has no test. |
+| DOC-16 | AI extraction cannot persist without confirmation | Phase 5; not yet built. |
+| MON-01…MON-12 | All monitoring criteria | Phase 6; not yet built. |
+| REG-01…REG-14 | All regulatory alignment criteria | Phase 2A; not yet built. |
+
+The first three are real gaps in built functionality and should be closed before Phase 6 adds more
+surface area. The last two are correctly open — the capability does not exist yet.
+
+The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text in its
+report. Update this section from that report rather than by hand.
+
+---
+
+# 76D. Acceptance Criteria — Regulatory Alignment (REG)
+
+Criteria for §12A. Numbered 76D because 76B (Data Audit, D8) and 76C (Copilot, D11) are reserved.
+
+### REG-01
+Saving a Tool or AI system record without `classification_reason` is refused with a message naming the
+field; nothing is saved and no audit event is written.
+
+### REG-02
+Tool and AI system records are excluded from model counts, tiering, revalidation, the governance score
+and the Operations Board, and appear when the class filter selects them.
+
+### REG-03
+Changing `inventory_class` writes one audit event with before value, after value and reason. A user
+without `REG_CLASSIFY` is refused by the API (403) and nothing is saved.
+
+### REG-04
+A model linked to an AI system keeps its tier, validation and score; its Model 360 shows "Used by AI
+system", and the AI system's record lists the model.
+
+### REG-05
+A High tier or a tier override without `tier_rationale` is refused. With an exposure amount, the
+suggested Materiality answer follows `materiality_exposure_bands`, and the saved answer is the user's.
+
+### REG-06
+A new model's revalidation frequency defaults from `reval_frequency_by_tier`. A longer frequency without
+`frequency_deviation_reason` is refused. Changing the policy leaves existing models' frequencies unchanged
+and lists the models now longer than the default.
+
+### REG-07
+A vendor model without vendor name or product is refused. Documents in `vendor_required_documents` count
+towards completeness for vendor models only. A vendor model in Monitoring with no outcomes-analysis or
+backtest run within `vendor_outcomes_max_age_days` raises an insight (needs Phase 6).
+
+### REG-08
+A challenge resolved as "Finding raised" creates the linked finding in the same transaction; if the
+finding fails validation, neither is saved. A challenge raised by the model's owner or developer is
+refused. An open challenge past its due date raises an insight.
+
+### REG-09
+An overlay or use exception without rationale, approver, approval date or expiry is refused; an approver
+who is the model's owner or developer, or lacks `OVERLAY_APPROVE`, is refused. After the expiry date
+(by `app.clock.today()`) the record shows as expired and raises an insight.
+
+### REG-10
+A model in Implementation or Monitoring whose latest outcome is Rejected, or whose revalidation is
+Overdue, raises a Critical insight unless it has an active use exception; adding the exception clears
+the insight.
+
+### REG-11
+A self-dependency and a dependency that would create a cycle are refused. When an upstream model has an
+open Critical finding, a Critical breach, a Rejected latest outcome or an overdue revalidation, each
+downstream model shows "Upstream issue" and an insight is raised; resolving the upstream issue clears
+both.
+
+### REG-12
+Each aggregate figure on the Command Center (REQ-REG-09) drills down to its models, and the count equals
+the number of models listed and the matching Operations Board filter.
+
+### REG-13
+The model risk report for a business date contains every REQ-REG-10 section, its figures equal the
+Command Center for that date, generating it twice from the same data gives the same content, and each
+generation writes an audit event.
+
+### REG-14
+T19–T21 rows load through the same service path as the UI; an unknown model, validation or finding
+reference rejects the row with a message naming the field and the row. T02 files without the §12A columns
+load unchanged. The Auditor role can read all §12A records and download the report and evidence package,
+and every Auditor write is refused by the API.
 
 ---
 
@@ -2619,6 +3427,16 @@ Business rules:
 - Approvals.
 - Governance score.
 
+## Phase 2A — Regulatory Alignment (SR 26-2)
+- Inventory classification (Model / Tool / AI system) and AI-system links.
+- Exposure, tier rationale, proportionate revalidation defaults.
+- Vendor model fields and required documents.
+- Effective challenge log.
+- Limitations, overlays and use exceptions.
+- Model dependencies and upstream-issue propagation.
+- Aggregate model risk view and model risk report.
+- Templates T19–T21, T02 columns, seed additions, criteria REG-01 to REG-14.
+
 ## Phase 3 — Import Engine
 - Excel.
 - CSV.
@@ -2680,6 +3498,27 @@ Business rules:
 
 ---
 
+# 81A. Decisions Required Before Phases 5–9
+
+Numbered 81A so no existing section shifts. Claude Code shall not implement an item until its Decision
+column is filled in; the proposed default is a starting point for that decision, not an instruction.
+
+| ID | Decision needed | Sections | Proposed default | Needed before | Decision |
+|---|---|---|---|---|---|
+| D1 | T07/T08 (KPI definitions and results) and T14/T15 (monitoring metrics and results) describe the same data, and §48 keeps both `kpi`/`kpi_result` and `monitoring_metric`/`monitoring_result`. Which is the system of record? | §48, §71, §72 | `monitoring_metric` and `monitoring_result` only. T07 and T08 stay as import aliases that write to them, so older files still load. T09 curves link to `monitoring_run`. `kpi` and `kpi_result` are not created | Phase 6 | — |
+| D2 | The "within range" direction (§16) needs a lower and an upper bound, but a metric has one threshold, one warning and one breach value | §16, §48, T14 | Add `range_lower` and `range_upper`, used only when direction is within range | Phase 6 | — |
+| D3 | §20 says the system creates a breach when a threshold is violated; T16 also imports breaches. How do the two meet? | §20, T16 | Breaches are created only by the rules. A T16 row must match an existing breach on run and metric and updates its status, root cause and response; an unmatched row is rejected | Phase 6 | — |
+| D4 | Backtests (§23) have fields but no table and no template | §23, §48, §71 | A backtest is a `monitoring_run` with `monitoring_type` = Backtest; methodology is recorded on the run; screens filter it separately | Phase 6 | — |
+| D5 | Escalation (§21) and repeated-breach (§22) rules must be configurable, but no policy keys are defined, and Part 0 requires a T12 row for every constant | §21, §22, §69 | T12 keys: `breach_severity_rules` (list), `repeat_breach_consecutive` = 2, `repeat_breach_count` = 3, `repeat_breach_window` = 4, `warn_escalation_periods` = 3 | Phase 6 | — |
+| D6 | Once monitoring exists, what feeds the Monitoring component of the governance score, and how are Not Available results treated? | §57 | Share of active metrics whose latest result is Pass. Not Applicable is excluded; Not Available is excluded and listed as missing information | Phase 6 | — |
+| D7 | §77 has no criteria for escalation rules (§21), repeated breaches (§22), backtest separation (§23), evidence links (§24) or T13–T16 import validation | §21–§24, §77 | Add MON-13 onwards to §77 before coding starts | Phase 6 | — |
+| D8 | Data Audit has no acceptance criteria | §55.5, §76A.13 | Write DQ criteria as §76B | Phase 7 | — |
+| D9 | The mock-up generates an MRC governance report (download, AI commentary), but no BRD section requires one | §55 | Decide whether it is in scope; if so, add a requirement and criteria | Any | In scope as the model risk report, §12A REQ-REG-10 and REG-13; AI commentary waits for Phase 9 |
+| D10 | Finding statuses Accepted Risk, Deferred and Rejected are "additional recommended" in §11 — required or not? | §11, FND-03 | Required, because breaches already use Accepted Risk (§20) and can become findings (MON-09) | Any | — |
+| D11 | The Audit Copilot has no acceptance criteria | §61, §76A.13 | Write COP criteria as §76C | Phase 9 | — |
+
+---
+
 # 82. Claude Code Development Instructions
 
 Claude Code shall treat this BRD as the business specification.
@@ -2710,6 +3549,9 @@ Implementation rules:
 ---
 
 # 83. Suggested Repository Structure
+
+*Superseded by the actual layout in Part 0 → Repository layout. Kept for reference only; do not
+restructure the repository to match it.*
 
 ```text
 mrm-mis/
@@ -2773,6 +3615,8 @@ A feature is complete only when:
 - Relevant documentation updated.
 - No hard-coded business data.
 - Existing functionality remains operational.
+- `/review-build` run for the feature, with no open Critical or High finding.
+- Mock-up parity checks for the feature's screens are Match or recorded as an accepted difference.
 
 ---
 
@@ -2807,6 +3651,8 @@ A feature is complete only when:
 - Operations Board.
 - Document Centre.
 - Import Centre.
+- Regulatory alignment (§12A): inventory classification, vendor models, effective challenge,
+  limitations/overlays/use exceptions, model dependencies, aggregate model risk view, model risk report.
 
 ## Should Have
 

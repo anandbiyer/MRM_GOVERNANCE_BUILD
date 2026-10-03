@@ -1,3 +1,4 @@
+"""Role model and access-control tests (BRD §5, §59; criteria §76A SEC-01..SEC-06, AUD-01)."""
 from app.auth.roles import ROLE_PERMISSIONS, Permission, Role, has_permission
 from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, VALIDATOR, login
 
@@ -6,19 +7,23 @@ WRITE_PERMISSIONS = set(Permission) - {Permission.READ, Permission.AUDIT_READ}
 
 
 def test_every_role_has_a_permission_set():
+    """SEC-01: every declared role has a permission set."""
     assert set(ROLE_PERMISSIONS) == set(Role)
 
 
 def test_auditor_and_executive_are_read_only():
+    """SEC-02: Auditor and Executive hold no write permission at all."""
     for role in READ_ONLY_ROLES:
         assert not (ROLE_PERMISSIONS[role] & WRITE_PERMISSIONS), role
 
 
 def test_unknown_role_has_no_permissions():
+    """SEC-01: an unrecognised role name grants nothing, not even read."""
     assert not has_permission("Superuser", Permission.READ)
 
 
 def test_login_and_me(client):
+    """SEC-01: the session reports exactly the permissions of the signed-in role."""
     headers = login(client, *VALIDATOR)
     me = client.get("/api/auth/me", headers=headers).json()
     assert me["user_id"] == "U-014"
@@ -28,27 +33,32 @@ def test_login_and_me(client):
 
 
 def test_login_with_role_user_does_not_hold_is_refused(client):
+    """SEC-04: signing in with a role the user does not hold is refused."""
     resp = client.post("/api/auth/login", json={"user_id": "U-041", "role": "Admin"})
     assert resp.status_code == 403
     assert "does not hold the role 'Admin'" in resp.json()["detail"]
 
 
 def test_multi_role_user_can_log_in_as_either_role(client):
+    """SEC-04: a user holding two roles may sign in as either, one at a time."""
     for role in ("MRC Member", "Executive"):
         assert client.get("/api/auth/me", headers=login(client, "U-040", role)).json()["role"] == role
 
 
 def test_missing_or_bad_token_is_401(client):
+    """SEC-06: a missing or malformed token is refused as unauthenticated."""
     assert client.get("/api/auth/me").status_code == 401
     assert client.get("/api/auth/me", headers={"Authorization": "Bearer nonsense"}).status_code == 401
 
 
 def test_dev_users_lists_active_users(client):
+    """SEC-04: the development sign-in list offers only active users."""
     users = client.get("/api/auth/dev-users").json()
     assert {"U-001", "U-041"} <= {u["user_id"] for u in users}
 
 
 def test_auditor_cannot_edit_policy_and_nothing_changes(client):
+    """SEC-02, CFG-03: a refused policy write leaves the stored value untouched."""
     before = {s["setting_key"]: s for s in client.get("/api/admin/policy", headers=login(client, *ADMIN)).json()}
     resp = client.put("/api/admin/policy/reval_lead_days", headers=login(client, *AUDITOR),
                       json={"value": "90", "row_version": before["reval_lead_days"]["row_version"]})
@@ -58,6 +68,7 @@ def test_auditor_cannot_edit_policy_and_nothing_changes(client):
 
 
 def test_executive_cannot_create_users(client):
+    """SEC-02: a read-only role cannot create users."""
     resp = client.post("/api/users", headers=login(client, *EXECUTIVE), json={
         "user_id": "U-900", "full_name": "Test Person", "email": "t.person@demo-bank.example", "roles": ["Validator"],
     })
@@ -65,6 +76,7 @@ def test_executive_cannot_create_users(client):
 
 
 def test_admin_creates_user_with_audit_event(client):
+    """AUD-01: creating a user writes exactly one audit event carrying the acting user and role."""
     admin = login(client, *ADMIN)
     resp = client.post("/api/users", headers=admin, json={
         "user_id": "U-900", "full_name": "Test Person", "email": "t.person@demo-bank.example",
@@ -79,6 +91,7 @@ def test_admin_creates_user_with_audit_event(client):
 
 
 def test_create_user_with_unknown_role_is_rejected(client):
+    """SEC-01: a user cannot be created with a role outside the role model."""
     resp = client.post("/api/users", headers=login(client, *ADMIN), json={
         "user_id": "U-901", "full_name": "Test Person", "email": "t2@demo-bank.example", "roles": ["Superuser"],
     })
@@ -87,6 +100,7 @@ def test_create_user_with_unknown_role_is_rejected(client):
 
 
 def test_deactivated_user_token_stops_working(client, db_session):
+    """SEC-05: deactivating a user invalidates an already-issued token on its next use."""
     headers = login(client, *VALIDATOR)
     from app.models import AppUser
     with db_session() as s:
