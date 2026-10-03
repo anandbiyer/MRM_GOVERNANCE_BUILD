@@ -5,6 +5,7 @@ B_Inputs/AC_seed — the same path a user import takes — then loads the seed e
 through the Document Centre batch path. Stored objects of cleared documents remain in object storage. The audit trail and import history are
 kept: audit records are immutable, and the reset itself is recorded as an audit event.
 """
+import csv
 import importlib.util
 from collections.abc import Callable
 from pathlib import Path
@@ -38,6 +39,7 @@ from app.models import (
     UserRole,
     Validation,
 )
+from app.services import bootstrap_service
 from app.services.errors import ForbiddenError, ValidationFailedError
 from app.services.policy_access import Policy
 from app.workers import runner
@@ -56,6 +58,28 @@ def regenerate_seed(directory: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.generate(directory, today(), demo_dir=s.demo_files_dir)
+
+
+def missing_baseline_settings(db: Session) -> list[str]:
+    """Policy keys the bootstrap baseline defines that the loaded seed did not supply.
+
+    A reset deletes `policy_setting` and reloads it from the seed's T12 alone, so a seed generated
+    before a new setting was introduced silently removes it. Every rule reads its thresholds from
+    this table, so the first screen to need the missing key fails with a 500 — the application looks
+    broken rather than misconfigured. B_Inputs/AA_bootstrap is the canonical baseline configuration
+    (`app.cli bootstrap` loads exactly it), so the seed must never be a subset of it.
+
+    Returns [] when the baseline file is absent: not every deployment ships one, and a missing
+    baseline is not evidence of an incomplete seed.
+    """
+    baseline = get_settings().bootstrap_dir / bootstrap_service.POLICY_FILE
+    if not baseline.exists():
+        return []
+    with baseline.open(newline="", encoding="utf-8-sig") as fh:
+        expected = {(row.get("setting_key") or "").strip() for row in csv.DictReader(fh)}
+    expected.discard("")
+    loaded = set(db.scalars(select(PolicySetting.setting_key)))
+    return sorted(expected - loaded)
 
 
 def seed_files(directory: Path) -> list[tuple[str, bytes]]:
@@ -94,6 +118,25 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
         batch.status = "Processing"
         db.commit()
     engine.run(session_factory, batch_id, "load", None)
+
+    # Fail loudly on an incomplete configuration rather than leaving a 500 for the first user.
+    with session_factory() as db:
+        missing = missing_baseline_settings(db)
+        if missing:
+            batch = db.get(ImportBatch, batch_id)
+            batch.status = "Failed"
+            batch.error_message = (
+                f"Reset loaded the seed but {len(missing)} policy setting(s) required by the baseline "
+                f"are missing: {', '.join(missing)}. The seed's T12 is older than the configuration "
+                f"the rules need. Regenerate it (A_Codes/AD_seed/generate_seed.py) or run "
+                f"`python -m app.cli bootstrap` to restore the baseline."
+            )
+            audit.record(db, principal, action="reset_incomplete", entity="application", entity_id="all",
+                         import_batch_id=batch_id, after={"missing_policy_settings": missing},
+                         reason="Seed policy settings do not cover the baseline")
+            db.commit()
+            return
+
     load_seed_documents(session_factory, get_settings().seed_dir / "documents")
 
 

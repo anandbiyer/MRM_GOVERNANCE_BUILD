@@ -4,6 +4,7 @@ Function names keep the superseded design.md §12 condition IDs (TC-*); BRD §76
 """
 import csv
 import io
+import shutil
 
 from openpyxl import load_workbook
 
@@ -254,6 +255,116 @@ def test_tc_gen_01_reset_to_seed(client, test_settings):
     m12 = client.get("/api/models/M-0012", headers=login(client, *ADMIN)).json()
     doc_score = next(c for c in m12["score"]["components"] if c["key"] == "documentation")
     assert doc_score["score"] is not None
+
+
+# --- the committed seed, as it ships ---------------------------------------------------------
+#
+# Every test above resets from a seed that the test run generates itself, so none of them ever loads
+# the files in B_Inputs/AC_seed that actually ship to a new machine. These three do.
+
+
+def _committed_seed_templates(target):
+    """Copy the committed seed's templates (not its ~1,100 evidence PDFs) into `target`."""
+    from app.config import PROJECT_DIR
+
+    source = PROJECT_DIR / "B_Inputs" / "AC_seed"
+    target.mkdir(parents=True, exist_ok=True)
+    for path in sorted(source.glob("*")):
+        if path.is_file() and path.suffix.lower() in (".xlsx", ".csv"):
+            shutil.copy2(path, target / path.name)
+    return target
+
+
+def _baseline_policy_keys():
+    from app.config import PROJECT_DIR
+    from app.services.bootstrap_service import POLICY_FILE
+
+    path = PROJECT_DIR / "B_Inputs" / "AA_bootstrap" / POLICY_FILE
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        return {(row.get("setting_key") or "").strip() for row in csv.DictReader(fh)} - {""}
+
+
+def _seed_policy_keys(seed_dir):
+    ws = load_workbook(seed_dir / "T12_policy_settings.xlsx")["data"]
+    return {row[0].value for row in ws.iter_rows(min_row=2) if row[0].value}
+
+
+def test_committed_seed_covers_the_policy_baseline(tmp_path):
+    """GEN-01: the committed seed's T12 must not be a subset of the bootstrap baseline.
+
+    A reset deletes policy_setting and reloads it from the seed alone, so any baseline key the seed
+    omits disappears and the first rule to read it fails with a 500. This is the cheap check that
+    catches a stale seed without loading one.
+    """
+    seed = _committed_seed_templates(tmp_path / "seed")
+    missing = sorted(_baseline_policy_keys() - _seed_policy_keys(seed))
+    assert missing == [], (
+        f"B_Inputs/AC_seed/T12_policy_settings.xlsx is missing {missing}. Regenerate it with "
+        f"A_Codes/AD_seed/generate_seed.py — a reset would silently drop these settings."
+    )
+
+
+def test_generated_seed_covers_the_policy_baseline(test_settings):
+    """GEN-01: and the generator must keep covering it, so a future regeneration cannot regress."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("generate_seed", test_settings.seed_generator)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    generated = {row["setting_key"] for row in module._policy_rows()}
+    assert sorted(_baseline_policy_keys() - generated) == []
+
+
+def test_reset_from_the_committed_seed_leaves_the_dashboard_working(client, test_settings, tmp_path):
+    """GEN-01, CC-01: resetting from the seed that actually ships must not break the Command Center.
+
+    The regression this guards: the committed T12 lacked `production_phases`, so after a reset
+    /api/dashboard/summary raised PolicyMissingError and the Command Center never rendered.
+    """
+    test_settings.seed_dir = _committed_seed_templates(tmp_path / "committed_seed")
+    test_settings.regenerate_seed_on_reset = False
+    h = login(client, *ADMIN)
+
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch = client.get(f"/api/imports/batches/{resp.json()['batch_id']}", headers=h).json()
+    assert batch["status"] == "Completed", batch.get("error_message") or batch
+
+    summary = client.get("/api/dashboard/summary", headers=h)
+    assert summary.status_code == 200, summary.text
+    assert summary.json()["tiles"]["total_models"] == 256
+
+
+def test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting(client, test_settings, tmp_path):
+    """GEN-01: an incomplete seed fails the reset batch and names the keys, rather than loading
+    successfully and leaving a 500 for the first user to find."""
+    seed = _committed_seed_templates(tmp_path / "stale_seed")
+    book = load_workbook(seed / "T12_policy_settings.xlsx")
+    ws = book["data"]
+    dropped = "production_phases"
+    for row in list(ws.iter_rows(min_row=2)):
+        if row[0].value == dropped:
+            ws.delete_rows(row[0].row)
+            break
+    book.save(seed / "T12_policy_settings.xlsx")
+    assert dropped not in _seed_policy_keys(seed)
+
+    test_settings.seed_dir = seed
+    test_settings.regenerate_seed_on_reset = False
+    h = login(client, *ADMIN)
+
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch = client.get(f"/api/imports/batches/{resp.json()['batch_id']}", headers=h).json()
+    assert batch["status"] == "Failed", batch
+    assert dropped in batch["error_message"]
+    assert "Regenerate" in batch["error_message"]
+
+    events = client.get("/api/audit", headers=h, params={"action": "reset_incomplete"}).json()
+    assert len(events) == 1
+    # `in`, not equality: this test is about the guard reporting the key it dropped, and must not
+    # also fail if the committed seed happens to be missing something else.
+    assert dropped in events[0]["after_json"]["missing_policy_settings"]
 
 
 def test_reset_disabled(client, test_settings):
