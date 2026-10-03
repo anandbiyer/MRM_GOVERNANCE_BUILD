@@ -11,6 +11,8 @@ Business specification: [`claude.md`](claude.md) (BRD). Earlier requirements and
 | `A_Codes/_OLD/` | Every earlier version of every changed code file (`<name>_v<N>_<YYYYMMDD>.<ext>`) |
 | `B_Inputs/` | All input data: `AA_bootstrap` (policy settings, core users), `AB_sample_data` (Phase-2 samples), `AC_seed` (256-model seed templates + synthetic evidence PDFs), `AD_demo_files` (files with deliberate errors for demos), `_OLD` (earlier versions) |
 | `C_Requirements/` | Requirements documents and the original prototype |
+| `D_Reviews/` | Generated review reports, committed so findings stay traceable between phases |
+| `E_ProjectPlan/` | [`project_plan.md`](E_ProjectPlan/project_plan.md) — current state, what remains, and the activity list to a demonstrable product. Kept up to date as work lands |
 
 ## Set up on a new computer (e.g. office laptop)
 

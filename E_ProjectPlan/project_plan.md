@@ -1,0 +1,228 @@
+# MRM/MIS — Project Plan
+
+**Status as at:** 2026-10-03 · **Branch:** `review-agents` · **Head:** `ee6c7eb`
+
+This is the live plan from the current build to a demonstrable product. It is the tracking document:
+statuses here are maintained as work lands, and every activity carries a stable ID so it can be
+referenced in commits and reviews.
+
+## How to use this file
+
+- **Stable IDs.** `G0.1`, `G1.4` and so on never change meaning or get renumbered. New work gets the
+  next free number in its gate; cancelled work is marked `Dropped`, not deleted.
+- **Status vocabulary:** `Done` · `In progress` · `Blocked` · `Not started` · `Dropped`.
+  `Blocked` always names what it waits on.
+- **Evidence.** A `Done` row cites what proves it — a commit, a test, a report path. A row without
+  evidence is not `Done`.
+- **Update rule.** Update this file in the same change that moves the work, not afterwards. Add a line
+  to the change log at the bottom. Keep the "Status as at" line current.
+- Findings referenced as `CR-nn` / `TR-nn` / `MP-nn` come from `D_Reviews/20261002_summary.md` and the
+  three reports beneath it. `D1`–`D11` are the §81A decisions in `CLAUDE.md`.
+
+---
+
+## 1. Where the project stands
+
+| Dimension | Built | Remaining |
+|---|---|---|
+| BRD phases (§81) | 1, 2, 3, 4 + core of 8 | 2A, 5, 6, 7, 9, 10 |
+| Screens (§55) | 7 of 11 | 2 placeholders (Monitoring, Data Audit) + 2 absent (Model Risk Report, Copilot) |
+| Database tables | 21 | ~17 — monitoring (6), CDE/DQ (4), KPI/performance (3), `document_extraction`, §12A (3) |
+| Import templates | 8 of 21 — T01–T05, T12, T17, T18 | 10 registered but disabled (T06–T11, T13–T16) + T19–T21 not registered |
+| API groups (§54) | ~11 | 8 — monitoring (5), cde, dq, copilot |
+| Acceptance criteria | 69 of 112 proven | 16 open in built scope (3 untested, 13 partly proven) + 27 unbuilt |
+| Mock-up parity | 24 of 35 items Match | 10 not built, 1 flaky harness |
+| Roles / permissions | 10 × 15, enforced server-side | `REG_CLASSIFY`, `OVERLAY_APPROVE` (Phase 2A) |
+
+**The shape of it:** the governance spine is complete — recording and governing a model works end to
+end. The measurement half is absent — nothing observes a model over time. That is why 69 of 112
+criteria are proven while only about 55% of the data model exists.
+
+### Two demo bars
+
+| Bar | Scope | State |
+|---|---|---|
+| **A — what exists** | Inventory, tiering, validation, findings, approvals, score, structured import, documents, Command Center, Operations Board, Model 360, Admin, Audit Trail | Near ready; Gate 0 closes it out |
+| **B — what the customer saw** | All 35 mock-up items, including monitoring, backtesting, CDE/DQ, the MRC report and the Copilot | Needs Gates 1–6 |
+
+**Recommended target:** Gate 0 → 1 → 2 → 3. That is the shortest credible customer demo: the full
+governance lifecycle, the SR 26-2 regulatory story, the model risk report and monitoring. Data Audit,
+AI extraction and the Copilot are self-contained and nothing depends on them, so they can be presented
+as roadmap.
+
+---
+
+## 2. Completed to date
+
+| ID | Activity | Status | Evidence |
+|---|---|---|---|
+| GR.1 | §76A acceptance criteria for the governance core (57 criteria) ported from the superseded `design.md` §12, with a traceability map | Done | `claude.md` §76A, commit `83afa1f` |
+| GR.2 | Tests tagged with criterion IDs — 104 of 111 functions | Done | commit `83afa1f` |
+| GR.3 | CI workflow: backend pytest, migrations + PostgreSQL, frontend build | Done | `.github/workflows/ci.yml`, commit `83afa1f` |
+| GR.4 | Three review agents + `/review-build` + `D_Reviews/` | Done | `.claude/`, commit `7ecb31c`. **Caveat:** agents register only after a Claude Code restart |
+| GR.5 | Playwright mock-up parity harness, 35-item checklist | Done | `A_Codes/AF_e2e/`, commit `7ecb31c`. `mockup` project 35/35 |
+| GR.6 | `setup_first_time.ps1` requires Python 3.14 and installs the harness | Done | commit `7ecb31c` |
+| GR.7 | First full review run — 1 Critical, 7 High | Done | `D_Reviews/20261002_summary.md` |
+| GR.8 | **MP-01** — stale seed T12 dropped two policy settings, so Reset to seed left the Command Center returning 500 | Done | commit `f87f130`; seed 60→62 keys; reset now fails loudly on an incomplete baseline |
+| GR.9 | **MP-02** — four tests covering the committed seed, each confirmed to fail before the fix | Done | commit `f87f130`; suite 143 tests, 139 pass |
+| GR.10 | CLAUDE.md corrections from the review applied | Done | commit `ee6c7eb` |
+
+---
+
+## 3. Gate 0 — close out the review (unblocks Bar A)
+
+Small, high value, no dependencies. Everything here is an open finding from the first review.
+
+| ID | Activity | Finding | Status | Note |
+|---|---|---|---|---|
+| G0.1 | Resolve the lifecycle phase from policy; guard the unchecked `.index("Monitoring")` | CR-02 (High) | Not started | Reachable unhandled 500 on the Command Center if `lifecycle_phases` is edited |
+| G0.2 | Move governance score bands 60 / 80 into `policy_setting` | CR-01 (High) | Not started | Last hard-coded business numbers |
+| G0.3 | Enforce `Permission.DOCUMENT_REVIEW` on the review actions | CR-04 (Med) | Not started | A Model Developer can confirm document batches today |
+| G0.4 | "Open findings" tile must drill into findings, not models; severity bars must filter | CR-05 (Med) | Not started | Visible in a demo; breaks CC-01 |
+| G0.5 | Invalidate the Command Center query on mutation | CR-06 (Med) | Not started | Stale tiles after an edit |
+| G0.6 | Add `model_version` to documents | CR-07 (Med) | Not started | **Must land before G3** — monitoring evidence needs it |
+| G0.7 | Prove AUD-01: a refused write leaves no audit event; a failed audit rolls the change back | TR-01 (High) | Not started | Seven tests currently prove only that an event exists |
+| G0.8 | Prove APR-03 (outstanding until conditions close) and APR-04 (ordering by date) | TR-02, TR-03 (High) | Not started | |
+| G0.9 | Prove SEC-05 for role removal, not just deactivation | TR-04 (High) | Not started | Distinct code path |
+| G0.10 | Record decisions **D10** and **D5** | S1, S2 | Not started | D10 already implemented with a blank decision; D5's proposed key names clash with shipped T12 |
+| G0.11 | Fix the `127.0.0.1:5173` address in `.claude/agents/mockup-parity-tester.md`, or set `server.host` in `vite.config.ts` | MP-04 | Not started | The agent waits on an address that never answers |
+| G0.12 | Make `generate_seed.py`'s `shutil.rmtree` safe in a OneDrive-synced copy | new | Not started | A partial failure deletes committed evidence PDFs; hit once this session |
+| G0.13 | Stabilise the flaky MUP-34 cross-screen count check | MP-03 (Low) | Not started | Passes alone, intermittently reads 0 rows in a full run |
+
+## 4. Gate 1 — Phase 2A, Regulatory alignment (SR 26-2)
+
+First in the Part 0 build order. **Needs no §81A decision**, so it can start immediately and in
+parallel with Gate 2.
+
+| ID | Activity | Criteria | Status |
+|---|---|---|---|
+| G1.1 | Migration: §12A `model` columns, `model_dependency`, `effective_challenge`, `model_limitation` | — | Not started |
+| G1.2 | Inventory classification (Model / Tool / AI system) with reason, audit and exclusion from model counts | REG-01, REG-02 | Not started |
+| G1.3 | Exposure fields; materiality suggestion from `materiality_exposure_bands` that never overwrites the user's answer; `tier_rationale` | REG-03, REG-05 | Not started |
+| G1.4 | Proportionate revalidation defaults from `reval_frequency_by_tier` + deviation reason | REG-06 | Not started |
+| G1.5 | Vendor model fields and `vendor_required_documents` in completeness | REG-07 | Not started |
+| G1.6 | Effective challenge log; independence check; "Finding raised" creates the finding in the same transaction | REG-08 | Not started |
+| G1.7 | Limitations / overlays / use exceptions with approver rules, expiry insights and the Critical in-use insight | REG-09, REG-10 | Not started |
+| G1.8 | Model dependencies: self- and cycle-refusal, upstream-issue propagation | REG-11 | Not started |
+| G1.9 | Permissions `REG_CLASSIFY`, `OVERLAY_APPROVE` | — | Not started |
+| G1.10 | Templates T19–T21 and optional T02 columns — existing T02 files must still load | REG-14 | Not started |
+| G1.11 | Command Center aggregate model risk view with drill-down | REG-09, REG-12 | Not started |
+| G1.12 | **Model Risk Report** (§55.10) — generate, preview, download, audited, reproducible | REG-10, REG-13 | Not started |
+| G1.13 | Model 360 sections: classification, exposure, vendor, limitations, challenges, dependencies | — | Not started |
+| G1.14 | Auditor read-all + evidence package download | REG-11 | Not started |
+| G1.15 | Seed additions (§12A.4) and REG-01…REG-14 tests | — | Not started |
+
+**Delivers mock-up items MUP-29, MUP-30.**
+
+## 5. Gate 2 — record decisions D1–D7 ⛔ blocks Gate 3
+
+Not an engineering task. Can and should run in parallel with Gate 1.
+
+| ID | Decision | Subject | Status |
+|---|---|---|---|
+| G2.1 | **D1** | KPI vs monitoring tables — which is the system of record | Not started |
+| G2.2 | **D2** | Bounds for the "within range" direction | Not started |
+| G2.3 | **D3** | Rules-created breaches vs T16 import | Not started |
+| G2.4 | **D4** | Backtests as a `monitoring_run` type | Not started |
+| G2.5 | **D5** | Escalation / repeated-breach policy keys (see G0.10) | Not started |
+| G2.6 | **D6** | What feeds the Monitoring score component; treatment of Not Available | Not started |
+| G2.7 | **D7** | Missing MON criteria for §21–§24 and T13–T16 validation | Not started |
+
+## 6. Gate 3 — Phase 6, Monitoring (largest block)
+
+Blocked by Gate 2. Also requires G0.6.
+
+| ID | Activity | Criteria | Status |
+|---|---|---|---|
+| G3.1 | Migration: `monitoring_plan`, `monitoring_metric`, `monitoring_run`, `monitoring_result`, `monitoring_breach`, `monitoring_evidence` with effective dating | — | Blocked (G2) |
+| G3.2 | Monitoring plans, versioned, with owner/reviewer and review calendar | — | Blocked (G2) |
+| G3.3 | Configurable metrics and thresholds; direction incl. within-range (D2) | MON-01 | Blocked (G2) |
+| G3.4 | Runs and results; **threshold snapshot onto each result** so history never changes | MON-01, MON-05 | Blocked (G2) |
+| G3.5 | Breach creation, severity rules, escalation, repeated-breach detection (D3, D5) | MON-02, MON-03, MON-08 | Blocked (G2) |
+| G3.6 | Run completeness check before sign-off | MON-04 | Blocked (G2) |
+| G3.7 | Backtesting as a run type (D4) | — | Blocked (G2) |
+| G3.8 | Trends: ≥4 periods, chart drill-down to the result | MON-06, MON-07 | Blocked (G2) |
+| G3.9 | Evidence attachment to runs and metrics | MON-10 | Blocked (G2) |
+| G3.10 | Breach → finding conversion by authorised action only | MON-09 | Blocked (G2) |
+| G3.11 | Monitoring Dashboard screen (§25), replacing the placeholder | MON-11 | Blocked (G2) |
+| G3.12 | Model 360 Monitoring tab (§26) | — | Blocked (G2) |
+| G3.13 | Monitoring score component (D6) | MON-12 | Blocked (G2) |
+| G3.14 | Templates T13–T16 and T07–T09 | — | Blocked (G2) |
+| G3.15 | MON-01…MON-12 plus whatever D7 adds | — | Blocked (G2) |
+
+**Delivers MUP-18, MUP-19.** Note: every model's governance score shifts when this lands — the 15%
+monitoring weight stops being rescaled away. Expect the seeded portfolio figures to change.
+
+## 7. Gate 4 — Phase 7, Data Audit
+
+Blocked by **D8** (write DQ criteria as §76B).
+
+| ID | Activity | Status |
+|---|---|---|
+| G4.1 | Migration: `cde`, `dq_rule`, `dq_result`, `dq_issue` | Blocked (D8) |
+| G4.2 | CDE registry, DQ rules and thresholds, results by run, issue log | Blocked (D8) |
+| G4.3 | Templates T06 and T10 | Blocked (D8) |
+| G4.4 | Data Audit screen (§55.5), replacing the placeholder | Blocked (D8) |
+| G4.5 | Model 360 CDE/DQ tab | Blocked (D8) |
+| G4.6 | §76B criteria and tests | Blocked (D8) |
+
+**Delivers MUP-20, MUP-27, MUP-28.**
+
+## 8. Gate 5 — Phase 5, AI extraction
+
+| ID | Activity | Status |
+|---|---|---|
+| G5.1 | Migration: `document_extraction` with the §60 provenance fields (provider, model, prompt version, reviewer) | Not started |
+| G5.2 | PDF/DOCX text extraction | Not started |
+| G5.3 | Document classification and per-type extraction (ToR, MDD, Validation Report, Monitoring Report) | Not started |
+| G5.4 | Review queue; **nothing persists without human confirmation**; every AI step audited | Not started |
+| G5.5 | DOC-16 and MDD section completeness in the documentation score | Not started |
+
+**Delivers MUP-26.**
+
+## 9. Gate 6 — Phase 9, Audit Copilot
+
+Blocked by **D11** (write COP criteria as §76C).
+
+| ID | Activity | Status |
+|---|---|---|
+| G6.1 | Read-only query tools over governed data | Blocked (D11) |
+| G6.2 | Answers cite model IDs and underlying records; refuse to act | Blocked (D11) |
+| G6.3 | Suggested questions; Copilot screen and route | Blocked (D11) |
+| G6.4 | §76C criteria and tests | Blocked (D11) |
+
+**Delivers MUP-31, MUP-32.**
+
+## 10. Gate 7 — Phase 10, hardening (before any external demo)
+
+| ID | Activity | Status |
+|---|---|---|
+| G7.1 | OIDC / enterprise identity, replacing the no-password dev role picker | Not started |
+| G7.2 | Malware scanning on upload (`scan_status` is a stub today) | Not started |
+| G7.3 | Celery/RQ workers instead of the in-process thread executor | Not started |
+| G7.4 | Performance: <2s Command Center and Model 360 at scale | Not started |
+| G7.5 | **Frontend tests — none exist.** `tsc -b` is the only frontend gate | Not started |
+| G7.6 | E2E in CI (the parity harness is deliberately outside it) | Not started |
+| G7.7 | Backup / restore, health checks, deployment | Not started |
+
+---
+
+## 11. Critical path and risks
+
+1. **Gate 2 is a decision bottleneck, not an engineering one.** It gates the largest block of work
+   (Gate 3). Start it now, in parallel with Gate 1. If it slips, Gate 3 slips with it.
+2. **G0.6 must precede Gate 3.** Adding `model_version` to documents after monitoring evidence is
+   attached means migrating live associations.
+3. **Scores move when Gate 3 lands.** Anything quoting today's governance scores — seed expectations,
+   demo scripts, GEN-01's documented figures — needs revisiting then.
+4. **The review agents need a Claude Code restart** before `/review-build` works as intended (GR.4).
+5. **No deadline estimates appear in this plan deliberately.** There is no velocity data for this team;
+   sequencing and dependencies are stated instead, so dates can be attached once capacity is known.
+
+---
+
+## 12. Change log
+
+| Date | Change |
+|---|---|
+| 2026-10-03 | Plan created. Records GR.1–GR.10 as Done from the current session; Gates 0–7 opened with all activities `Not started` or `Blocked`. |

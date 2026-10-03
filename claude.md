@@ -89,6 +89,7 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
 | `B_Inputs/` | Input data: `AA_bootstrap` (policy + core users), `AB_sample_data`, `AC_seed`, `AD_demo_files` (deliberate errors for demos) |
 | `C_Requirements/_OLD/` | Earlier requirements and the original HTML prototype (visual reference) |
 | `D_Reviews/` | Review agent reports: `DA_code_review/`, `DB_test_review/`, `DC_mockup_review/`, plus a dated consolidated summary. Committed history, like `_OLD/` |
+| `E_ProjectPlan/` | `project_plan.md` — the live plan from today's build to a demonstrable product. Stable activity IDs (`G0.1`, `G1.4`), status per activity, decision register and change log. **Update it in the same change that moves the work**, not afterwards |
 | `.claude/agents/`, `.claude/commands/` | The three review agents and the `/review-build` command (see Review agents below) |
 
 ## Two repository conventions that override normal practice
