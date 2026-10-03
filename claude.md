@@ -22,7 +22,7 @@ A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env,
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 135 tests, in-memory SQLite, no infra
+.venv\Scripts\python -m pytest                              # 143 tests: 139 pass, 4 PostgreSQL skip
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
@@ -35,7 +35,7 @@ $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:
 .venv\Scripts\python -m app.cli import FILE ...  # validate and load files as one batch
 
 # Frontend (from A_Codes\AC_frontend)
-npm run dev          # :5173, proxies /api to 127.0.0.1:8000
+npm run dev          # localhost:5173 (not 127.0.0.1 — see below), proxies /api to 127.0.0.1:8000
 npm run typecheck    # tsc -b
 npm run build        # typecheck + build — the only lint/type gate in the repo
 
@@ -49,6 +49,12 @@ npx playwright test
 # Infra (optional; only needed for PostgreSQL/MinIO/Redis)
 docker compose -f A_Codes/AA_infra/docker-compose.yml --env-file A_Codes/AA_infra/.env up -d
 ```
+
+The dev server answers on **`http://localhost:5173`, not `http://127.0.0.1:5173`**:
+`AC_frontend/vite.config.ts` sets no `host`, so Vite binds to localhost only, which resolves to `::1`
+first on Windows — `127.0.0.1` refuses the connection. Anything scripted against the frontend (the
+`A_Codes/AF_e2e` harness, a health probe, a wait loop) must use `localhost`. The backend is the other
+way round: uvicorn binds `127.0.0.1:8000`, which is what the Vite proxy targets.
 
 There is no linter or formatter configured. `npm run build` and `pytest` are the gates, and
 `.github/workflows/ci.yml` runs them on every push to `main` and every pull request in three jobs:
@@ -177,14 +183,16 @@ validation, findings, approvals, score), the import engine (T12, T01–T05), the
 (single/batch/folder/ZIP, versioning, completeness), Command Center, Operations Board, Model 360, Import
 Centre, Admin, Audit Trail.
 
-Not yet built (registry entries and `PlannedPage` placeholders already exist), in build order:
+Not yet built, in build order. The "seam already exists" column says what is actually in place — it is
+not uniform, so check it before assuming there is a placeholder to replace:
 
-1. **Regulatory alignment (SR 26-2)** — Phase 2A, §12A, templates T19–T21. Extends the built inventory,
-   tiering, validation and Command Center; needs no §81A decision. REG-07 waits for Phase 6.
-2. **Monitoring** — Phase 6, templates T13–T16 and T07–T09
-3. **Data Audit / CDE-DQ** — Phase 7, templates T06 and T10
-4. **AI extraction** — Phase 5
-5. **Audit Copilot** — Phase 9, then hardening (Phase 10)
+| # | Capability | Phase | Seam already exists |
+|---|---|---|---|
+| 1 | **Regulatory alignment (SR 26-2)** — §12A, templates T19–T21. Extends the built inventory, tiering, validation and Command Center; needs no §81A decision. REG-07 waits for Phase 6 | 2A | **Nothing yet** — no registry entries for T19–T21, no tables, no route |
+| 2 | **Monitoring** — templates T13–T16 and T07–T09 | 6 | Registry entries (`available=False`), the Monitoring Dashboard `PlannedPage`, the Model 360 Monitoring tab, and the score's not-available component |
+| 3 | **Data Audit / CDE-DQ** — templates T06 and T10 | 7 | Registry entries (`available=False`), the Data Audit `PlannedPage`, the Model 360 CDE/DQ tab |
+| 4 | **AI extraction** | 5 | `document.extraction_status` defaults to "Not started"; the documentation score names the dependency |
+| 5 | **Audit Copilot**, then hardening (Phase 10) | 9 | **Nothing yet** — no route, nav entry or placeholder |
 
 **Do not start Phase 6 until decisions D1–D7 in §81A are recorded.** Phase 7 also needs D8, and Phase 9
 needs D11. When adding these, follow the existing seams: new `app/monitoring/` service package,
@@ -3143,23 +3151,70 @@ phases are specified.
 
 A criterion ID appears in a test file only where a test actually verifies it, so
 `grep -rn "<ID>" A_Codes/AB_backend/tests` is a true coverage signal. Gaps are recorded here rather
-than in the test files, so that grep is never polluted by a mention of something not covered.
+than in the test files, so that grep is never polluted by a mention of something not covered. The one
+current exception is the range `GEN-01..GEN-03` in the `test_imports.py` module docstring, which makes
+`grep GEN-03` a false positive — see "Tagging and spec gaps" below.
 
-Coverage at the time of writing: **82 of 112** criteria (§76A, §76D, §77, §78, §79) referenced by at
-least one automated test — 82 of 86 once the 12 unbuilt monitoring criteria and the 14 unbuilt regulatory
-criteria (§76D) are excluded.
+**Referenced is not proven.** The earlier figure in this section counted criteria *mentioned* by a
+test. What matters is whether the test asserts the criterion's expected result, which is a different
+and smaller number.
+
+Coverage at 2026-10-02 (`test-outcome-reviewer`): **69 of 112** criteria (§76A, §76D, §77, §78, §79)
+are *proven* — 69 of 85 once the 12 unbuilt monitoring criteria (§77), the 14 unbuilt regulatory
+criteria (§76D) and DOC-16 (Phase 5) are excluded. A further 13 have a test that passes without
+asserting the whole expected result, and 3 have no test at all.
+
+### Not proven — no test
 
 | Criterion | Gap | Reason |
 |---|---|---|
 | INV-07 | Model version tracked independently of model ID | `model_version` rows are created and asserted incidentally (`versions[0]`), but no test drives two versions of one model ID. |
 | AUD-03 | Audit trail filters by user, model, entity, action, date, batch, document | Individual filters are used throughout the suite to *find* events; none asserts the filter contract itself, and the date range is never exercised. |
 | DOC-11 | A user can see batch progress | The progress store (`app/workers/runner.ProgressStore`) has no test. |
-| DOC-16 | AI extraction cannot persist without confirmation | Phase 5; not yet built. |
-| MON-01…MON-12 | All monitoring criteria | Phase 6; not yet built. |
-| REG-01…REG-14 | All regulatory alignment criteria | Phase 2A; not yet built. |
 
-The first three are real gaps in built functionality and should be closed before Phase 6 adds more
-surface area. The last two are correctly open — the capability does not exist yet.
+### Partly proven — a test exists but misses part of the expected result
+
+| Criterion | What is proven | What is missing |
+|---|---|---|
+| INV-01 | A valid registration succeeds | No refusal of a missing mandatory field, and no assertion that the field is named. |
+| INV-02 | A create is audited; an *import* update records before/after | No audit assertion on a manual `PUT /api/models/{id}` — user, role, timestamp, before and after. |
+| INV-03 | SoD refused on create and on import | Not exercised on manual edit, which the criterion names. |
+| INV-06 | The stale write returns 409 | Not re-read to show the stale write did not take effect. |
+| LIF-01 | `to_phase` on the create event | `from_phase`, transition date, acting user and reason are asserted nowhere; the test carrying the ID ends in a 422. |
+| VAL-03 | No last validation date gives no due date | The model is not shown to be absent from the revalidation queue. |
+| VAL-06 | `last_validation_date` is updated | The recalculated next due date is not re-read. |
+| APR-03 | `condition_status` round-trips through a PATCH | The decision is never observed as outstanding while the condition is open, nor leaving that state when it closes. |
+| APR-04 | Three approvals are returned and the first is Pre-implementation | No comparison of `decision_date`, so the ordering itself is unasserted. |
+| SCR-05 | `score`, `missing` and `explanation` on the API response | `weight`, `effective_weight`, `inputs` and `calculated_at` are never asserted on a response. |
+| SEC-05 | Deactivation invalidates an issued token | Role removal — the criterion's other half, and a different check — is untested. |
+| AUD-01 | Seven writes are shown to produce the right audit event | The transactional coupling: no test shows a refused write leaves no audit event, or that a failed audit rolls the business change back. |
+| GEN-01 | One reset matches the documented portfolio figures; the committed seed's policy covers the baseline and leaves the dashboard working (added 2026-10-03) | Determinism itself: no second reset at the same business date is compared with the first. |
+| DOC-09 | A batch ID is issued in the documented format | Uniqueness across two batches. |
+
+### Correctly open — the capability does not exist yet
+
+| Criterion | Reason |
+|---|---|
+| DOC-16 | AI extraction cannot persist without confirmation — Phase 5; not yet built. |
+| MON-01…MON-12 | All monitoring criteria — Phase 6; not yet built. |
+| REG-01…REG-14 | All regulatory alignment criteria — Phase 2A; not yet built. |
+
+### Tagging and spec gaps
+
+- **GEN-03** is substantively proven by `test_tc_imp_03_1_preview_then_partial_load` and
+  `test_row_level_errors_by_type`, but neither names the ID; the grep hit comes from the module
+  docstring range. Tag the two tests. The "documented" valid/rejected split is also not documented
+  anywhere — record it.
+- **IMP-01** ("multiple CSV/XLSX files") is tagged on a single-file test; the multi-file proof is on
+  `test_cross_file_dependencies_in_one_batch`, tagged IMP-06. Move or add the tag.
+- **BRD §65** (file validation and security) has no acceptance criteria, yet five tests cover it
+  (`test_file_validation`, `test_oversized_document_rejected`, `test_path_traversal_rejected`, and the
+  traversal and zip-bomb halves of `test_doc_05_zip_upload_and_safety`). That work is invisible to every
+  coverage count. Add a criteria set (76E) and tag them.
+- **Migrations and schema drift** (`test_postgres.py`) likewise map to no criterion.
+
+The three untested criteria and the thirteen partly proven ones are real gaps in built functionality
+and should be closed before Phase 6 adds more surface area; AUD-01, APR-03, APR-04 and SEC-05 first.
 
 The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text in its
 report. Update this section from that report rather than by hand.

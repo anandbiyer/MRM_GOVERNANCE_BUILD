@@ -14,7 +14,8 @@ Business specification: [`claude.md`](claude.md) (BRD). Earlier requirements and
 
 ## Set up on a new computer (e.g. office laptop)
 
-Prerequisites: **Git**, **Python 3.11+** (developed on 3.14), **Node.js 20+**, access to the pip and npm registries.
+Prerequisites: **Git**, **Python 3.14** (exactly — CI and `requirements-lock.txt` both pin it, and the
+setup script refuses any other version), **Node.js 20+**, access to the pip and npm registries.
 
 ```powershell
 git clone <repository-url> MRM_Governance
@@ -45,5 +46,5 @@ show those files as changed after a reset. Commit them or discard with `git chec
 
 ```powershell
 cd A_Codes\AB_backend
-.venv\Scripts\python -m pytest          # 135 tests, SQLite, no Docker needed
+.venv\Scripts\python -m pytest          # 143 tests: 139 pass, 4 PostgreSQL skip; SQLite, no Docker
 ```
