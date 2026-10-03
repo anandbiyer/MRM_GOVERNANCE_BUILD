@@ -1,6 +1,9 @@
 # MRM/MIS — Project Plan
 
-**Status as at:** 2026-10-03 · **Branch:** `review-agents` · **Head:** `ee6c7eb`
+**Status as at:** 2026-10-03 · **Branch:** `review-agents`
+
+*(No commit hash here on purpose: a hash written into a tracked file is stale the moment it is
+committed. Evidence columns cite test names and settings, which stay valid.)*
 
 This is the live plan from the current build to a demonstrable product. It is the tracking document:
 statuses here are maintained as work lands, and every activity carries a stable ID so it can be
@@ -75,7 +78,7 @@ Small, high value, no dependencies. Everything here is an open finding from the 
 
 | ID | Activity | Finding | Status | Note |
 |---|---|---|---|---|
-| G0.1 | Resolve the lifecycle phase from policy; guard the unchecked `.index("Monitoring")` | CR-02 (High) | Not started | Reachable unhandled 500 on the Command Center if `lifecycle_phases` is edited |
+| G0.1 | Resolve the lifecycle phase from policy; guard the unchecked `.index("Monitoring")` | CR-02 (High) | **Done** | New T12 setting `monitoring_phase`; `revalidation.displayed_columns()` is now the single source of the column order (was duplicated in `dashboard_service` and `api/models`) and degrades instead of raising; `displayed_column()` lost its `"Monitoring"` default; paired policy validation refuses breaking either side on the interactive path. Tests: `test_cr_02_renaming_the_monitoring_phase_does_not_break_the_dashboard`, `test_lif_02_monitoring_phase_comes_from_policy`, `test_displayed_columns_*`. Regression confirmed: restoring the old line fails with `ValueError: list.index(x): x not in list` |
 | G0.2 | Move governance score bands 60 / 80 into `policy_setting` | CR-01 (High) | Not started | Last hard-coded business numbers |
 | G0.3 | Enforce `Permission.DOCUMENT_REVIEW` on the review actions | CR-04 (Med) | Not started | A Model Developer can confirm document batches today |
 | G0.4 | "Open findings" tile must drill into findings, not models; severity bars must filter | CR-05 (Med) | Not started | Visible in a demo; breaks CC-01 |
@@ -226,3 +229,4 @@ Blocked by **D11** (write COP criteria as §76C).
 | Date | Change |
 |---|---|
 | 2026-10-03 | Plan created. Records GR.1–GR.10 as Done from the current session; Gates 0–7 opened with all activities `Not started` or `Blocked`. |
+| 2026-10-03 | **G0.1 Done** (CR-02). Suite 147 tests / 143 pass. Policy count 62 → 63 (`monitoring_phase`), so `AA_bootstrap/T12` and `AC_seed/T12` were both updated — the GR.9 baseline test enforces that pairing. Noted during the work: `document_rules.py:113` hard-codes `"Implementation"` the same way, but is guarded, so it belongs to CR-08 rather than here. |

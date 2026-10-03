@@ -89,6 +89,11 @@ class Policy:
     def retirement_phase(self) -> str:
         return self.phases[-1]
 
+    @property
+    def monitoring_phase(self) -> str:
+        """The lifecycle phase R3 can displace into the Revalidation column (BRD §8, §10)."""
+        return self.text("monitoring_phase")
+
     def score_weights(self) -> dict[str, Decimal]:
         return {k: self.decimal(f"weight_{k}") for k in
                 ("documentation", "validation_currency", "issue_remediation", "mrc_compliance", "monitoring")}

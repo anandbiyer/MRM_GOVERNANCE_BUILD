@@ -45,11 +45,29 @@ def revalidation_state(due: date | None, today: date, due_soon_days: int) -> Rev
     return RevalidationState(due, days, status)
 
 
-def displayed_column(phase: str, due: date | None, today: date, lead_days: int, monitoring_phase: str = "Monitoring") -> str:
-    """R3: a Monitoring model within the lead time of (or past) its due date shows in Revalidation.
+def displayed_column(phase: str, due: date | None, today: date, lead_days: int, monitoring_phase: str) -> str:
+    """R3: a model in the monitoring phase, within the lead time of (or past) its due date, shows in
+    Revalidation.
 
-    Revalidation is a governance work state, not a stored lifecycle phase (BRD §8).
+    Revalidation is a governance work state, not a stored lifecycle phase (BRD §8). `monitoring_phase`
+    has no default on purpose: it is the configurable `monitoring_phase` setting, and a default here
+    would let a caller silently fall back to a phase name the policy no longer uses, which is how R3
+    quietly stopped applying before (review finding CR-02).
     """
     if phase == monitoring_phase and due is not None and (due - today).days <= lead_days:
         return REVALIDATION_COLUMN
     return phase
+
+
+def displayed_columns(phases: list[str], monitoring_phase: str) -> list[str]:
+    """The lifecycle phases in order with the derived Revalidation column inserted after the
+    monitoring phase — the column set the Operations Board and the Command Center both work in.
+
+    Degrades rather than raising when `monitoring_phase` is not one of `phases`: the configuration is
+    then inconsistent, but a dashboard that renders without the derived column is far better than one
+    that returns a 500. Validation of the setting belongs to the write path, not here.
+    """
+    if monitoring_phase not in phases:
+        return [*phases, REVALIDATION_COLUMN]
+    cut = phases.index(monitoring_phase) + 1
+    return [*phases[:cut], REVALIDATION_COLUMN, *phases[cut:]]

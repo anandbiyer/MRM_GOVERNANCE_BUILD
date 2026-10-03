@@ -16,6 +16,9 @@ from app.services.policy_access import Policy
 
 ENTITY = "policy_setting"
 TIER_KEYS = ("tier_high_min", "tier_medium_min")
+# Settings whose current value another setting is validated against (see rules.check_key_specific).
+# Loaded for every interactive edit so a cross-field rule can see the other side.
+CONTEXT_KEYS = (*TIER_KEYS, "lifecycle_phases", "monitoring_phase")
 
 
 def _snapshot(s: PolicySetting) -> dict:
@@ -37,7 +40,7 @@ def _normalise(db: Session, key: str, value: str, value_type: str) -> str:
     try:
         normalised = normalise_policy_value(value, value_type)
         others = {s.setting_key: parse_policy_value(s.value, s.value_type)
-                  for s in db.scalars(select(PolicySetting).where(PolicySetting.setting_key.in_(TIER_KEYS)))}
+                  for s in db.scalars(select(PolicySetting).where(PolicySetting.setting_key.in_(CONTEXT_KEYS)))}
         check_key_specific(key, parse_policy_value(normalised, value_type), others)
     except PolicyValueError as exc:
         raise ValidationFailedError(f"Invalid value for '{key}': {exc}") from None

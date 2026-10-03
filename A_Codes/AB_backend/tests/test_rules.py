@@ -79,10 +79,38 @@ def test_revalidation_status(days, status):
 def test_tc_ops_01_1_revalidation_column_uses_lead_time():
     """LIF-02: a Monitoring model inside the lead time shows in Revalidation; other phases never do."""
     from datetime import timedelta
-    assert revalidation.displayed_column("Monitoring", TODAY + timedelta(days=60), TODAY, 60) == "Revalidation"
-    assert revalidation.displayed_column("Monitoring", TODAY + timedelta(days=61), TODAY, 60) == "Monitoring"
-    assert revalidation.displayed_column("Monitoring", TODAY - timedelta(days=5), TODAY, 60) == "Revalidation"
-    assert revalidation.displayed_column("Reg/Audit", TODAY - timedelta(days=5), TODAY, 60) == "Reg/Audit"
+    assert revalidation.displayed_column("Monitoring", TODAY + timedelta(days=60), TODAY, 60, "Monitoring") == "Revalidation"
+    assert revalidation.displayed_column("Monitoring", TODAY + timedelta(days=61), TODAY, 60, "Monitoring") == "Monitoring"
+    assert revalidation.displayed_column("Monitoring", TODAY - timedelta(days=5), TODAY, 60, "Monitoring") == "Revalidation"
+    assert revalidation.displayed_column("Reg/Audit", TODAY - timedelta(days=5), TODAY, 60, "Monitoring") == "Reg/Audit"
+
+
+def test_lif_02_monitoring_phase_comes_from_policy():
+    """LIF-02, CFG-01: R3 follows the configured monitoring phase, not the literal "Monitoring"."""
+    from datetime import timedelta
+    due = TODAY + timedelta(days=10)
+    # Renamed phase: the new name is displaced, the old name is not.
+    assert revalidation.displayed_column("In Use", due, TODAY, 60, "In Use") == "Revalidation"
+    assert revalidation.displayed_column("Monitoring", due, TODAY, 60, "In Use") == "Monitoring"
+
+
+def test_displayed_columns_inserts_revalidation_after_the_monitoring_phase():
+    """LIF-02: the column order used by the Operations Board and the Command Center."""
+    phases = ["Initiation", "Development", "Monitoring", "Retirement"]
+    assert revalidation.displayed_columns(phases, "Monitoring") == [
+        "Initiation", "Development", "Monitoring", "Revalidation", "Retirement"]
+    # A renamed phase keeps the column in the right place.
+    renamed = ["Initiation", "In Use", "Retirement"]
+    assert revalidation.displayed_columns(renamed, "In Use") == [
+        "Initiation", "In Use", "Revalidation", "Retirement"]
+
+
+def test_displayed_columns_degrades_when_the_monitoring_phase_is_absent():
+    """CR-02: an inconsistent policy must not raise — the old code called .index() unguarded, which
+    turned a renamed phase into an unhandled 500 on the Command Center."""
+    phases = ["Initiation", "Development", "Retirement"]
+    assert revalidation.displayed_columns(phases, "Monitoring") == [*phases, "Revalidation"]
+    assert revalidation.displayed_columns([], "Monitoring") == ["Revalidation"]
 
 
 # --- R5 segregation of duties and phase requirements -------------------------------------

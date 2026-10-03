@@ -100,6 +100,53 @@ def test_insight_disappears_when_resolved(loaded_client):
     assert after == before - 1
 
 
+def test_cr_02_renaming_the_monitoring_phase_does_not_break_the_dashboard(loaded_client):
+    """CC-01, CFG-02: the Command Center survives a renamed lifecycle phase.
+
+    Regression for CR-02: `policy.phases.index("Monitoring")` was unguarded, so renaming the phase
+    made GET /api/dashboard/summary raise ValueError and the Command Center stopped loading.
+    """
+    admin = login(loaded_client, *ADMIN)
+
+    def put(key, value):
+        s = next(x for x in _get(loaded_client, admin, "/api/admin/policy") if x["setting_key"] == key)
+        return loaded_client.put(f"/api/admin/policy/{key}", headers=admin,
+                                 json={"value": value, "row_version": s["row_version"]})
+
+    phases = _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"]
+    renamed = "; ".join("In Use" if p == "Monitoring" else p for p in phases)
+    # Before: models sit in Monitoring, so R3 displaces some of them into the derived column.
+    before = _get(loaded_client, admin, "/api/dashboard/summary")
+    assert "Revalidation" in [x["key"] for x in before["distributions"]["stage"]]
+
+    # Both settings must move together, and the order is enforced (see the paired policy rule).
+    assert put("lifecycle_phases", renamed).status_code == 422
+    assert put("monitoring_phase", "In Use").status_code == 422, "the phase does not exist yet"
+
+    assert put("monitoring_phase", "Nonexistent Phase").status_code == 422
+    assert put("lifecycle_phases", renamed).status_code == 422
+    # Rename in a consistent order: add the new phase, point at it, then drop the old one. The end
+    # state has no "Monitoring" phase at all, which is what made the old unguarded .index() raise.
+    assert put("lifecycle_phases", "; ".join([*phases, "In Use"])).status_code == 200
+    assert put("monitoring_phase", "In Use").status_code == 200
+    assert put("lifecycle_phases", renamed).status_code == 200
+    assert "Monitoring" not in _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"]
+
+    # The dashboard still renders — this is the regression. It previously raised ValueError -> 500.
+    summary = loaded_client.get("/api/dashboard/summary", headers=admin)
+    assert summary.status_code == 200, summary.text
+    d = summary.json()
+    # No model occupies "In Use", so nothing is displaced and the derived column drops out of the
+    # distribution. The figures must still be coherent.
+    stage = d["distributions"]["stage"]
+    assert "Revalidation" not in [x["key"] for x in stage]
+    assert sum(x["count"] for x in stage) == d["tiles"]["total_models"]
+
+    # The derived column is still ordered against the configured phase, wherever it sits.
+    meta = _get(loaded_client, admin, "/api/models/meta")["displayed_columns"]
+    assert meta.index("Revalidation") == meta.index("In Use") + 1
+
+
 def test_unknown_flag_rejected(loaded_client):
     resp = loaded_client.get("/api/models", headers=login(loaded_client, *EXECUTIVE), params={"flag": "everything"})
     assert resp.status_code == 422 and "Allowed:" in resp.json()["detail"]

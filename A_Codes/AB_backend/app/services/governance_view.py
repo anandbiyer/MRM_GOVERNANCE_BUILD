@@ -63,7 +63,8 @@ def derive(model: Model, policy: Policy, agg: Aggregates, on: date | None = None
     open_statuses = policy.list("finding_open_statuses")
     due = revalidation.next_due_date(model.last_validation_date, model.revalidation_frequency, policy.frequency_months)
     reval = revalidation.revalidation_state(due, on, policy.int("due_soon_days"))
-    column = revalidation.displayed_column(model.lifecycle_phase, due, on, policy.int("reval_lead_days"))
+    column = revalidation.displayed_column(model.lifecycle_phase, due, on, policy.int("reval_lead_days"),
+                                           policy.monitoring_phase)
 
     severities = policy.list("finding_severities")
     by_sev = {s: 0 for s in severities}

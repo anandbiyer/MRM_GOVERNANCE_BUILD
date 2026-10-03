@@ -56,6 +56,21 @@ def check_key_specific(key: str, parsed, others: dict[str, object]) -> None:
             raise PolicyValueError("Tier thresholds must satisfy 4 < medium minimum < high minimum ≤ 12.")
     if key.startswith("weight_") and parsed < 0:
         raise PolicyValueError("Score weights cannot be negative.")
+    # R3 needs the monitoring phase to be a real lifecycle phase; checked from either side, because
+    # renaming the phase list is how the two drifted apart before (review finding CR-02). `others` is
+    # empty on the bootstrap/import path, so this only guards interactive edits — see CR-03.
+    if key == "monitoring_phase":
+        phases = others.get("lifecycle_phases")
+        if phases and parsed not in phases:
+            raise PolicyValueError(
+                f"'{parsed}' is not one of the configured lifecycle phases ({'; '.join(phases)}). "
+                f"The Revalidation column is derived from it.")
+    if key == "lifecycle_phases":
+        monitoring = others.get("monitoring_phase")
+        if monitoring and monitoring not in parsed:
+            raise PolicyValueError(
+                f"the list must still contain the configured monitoring phase '{monitoring}', which the "
+                f"Revalidation column is derived from. Change 'monitoring_phase' first.")
 
 
 def normalise_policy_value(value: str, value_type: str) -> str:

@@ -70,8 +70,7 @@ def list_models(
 def model_meta(db: DbSession, _: CurrentPrincipal):
     p = Policy.load(db)
     phases = p.phases
-    columns = [*phases[: phases.index("Monitoring") + 1], revalidation.REVALIDATION_COLUMN,
-               *phases[phases.index("Monitoring") + 1:]] if "Monitoring" in phases else phases
+    columns = revalidation.displayed_columns(phases, p.monitoring_phase)
     business_lines = sorted(set(db.scalars(select(Model.business_line))))
     users = [{"user_id": u.user_id, "full_name": u.full_name, "roles": u.role_names, "active": u.active}
              for u in user_service.list_users(db)]

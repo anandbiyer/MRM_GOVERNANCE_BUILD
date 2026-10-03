@@ -61,8 +61,7 @@ def summary(db: Session) -> dict:
         keys = [k for k in order if k in c] + sorted(k for k in c if k not in order)
         return [{"key": k, "count": c[k], "pct": _pct(c[k], len(values))} for k in keys]
 
-    meta_columns = [*policy.phases[: policy.phases.index("Monitoring") + 1], revalidation.REVALIDATION_COLUMN,
-                    *policy.phases[policy.phases.index("Monitoring") + 1:]]
+    meta_columns = revalidation.displayed_columns(policy.phases, policy.monitoring_phase)
     severities = policy.list("finding_severities")
     open_by_sev = Counter()
     for _, s in rows:
