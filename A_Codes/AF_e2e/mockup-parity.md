@@ -90,6 +90,15 @@ Built today: 1, 2, 3, 4 and the core of 8. Items on any other phase are reported
 | MUP-34 | All | Counts agree across Command Center, Operations Board and Model 360 | any | 8 |
 | MUP-35 | All | Actions not permitted for the role are hidden and refused by the API | Executive | 1 |
 
+### Accepted differences from the mock-up
+
+Where the BRD and the mock-up disagree, the BRD wins and the difference is recorded here rather than
+fixed in the app.
+
+| ID | Mock-up shows | App shows | BRD basis |
+|---|---|---|---|
+| MUP-01 | A KPI tile labelled "Open findings", valued as a count of findings | "**Models with open findings**", valued in models, with the findings total in the sub-line | §76A CC-01 — a tile must equal the count returned by its own drill-down, and this tile opens a list of models. Review finding CR-05 |
+
 ### Phase numbers corrected from the original list
 
 Never renumber an ID; the Phase column is corrected against §81 where the original was wrong.

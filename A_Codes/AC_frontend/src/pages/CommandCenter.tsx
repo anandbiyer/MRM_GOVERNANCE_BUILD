@@ -119,8 +119,11 @@ export function CommandCenter() {
         <Tile label="Revalidation queue" value={t.revalidation_queue}
               sub={<Link to={q({ revalidation_status: "Overdue" })} onClick={(e) => e.stopPropagation()}>{t.revalidation_overdue} overdue</Link>}
               to={q({ column: "Revalidation" })} />
-        <Tile label="Open findings" value={t.open_findings}
-              sub={<Link to={q({ flag: "overdue_findings" })} onClick={(e) => e.stopPropagation()}>{t.overdue_findings} overdue · {t.critical_overdue_findings} Critical</Link>}
+        {/* Every tile here opens a list of models, so the headline number counts models and the
+            findings totals sit in the sub-line. The sub-line's own number matches the list its
+            link opens (CC-01, review finding CR-05). */}
+        <Tile label="Models with open findings" value={t.models_with_open_findings}
+              sub={<>{t.open_findings} open findings · <Link to={q({ flag: "overdue_findings" })} onClick={(e) => e.stopPropagation()}>{t.models_with_overdue_findings} overdue</Link></>}
               to={q({ flag: "open_findings" })} />
         <Tile label="Document completeness" value={`${t.document_completeness_pct}%`}
               sub={`${t.models_with_document_gaps} models with gaps`} to={q({ flag: "doc_gaps" })} />
@@ -135,7 +138,8 @@ export function CommandCenter() {
         <BarList title="Revalidation status" items={dist.revalidation_status} toneFor={(k) => STATUS_TONE[k]}
                  linkFor={(k) => q({ revalidation_status: k })} note="models with a due date" />
         <BarList title="Open findings by severity" items={dist.open_findings_by_severity} toneFor={(k) => STATUS_TONE[k] ?? "info"}
-                 linkFor={() => q({ flag: "open_findings" })} note="findings" />
+                 note="open findings; opens the models holding them"
+                 linkFor={(k) => q({ finding_severity: k })} />
         <BarList title="Governance score" items={dist.score_band} label={(k) => bandLabels[k] ?? k} toneFor={(k) => STATUS_TONE[k]}
                  linkFor={(k) => q({ flag: BAND_FLAG[k] })} note="scored models" />
       </div>

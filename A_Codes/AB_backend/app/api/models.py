@@ -57,11 +57,11 @@ def list_models(
     db: DbSession, _: CurrentPrincipal, model_type: str | None = None, tier: str | None = None,
     phase: str | None = None, business_line: str | None = None, column: str | None = None,
     revalidation_status: str | None = None, search: str | None = None, owner_id: str | None = None,
-    flag: str | None = None,
+    finding_severity: str | None = None, flag: str | None = None,
 ):
     rows = governance_view.portfolio(db, model_type=model_type, tier=tier, phase=phase, business_line=business_line,
                                      column=column, revalidation_status=revalidation_status, search=search,
-                                     owner_id=owner_id, flag=flag)
+                                     owner_id=owner_id, finding_severity=finding_severity, flag=flag)
     fields = [f for f in ModelSummaryOut.model_fields if f != "state"]
     return [ModelSummaryOut(**{f: getattr(m, f) for f in fields}, state=_state_out(s)) for m, s in rows]
 

@@ -54,7 +54,10 @@ item("MUP-01", "Command Center KPI tiles", "8", async ({ page, isMockup }) => {
     return;
   }
   await signInAs(page, "Executive");
-  for (const label of ["Total models", "In production", "High risk", "Revalidation queue", "Open findings"]) {
+  // "Models with open findings" is an accepted difference from the mock-up's "Open findings": CC-01
+  // requires a tile to equal its own drill-down, and this tile opens a list of models (CR-05).
+  for (const label of ["Total models", "In production", "High risk", "Revalidation queue",
+                       "Models with open findings"]) {
     await expect(page.getByText(label, { exact: true }).first(), `tile "${label}"`).toBeVisible();
   }
 });

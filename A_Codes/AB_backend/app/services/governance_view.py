@@ -166,7 +166,7 @@ FLAGS = {
 
 def portfolio(db: Session, *, model_type: str | None = None, tier: str | None = None, phase: str | None = None,
               business_line: str | None = None, column: str | None = None, revalidation_status: str | None = None,
-              search: str | None = None, owner_id: str | None = None,
+              search: str | None = None, owner_id: str | None = None, finding_severity: str | None = None,
               flag: str | None = None) -> list[tuple[Model, ModelState]]:
     policy = Policy.load(db)
     q = select(Model).order_by(Model.model_id)
@@ -190,6 +190,14 @@ def portfolio(db: Session, *, model_type: str | None = None, tier: str | None = 
         rows = [r for r in rows if r[1].displayed_column == column]
     if revalidation_status:
         rows = [r for r in rows if r[1].revalidation_status == revalidation_status]
+    if finding_severity:
+        allowed = policy.list("finding_severities")
+        if finding_severity not in allowed:
+            raise ValidationFailedError(
+                f"Unknown finding severity '{finding_severity}'. Allowed: {', '.join(allowed)}.")
+        # Models holding at least one *open* finding of that severity — the drill-down behind each
+        # bar of the Command Center's severity chart (CR-05).
+        rows = [r for r in rows if r[1].open_by_severity.get(finding_severity, 0) > 0]
     if flag:
         test = FLAGS.get(flag)
         if test is None:

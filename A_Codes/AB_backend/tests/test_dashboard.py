@@ -32,6 +32,10 @@ def test_tiles_tie_out_to_lists(loaded_client):
     findings = _get(loaded_client, h, "/api/findings")
     open_statuses = {"Open", "In Progress", "Deferred"}
     assert t["open_findings"] == sum(1 for f in findings if f["status"] in open_statuses)
+    # CR-05: the tiles that open a model list must be counted in models, not findings.
+    assert t["models_with_open_findings"] == len(_get(loaded_client, h, "/api/models", flag="open_findings"))
+    assert t["models_with_overdue_findings"] == len(_get(loaded_client, h, "/api/models", flag="overdue_findings"))
+    assert t["models_with_critical_overdue"] == len(_get(loaded_client, h, "/api/models", flag="critical_overdue"))
     overdue = _get(loaded_client, h, "/api/findings", overdue_only=True)
     assert t["overdue_findings"] == len(overdue)
     assert t["critical_overdue_findings"] == sum(1 for f in overdue if f["severity"] == "Critical")
@@ -99,6 +103,37 @@ def test_insight_disappears_when_resolved(loaded_client):
                         json={"status": "Closed", "row_version": f["row_version"], "reason": "Remediated"})
     after = _get(loaded_client, admin, "/api/dashboard/summary")["insight_counts_by_rule"]["critical_finding_overdue"]
     assert after == before - 1
+
+
+def test_cr_05_each_severity_bar_drills_to_its_own_models(loaded_client):
+    """CC-01, CC-02: every severity bar opens the models holding findings of that severity.
+
+    Regression for CR-05: `linkFor` discarded the bar key, so clicking "Critical" listed every model
+    with any open finding, and `/api/models` had no severity filter at all.
+    """
+    h = login(loaded_client, *EXECUTIVE)
+    d = _get(loaded_client, h, "/api/dashboard/summary")
+    sev = {x["key"]: x["count"] for x in d["distributions"]["open_findings_by_severity"]}
+    assert sum(sev.values()) == d["tiles"]["open_findings"]
+
+    open_statuses = set(_get(loaded_client, h, "/api/models/meta")["finding_open_statuses"])
+    seen_models: list[set[str]] = []
+    for severity, finding_count in sev.items():
+        models = _get(loaded_client, h, "/api/models", finding_severity=severity)
+        ids = {m["model_id"] for m in models}
+        seen_models.append(ids)
+        # Every model returned really holds an open finding of that severity...
+        for model_id in ids:
+            found = _get(loaded_client, h, "/api/findings", model_id=model_id)
+            assert any(f["severity"] == severity and f["status"] in open_statuses for f in found), (severity, model_id)
+        # ...and the list is never larger than the number of findings behind the bar.
+        assert len(ids) <= finding_count, (severity, len(ids), finding_count)
+
+    # The bars no longer all open the same list.
+    assert len({frozenset(s) for s in seen_models}) > 1, "each severity must drill to a different set"
+
+    bad = loaded_client.get("/api/models", headers=h, params={"finding_severity": "Severe"})
+    assert bad.status_code == 422 and "Allowed:" in bad.json()["detail"]
 
 
 def test_cr_01_score_bands_come_from_policy(loaded_client):

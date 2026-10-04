@@ -8,7 +8,8 @@ import { useAuth } from "../auth/AuthContext";
 import { DaysToDue, Pill, ScoreValue } from "../components/Pills";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../components/States";
 
-const FILTER_KEYS = ["model_type", "tier", "phase", "business_line", "column", "revalidation_status", "search", "flag"] as const;
+const FILTER_KEYS = ["model_type", "tier", "phase", "business_line", "column", "revalidation_status",
+                     "finding_severity", "search", "flag"] as const;
 
 // Drill-down filters from Command Center tiles (backend governance_view.FLAGS).
 export const FLAG_LABELS: Record<string, string> = {
@@ -123,6 +124,7 @@ export function OperationsBoard() {
         {select("phase", "Phase", meta.data?.lifecycle_phases)}
         {select("column", "Stage", meta.data?.displayed_columns)}
         {select("revalidation_status", "Revalidation", meta.data?.revalidation_statuses)}
+        {select("finding_severity", "Open finding", meta.data?.finding_severities)}
         {select("business_line", "Business line", meta.data?.business_lines)}
         <form onSubmit={(e) => { e.preventDefault(); setFilter("search", searchDraft.trim()); }}>
           <input className="input" placeholder="Search ID, name, subtype" value={searchDraft}

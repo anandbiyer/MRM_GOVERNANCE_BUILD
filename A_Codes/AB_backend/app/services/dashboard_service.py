@@ -44,9 +44,15 @@ def summary(db: Session) -> dict:
         "high_tier": sum(1 for m, _ in rows if m.effective_tier == "High"),
         "revalidation_queue": sum(1 for _, s in rows if s.displayed_column == revalidation.REVALIDATION_COLUMN),
         "revalidation_overdue": sum(1 for _, s in rows if s.revalidation_status == revalidation.OVERDUE),
+        # Two units, named so they cannot be confused. The findings totals feed the severity
+        # distribution; the model counts are what the drill-downs return, since every tile on this
+        # screen opens a list of models (CC-01, review finding CR-05).
         "open_findings": sum(s.open_findings for _, s in rows),
         "overdue_findings": sum(s.overdue_findings for _, s in rows),
         "critical_overdue_findings": sum(s.critical_overdue for _, s in rows),
+        "models_with_open_findings": sum(1 for _, s in rows if s.open_findings),
+        "models_with_overdue_findings": sum(1 for _, s in rows if s.overdue_findings),
+        "models_with_critical_overdue": sum(1 for _, s in rows if s.critical_overdue),
         "models_with_open_conditions": sum(1 for _, s in rows if s.open_conditions),
         "sod_breaches": sum(1 for _, s in rows if s.sod_breach),
         "document_completeness_pct": _pct(doc_complete, len(doc_required)),
