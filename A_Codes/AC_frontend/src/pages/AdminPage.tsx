@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { invalidatePolicy } from "../api/queries";
 import type { ImportBatch, PolicySetting, User } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../components/States";
@@ -17,7 +18,8 @@ function PolicyRow({ setting, editable }: { setting: PolicySetting; editable: bo
       }),
     onSuccess: () => {
       setDraft(null);
-      qc.invalidateQueries({ queryKey: ["policy"] });
+      // A policy edit changes thresholds, weights and bands, so every derived figure moves with it.
+      invalidatePolicy(qc);
     },
   });
 

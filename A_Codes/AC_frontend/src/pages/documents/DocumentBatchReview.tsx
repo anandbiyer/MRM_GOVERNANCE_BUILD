@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, downloadFile } from "../../api/client";
+import { invalidateGovernance } from "../../api/queries";
 import type { DocumentBatch, ModelSummary, UploadItem } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { EmptyState, ErrorState, Loading } from "../../components/States";
@@ -84,8 +85,9 @@ export function DocumentBatchReview() {
   const models = useQuery({ queryKey: ["models", ""], queryFn: () => api<ModelSummary[]>("/api/models") });
   const refresh = (b?: DocumentBatch) => {
     if (b) qc.setQueryData(["document-batch", batchId], b);
-    qc.invalidateQueries({ queryKey: ["document-batch", batchId] });
-    qc.invalidateQueries({ queryKey: ["document-batches"] });
+    // Confirming a batch stores documents, which moves completeness, scores and the dashboard.
+    invalidateGovernance(qc, ["document-batch", batchId], ["document-batches"], ["documents"],
+                         ["document-folders"]);
   };
   const update = useMutation({
     mutationFn: (body: Record<string, unknown>) => api<DocumentBatch>(`/api/documents/batches/${batchId}/items`, { method: "PATCH", json: body }),

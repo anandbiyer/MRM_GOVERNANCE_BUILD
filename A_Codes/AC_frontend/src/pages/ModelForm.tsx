@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "../api/client";
-import { useModel360, useModelMeta } from "../api/queries";
+import { invalidateGovernance, useModel360, useModelMeta } from "../api/queries";
 import type { ModelMeta, ModelRecord } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { Pill } from "../components/Pills";
@@ -78,9 +78,8 @@ export function ModelForm() {
       return api<ModelRecord>("/api/models", { method: "POST", json: body });
     },
     onSuccess: (m) => {
-      qc.invalidateQueries({ queryKey: ["models"] });
-      qc.invalidateQueries({ queryKey: ["model", m.model_id] });
-      qc.invalidateQueries({ queryKey: ["model-meta"] });
+      // model-meta too: a new business line becomes a filter value.
+      invalidateGovernance(qc, ["model", m.model_id], ["model-meta"]);
       navigate(`/models/${m.model_id}`);
     },
     onError: (e) => {

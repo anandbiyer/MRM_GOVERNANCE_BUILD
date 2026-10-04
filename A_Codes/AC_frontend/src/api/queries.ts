@@ -1,6 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient, type QueryKey } from "@tanstack/react-query";
 import { api } from "./client";
 import type { Model360, ModelMeta } from "./types";
+
+/**
+ * Reads that are *derived* from governance records rather than owned by one screen: the server
+ * recomputes them on every request, so any governance write makes all of them stale.
+ *
+ * Listed once, here, on purpose. They used to be named by hand at each mutation site, and nine of
+ * those sites had simply never listed `["dashboard"]` — so closing a finding or changing a score
+ * weight left the Command Center showing old tiles, an old score and a resolved insight for up to
+ * the 30s staleTime (review finding CR-06). Add a new derived read here and every mutation picks it
+ * up; a new Monitoring or Data Audit dashboard will need exactly one line.
+ */
+const DERIVED_FROM_GOVERNANCE: QueryKey[] = [["dashboard"], ["models"], ["completeness"], ["audit"]];
+
+/** Call after any governance write. `also` takes the keys only that mutation affects. */
+export function invalidateGovernance(qc: QueryClient, ...also: QueryKey[]): void {
+  for (const queryKey of [...DERIVED_FROM_GOVERNANCE, ...also]) qc.invalidateQueries({ queryKey });
+}
+
+/**
+ * A policy change moves thresholds, weights, score bands and allowed values at once, so it
+ * invalidates the vocabularies as well as everything derived from them.
+ */
+export function invalidatePolicy(qc: QueryClient): void {
+  invalidateGovernance(qc, ["policy"], ["model-meta"]);
+}
 
 export function useModelMeta() {
   return useQuery({ queryKey: ["model-meta"], queryFn: () => api<ModelMeta>("/api/models/meta"), staleTime: 60_000 });

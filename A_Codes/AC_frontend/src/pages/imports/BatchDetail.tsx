@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, downloadFile } from "../../api/client";
+import { invalidateGovernance } from "../../api/queries";
 import type { AuditEvent, ImportBatchDetail, ImportIssue, ImportTemplate } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { EmptyState, ErrorState, Loading } from "../../components/States";
@@ -60,10 +61,10 @@ export function BatchDetail() {
   });
 
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["import-batch", batchId] });
-    qc.invalidateQueries({ queryKey: ["import-batches"] });
-    qc.invalidateQueries({ queryKey: ["models"] });
-    qc.invalidateQueries({ queryKey: ["import-templates"] });
+    // A load writes governance records through the same services as the UI, so everything derived
+    // from them is stale — including the Command Center (review finding CR-06).
+    invalidateGovernance(qc, ["import-batch", batchId], ["import-batches"], ["import-templates"],
+                         ["model-meta"]);
   };
   const action = useMutation({
     mutationFn: (what: "validate" | "load" | "cancel") =>

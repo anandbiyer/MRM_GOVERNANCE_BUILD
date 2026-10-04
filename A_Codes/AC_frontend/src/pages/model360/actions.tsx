@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { api } from "../../api/client";
+import { invalidateGovernance } from "../../api/queries";
 import type { Approval, Finding, ModelMeta, ModelRecord } from "../../api/types";
 
 type Values = Record<string, string>;
@@ -12,9 +13,7 @@ function useModelMutation<T>(modelId: string, fn: (body: Record<string, unknown>
   return useMutation({
     mutationFn: fn,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["model", modelId] });
-      qc.invalidateQueries({ queryKey: ["models"] });
-      qc.invalidateQueries({ queryKey: ["audit"] });
+      invalidateGovernance(qc, ["model", modelId]);
       onDone?.();
     },
   });

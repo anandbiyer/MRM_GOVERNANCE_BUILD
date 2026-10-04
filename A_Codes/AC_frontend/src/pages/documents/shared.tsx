@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, blobUrl } from "../../api/client";
+import { invalidateGovernance } from "../../api/queries";
 import type { Completeness, DocumentDetail, DocumentMeta, ModelSummary } from "../../api/types";
 import { ErrorState, Loading } from "../../components/States";
 
@@ -15,11 +16,9 @@ export function formatBytes(n: number): string {
 }
 
 export function invalidateDocuments(qc: ReturnType<typeof useQueryClient>, modelId?: string) {
-  qc.invalidateQueries({ queryKey: ["documents"] });
-  qc.invalidateQueries({ queryKey: ["document-folders"] });
-  qc.invalidateQueries({ queryKey: ["completeness"] });
-  qc.invalidateQueries({ queryKey: ["models"] });
-  if (modelId) qc.invalidateQueries({ queryKey: ["model", modelId] });
+  // Document writes change completeness, which feeds the documentation score and the dashboard.
+  invalidateGovernance(qc, ["documents"], ["document-folders"],
+                       ...(modelId ? [["model", modelId] as QueryKey] : []));
 }
 
 /** Individual upload (BRD §29): model → type → version → file. Stored when saved. */
