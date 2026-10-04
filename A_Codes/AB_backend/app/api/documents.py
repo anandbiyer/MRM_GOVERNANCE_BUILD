@@ -80,6 +80,7 @@ async def upload_single(
     model_id: Annotated[str, Form()],
     document_type: Annotated[str, Form()],
     version: Annotated[str | None, Form()] = None,
+    model_version: Annotated[str | None, Form()] = None,
     effective_date: Annotated[date | None, Form()] = None,
     title: Annotated[str | None, Form()] = None,
     confidentiality: Annotated[str | None, Form()] = None,
@@ -89,7 +90,8 @@ async def upload_single(
     """Individual upload (BRD §29): model, type and version chosen by the user; stored immediately."""
     doc, _ = doc_service.store_version(
         db, principal, model_id=model_id, document_type=document_type, data=await file.read(),
-        file_name=file.filename or "document", version=version or None, effective_date=effective_date,
+        file_name=file.filename or "document", version=version or None, model_version=model_version or None,
+        effective_date=effective_date,
         title=title or None, confidentiality=confidentiality or None, source="single",
         change_reason=change_reason or None, target_document_id=new_version_of or None,
         allow_duplicate=bool(new_version_of))

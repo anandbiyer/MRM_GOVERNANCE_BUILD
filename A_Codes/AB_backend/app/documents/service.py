@@ -16,7 +16,7 @@ from app.auth.roles import Permission, Role, has_permission
 from app.auth.security import Principal
 from app.clock import today
 from app.documents import files
-from app.models import Document, DocumentFolder, DocumentLink, DocumentVersion, Model
+from app.models import Document, DocumentFolder, DocumentLink, DocumentVersion, Model, ModelVersion
 from app.rules import document_rules
 from app.rules.revalidation import add_months
 from app.services import model_service
@@ -108,8 +108,9 @@ def ensure_folders(db: Session, directory: str, model_for: dict[str, str], batch
 # --- storing -------------------------------------------------------------------------------
 
 def _snapshot(d: Document) -> dict:
-    return {k: getattr(d, k) for k in ("document_id", "model_id", "title", "document_type", "current_version",
-                                        "effective_date", "status", "folder_id", "confidentiality", "source")}
+    return {k: getattr(d, k) for k in ("document_id", "model_id", "model_version", "title", "document_type",
+                                        "current_version", "effective_date", "status", "folder_id",
+                                        "confidentiality", "source")}
 
 
 def find_same_document(db: Session, model_id: str, document_type: str, title: str) -> Document | None:
@@ -128,7 +129,8 @@ def find_by_checksum(db: Session, checksum: str) -> DocumentVersion | None:
 
 def store_version(
     db: Session, principal: Principal | None, *, model_id: str, document_type: str, data: bytes, file_name: str,
-    relative_path: str | None = None, version: str | None = None, effective_date: date | None = None,
+    relative_path: str | None = None, version: str | None = None, model_version: str | None = None,
+    effective_date: date | None = None,
     title: str | None = None, confidentiality: str | None = None, folder_id: int | None = None,
     source: str = "single", classification: tuple[str, float, str] | None = None, batch_id: str | None = None,
     change_reason: str | None = None, target_document_id: str | None = None, allow_duplicate: bool = False,
@@ -142,6 +144,15 @@ def store_version(
     confidentiality = confidentiality or dp.default_confidentiality
     if confidentiality not in dp.confidentiality:
         raise ValidationFailedError(f"'{confidentiality}' is not a confidentiality level.")
+    model_version = (model_version or "").strip() or None
+    if model_version is not None:
+        # The composite foreign key would catch this at commit, but a named error here tells the
+        # uploader which versions exist (BRD §66).
+        known = list(db.scalars(select(ModelVersion.version).where(ModelVersion.model_id == model_id)))
+        if model_version not in known:
+            raise ValidationFailedError(
+                f"'{model_version}' is not a recorded version of {model_id}."
+                + (f" Known versions: {', '.join(known)}." if known else " It has no version history."))
     try:
         mime = mime or files.validate_document(file_name, data, dp.extensions, dp.max_bytes)
     except files.FileRejected as exc:
@@ -164,7 +175,8 @@ def store_version(
         version = version or "1.0"
         doc_id = next_id(db, Document.document_id, "D", 6)
         start = effective_date or today()
-        doc = Document(document_id=doc_id, model_id=model_id, title=title, document_type=document_type,
+        doc = Document(document_id=doc_id, model_id=model_id, model_version=model_version, title=title,
+                       document_type=document_type,
                        current_version=version, effective_date=effective_date, status="Active", folder_id=folder_id,
                        source=source, confidentiality=confidentiality, retention_start=start,
                        retention_end=add_months(start, 12 * dp.retention_years), created_by=user_id,
@@ -187,6 +199,8 @@ def store_version(
         doc.current_version = version
         doc.effective_date = effective_date or doc.effective_date
         doc.folder_id = folder_id or doc.folder_id
+        # A new document version may restate which model version it is about; silence leaves it as is.
+        doc.model_version = model_version or doc.model_version
         action = "version"
 
     key = f"models/{model_id}/documents/{doc.document_id}/{version}/{file_name}"

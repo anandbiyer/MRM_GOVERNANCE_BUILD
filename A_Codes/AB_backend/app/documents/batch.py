@@ -224,6 +224,7 @@ def analyse_job(session_factory: Callable[[], Session], batch_id: str, principal
                 item.document_type, item.type_source = m["document_type"], "manifest"
                 item.type_confidence, item.type_reason = 1.0, "Listed in the document manifest."
                 item.version = m.get("version") or document_rules.parse_version(item.file_name)
+                item.model_version = m.get("model_version") or None
                 item.effective_date = datetime.fromisoformat(m["effective_date"]).date() if m.get("effective_date") else None
                 item.title = m.get("title")
             else:
@@ -288,7 +289,7 @@ def update_items(db: Session, principal: Principal, batch_id: str, item_ids: lis
         if "document_type" in changes:
             item.document_type, item.type_source = changes["document_type"] or None, "user"
             item.type_confidence, item.type_reason = 1.0, "Chosen by the reviewer."
-        for k in ("version", "effective_date", "title"):
+        for k in ("version", "model_version", "effective_date", "title"):
             if k in changes:
                 setattr(item, k, changes[k] or None)
         if "action" in changes:
@@ -336,7 +337,8 @@ def confirm_job(session_factory: Callable[[], Session], batch_id: str, principal
                 doc, v = doc_service.store_version(
                     db, principal, model_id=item.model_id, document_type=item.document_type,
                     data=store.get(item.staging_key), file_name=item.file_name, relative_path=item.relative_path,
-                    version=item.version, effective_date=item.effective_date, title=item.title, folder_id=folder_id,
+                    version=item.version, model_version=item.model_version, effective_date=item.effective_date,
+                    title=item.title, folder_id=folder_id,
                     source=batch.source, classification=(item.type_source or "user", item.type_confidence or 1.0,
                                                    item.type_reason or ""),
                     batch_id=batch_id, target_document_id=item.target_document_id if item.action == "new_version" else None,

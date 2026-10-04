@@ -27,8 +27,8 @@ export function SingleUploadForm({ fixedModelId, onDone }: { fixedModelId?: stri
   const meta = useDocumentMeta();
   const models = useQuery({ queryKey: ["models", ""], queryFn: () => api<ModelSummary[]>("/api/models"), enabled: !fixedModelId });
   const [file, setFile] = useState<File | null>(null);
-  const [form, setForm] = useState({ model_id: fixedModelId ?? "", document_type: "", version: "", effective_date: "",
-    title: "", confidentiality: "", change_reason: "" });
+  const [form, setForm] = useState({ model_id: fixedModelId ?? "", document_type: "", version: "",
+    model_version: "", effective_date: "", title: "", confidentiality: "", change_reason: "" });
   const upload = useMutation({
     mutationFn: () => {
       const fd = new FormData();
@@ -66,6 +66,9 @@ export function SingleUploadForm({ fixedModelId, onDone }: { fixedModelId?: stri
           </select>
         </label>
         <label className="field">Version <input className="input" value={form.version} onChange={set("version")} placeholder="auto (1.0, next)" /></label>
+        {/* The model version this evidence is about (BRD §24) — distinct from the document's own
+            version above. Optional: not all evidence is version-specific. */}
+        <label className="field">Model version <input className="input" value={form.model_version} onChange={set("model_version")} placeholder="optional, e.g. v3.1" /></label>
         <label className="field">Effective date <input className="input" type="date" value={form.effective_date} onChange={set("effective_date")} /></label>
         <label className="field">Title <input className="input" value={form.title} onChange={set("title")} placeholder="from the file name" /></label>
         <label className="field">Confidentiality

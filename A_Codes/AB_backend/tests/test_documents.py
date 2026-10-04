@@ -293,6 +293,41 @@ def test_archive_legal_hold_and_links(loaded_client, make_pdf):
     assert loaded_client.get(f"/api/documents/{d['document_id']}/versions/1.0/download", headers=h).status_code == 200
 
 
+def test_cr_07_evidence_records_the_model_version_it_is_about(loaded_client, make_pdf):
+    """§24, §27: a document names the model version it evidences, and the version must be real.
+
+    Regression for CR-07: neither `document` nor `document_version` carried the column, so monitoring
+    evidence could not say which version of the model it related to.
+    """
+    h = login(loaded_client, *ADMIN)
+    versions = [v["version"] for v in loaded_client.get("/api/models/M-0012", headers=h).json()["versions"]]
+    assert versions, "the seeded model should have a version history"
+
+    # Unknown versions are refused, and the message says which exist.
+    bad = _single(loaded_client, h, "VR.pdf", make_pdf(["vr"]), model_version="v99.0")
+    assert bad.status_code == 422
+    assert "is not a recorded version of M-0012" in bad.json()["detail"]
+    assert versions[0] in bad.json()["detail"]
+
+    # A real one is stored and returned.
+    doc = _single(loaded_client, h, "VR.pdf", make_pdf(["vr"]), model_version=versions[0]).json()
+    assert doc["model_version"] == versions[0]
+    assert loaded_client.get(f"/api/documents/{doc['document_id']}", headers=h).json()["model_version"] == versions[0]
+
+    # Optional: evidence that is not version-specific still stores.
+    plain = _single(loaded_client, h, "TOR.pdf", make_pdf(["tor"]), document_type="Terms of Reference").json()
+    assert plain["model_version"] is None
+
+    # A T17 manifest can set it for a batch upload.
+    manifest = ("relative_path,model_id,model_version,document_type\n"
+                f"Eva/MDD.pdf,M-0012,{versions[0]},Model Development Document\n")
+    b = _batch(loaded_client, h, [("Eva/MDD.pdf", make_pdf(["mdd"])), ("manifest.csv", manifest.encode())]).json()
+    assert b["items"][0]["model_version"] == versions[0]
+    loaded_client.post(f"/api/documents/batches/{b['batch_id']}/confirm", headers=h)
+    stored = {d["file_name"]: d for d in loaded_client.get("/api/documents", headers=h).json()}
+    assert stored["MDD.pdf"]["model_version"] == versions[0]
+
+
 def test_cr_04_reviewing_a_batch_needs_document_review_not_upload(loaded_client, make_pdf):
     """SEC-01, SEC-02, §38: uploading a batch and deciding what it becomes are separate permissions.
 

@@ -4,7 +4,20 @@ PostgreSQL holds all metadata and the logical folder hierarchy; object storage h
 """
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BigIntId, Base, TimestampMixin, VersionedMixin
@@ -28,10 +41,20 @@ class DocumentFolder(Base):
 
 class Document(TimestampMixin, VersionedMixin, Base):
     __tablename__ = "document"
-    __table_args__ = (Index("ix_document_model_type", "model_id", "document_type"),)
+    __table_args__ = (
+        Index("ix_document_model_type", "model_id", "document_type"),
+        # Evidence is about one version of a model (BRD §24, §27). Composite and nullable: a document
+        # need not name a version, and a NULL in a composite foreign key skips the check.
+        ForeignKeyConstraint(["model_id", "model_version"],
+                             ["model_version.model_id", "model_version.version"],
+                             name="fk_document_model_version"),
+    )
 
     document_id: Mapped[str] = mapped_column(String(20), primary_key=True)
     model_id: Mapped[str] = mapped_column(ForeignKey("model.model_id"))
+    # The *model* version this evidence is about — not the document's own version, which is
+    # `current_version` and the DocumentVersion rows.
+    model_version: Mapped[str | None] = mapped_column(String(40))
     title: Mapped[str] = mapped_column(String(255))
     document_type: Mapped[str] = mapped_column(String(60), index=True)
     document_subtype: Mapped[str | None] = mapped_column(String(60))
@@ -107,6 +130,7 @@ class DocumentUploadItem(Base):
     checksum: Mapped[str] = mapped_column(String(64), index=True)
     staging_key: Mapped[str] = mapped_column(String(1024))
     model_id: Mapped[str | None] = mapped_column(String(20))
+    model_version: Mapped[str | None] = mapped_column(String(40))  # from a T17 manifest or the reviewer
     model_source: Mapped[str | None] = mapped_column(String(20))  # manifest | folder | filename | user
     document_type: Mapped[str | None] = mapped_column(String(60))
     type_source: Mapped[str | None] = mapped_column(String(20))

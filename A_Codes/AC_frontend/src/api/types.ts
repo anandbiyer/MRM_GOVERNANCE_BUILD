@@ -356,6 +356,8 @@ export interface DocumentVersion {
 export interface DocumentRecord {
   document_id: string;
   model_id: string;
+  /** The *model* version this evidence is about (BRD §24, §27) — not the document's own version. */
+  model_version: string | null;
   title: string;
   document_type: string;
   document_subtype: string | null;
@@ -430,6 +432,7 @@ export interface UploadItem {
   size_bytes: number;
   checksum: string;
   model_id: string | null;
+  model_version: string | null;
   model_source: string | null;
   document_type: string | null;
   type_source: string | null;

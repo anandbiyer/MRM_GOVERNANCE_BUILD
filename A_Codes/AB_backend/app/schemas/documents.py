@@ -28,6 +28,7 @@ class DocumentVersionOut(ORMModel):
 class DocumentOut(ORMModel):
     document_id: str
     model_id: str
+    model_version: str | None  # the model version this evidence is about (BRD §24, §27)
     title: str
     document_type: str
     document_subtype: str | None
@@ -109,6 +110,7 @@ class UploadItemOut(ORMModel):
     size_bytes: int
     checksum: str
     model_id: str | None
+    model_version: str | None
     model_source: str | None
     document_type: str | None
     type_source: str | None
@@ -137,6 +139,7 @@ class DocumentBatchOut(ImportBatchOut):
 class ItemUpdate(BaseModel):
     item_ids: list[int]
     model_id: str | None = None
+    model_version: str | None = None
     document_type: str | None = None
     version: str | None = None
     effective_date: date | None = None

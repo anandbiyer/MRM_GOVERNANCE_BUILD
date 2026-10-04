@@ -22,7 +22,7 @@ A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env,
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 150 tests: 146 pass, 4 PostgreSQL skip
+.venv\Scripts\python -m pytest                              # 151 tests: 147 pass, 4 PostgreSQL skip
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
@@ -1899,6 +1899,16 @@ threshold change never alters a historical outcome (§16, MON-05, Principle 5).
 - uploaded_by
 - uploaded_at
 - change_reason
+
+### document — column added for §24/§27 model version
+- model_version
+
+`§27` lists "Model version" among the document attributes and `§24` requires every evidence document
+to be linked to a model *version*, but this section's column lists omitted it — the contradiction
+raised as spec issue S4 in `D_Reviews/20261002_summary.md`. Resolved in favour of §24/§27: `document`
+carries a nullable `model_version`, with a composite foreign key over `(model_id, model_version)` into
+`model_version`. It is the *model's* version, distinct from `current_version`, which versions the
+document itself. T17 gained a matching column. Nullable because not all evidence is version-specific.
 
 ### import_batch
 - batch_id
