@@ -10,7 +10,7 @@ import zipfile
 import pytest
 
 from app.rules import document_rules
-from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, VALIDATOR, login, make_docx
+from tests.conftest import ADMIN, AUDITOR, DEVELOPER, EXECUTIVE, VALIDATOR, login, make_docx
 
 PDF = "application/pdf"
 KEYWORDS = document_rules.parse_keywords([
@@ -291,6 +291,48 @@ def test_archive_legal_hold_and_links(loaded_client, make_pdf):
     # archived documents stay retrievable but drop out of the active register
     assert loaded_client.get("/api/documents", headers=h).json() == []
     assert loaded_client.get(f"/api/documents/{d['document_id']}/versions/1.0/download", headers=h).status_code == 200
+
+
+def test_cr_04_reviewing_a_batch_needs_document_review_not_upload(loaded_client, make_pdf):
+    """SEC-01, SEC-02, §38: uploading a batch and deciding what it becomes are separate permissions.
+
+    Regression for CR-04: all three review actions checked `document:upload`, so a Model Developer —
+    who holds upload but deliberately not review — could reclassify a staged batch and commit it to
+    the governance record.
+    """
+    dev = login(loaded_client, *DEVELOPER)
+    me = loaded_client.get("/api/auth/me", headers=dev).json()["permissions"]
+    assert "document:upload" in me and "document:review" not in me
+
+    # Uploading is allowed for the role: nothing is a governance document yet. (The items then fail
+    # the separate record-level check, because U-021 is not M-0012's developer — that is SEC-03, not
+    # the permission under test here, so the batch this test acts on is staged by an Admin.)
+    own = _batch(loaded_client, dev, _folder_upload(make_pdf)[:2])
+    assert own.status_code == 201, own.text
+
+    batch = _batch(loaded_client, login(loaded_client, *ADMIN), _folder_upload(make_pdf)[:2]).json()
+    assert batch["status"] == "Ready"
+    item_id = batch["items"][0]["item_id"]
+
+    # Deciding what it becomes is not.
+    remap = loaded_client.patch(f"/api/documents/batches/{batch['batch_id']}/items", headers=dev,
+                                json={"item_ids": [item_id], "model_id": "M-0012", "document_type": "Other"})
+    assert remap.status_code == 403, remap.text
+    assert "not permitted to review a batch" in remap.json()["detail"]
+    assert loaded_client.post(f"/api/documents/batches/{batch['batch_id']}/confirm", headers=dev).status_code == 403
+    assert loaded_client.post(f"/api/documents/batches/{batch['batch_id']}/cancel", headers=dev).status_code == 403
+
+    # Nothing was stored and the batch is untouched by the refused calls.
+    assert loaded_client.get("/api/documents", headers=dev).json() == []
+    assert loaded_client.get(f"/api/documents/batches/{batch['batch_id']}", headers=dev).json()["status"] == "Ready"
+
+    # A Validator holds both, so the same batch goes through.
+    val = login(loaded_client, *VALIDATOR)
+    assert loaded_client.patch(f"/api/documents/batches/{batch['batch_id']}/items", headers=val,
+                               json={"item_ids": [item_id], "model_id": "M-0012",
+                                     "document_type": "Other"}).status_code == 200
+    assert loaded_client.post(f"/api/documents/batches/{batch['batch_id']}/confirm",
+                              headers=val).status_code == 200
 
 
 def test_document_manifest_templates_are_document_channel(loaded_client):

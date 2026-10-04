@@ -36,9 +36,23 @@ EDITABLE = ("Ready", "Validation Failed", "Failed")
 ACTIONS = ("create", "new_version", "skip")
 
 
-def _require(principal: Principal | None) -> None:
+def _require_upload(principal: Principal | None) -> None:
+    """Staging files for analysis. Nothing has become a governance document yet."""
     if principal and not has_permission(principal.role, Permission.DOCUMENT_UPLOAD):
         raise ForbiddenError(f"Role '{principal.role}' is not permitted to upload documents.")
+
+
+def _require_review(principal: Principal | None) -> None:
+    """Deciding what a staged batch becomes — remapping it, storing it, or discarding it (BRD §38).
+
+    A separate permission from uploading on purpose: a Model Developer may contribute evidence but
+    must not be the one who reclassifies it and commits it to the governance record. `DOCUMENT_REVIEW`
+    was declared and granted but never checked anywhere (review finding CR-04).
+    """
+    if principal and not has_permission(principal.role, Permission.DOCUMENT_REVIEW):
+        raise ForbiddenError(
+            f"Role '{principal.role}' may upload documents but is not permitted to review a batch "
+            f"(reclassify, store or cancel it).")
 
 
 def _is_manifest(path: str) -> bool:
@@ -82,7 +96,7 @@ def _parse_manifests(db: Session, manifests: list[tuple[str, bytes]]) -> dict:
 def create_batch(db: Session, session_factory: Callable[[], Session], principal: Principal | None,
                  uploads: list[tuple[str, bytes]], *, source: str = "batch", auto_confirm: bool = False) -> ImportBatch:
     """uploads: (relative path, bytes); .zip entries are expanded safely. Analysis starts in the background."""
-    _require(principal)
+    _require_upload(principal)
     if not uploads:
         raise ValidationFailedError("Choose at least one file or folder to upload.")
     dp = doc_service.DocPolicy.load(Policy.load(db))
@@ -252,7 +266,7 @@ def _count(batch: ImportBatch, items: list[DocumentUploadItem]) -> None:
 
 def update_items(db: Session, principal: Principal, batch_id: str, item_ids: list[int], changes: dict) -> list[DocumentUploadItem]:
     """User mapping review (BRD §33 Method B, §34): model, type, version, date, title, action."""
-    _require(principal)
+    _require_review(principal)
     batch = get_batch(db, batch_id)
     if batch.status not in EDITABLE:
         raise ConflictError(f"Batch {batch_id} is {batch.status}; its mapping can no longer be changed.")
@@ -291,7 +305,7 @@ def update_items(db: Session, principal: Principal, batch_id: str, item_ids: lis
 
 
 def start_confirm(db: Session, session_factory: Callable[[], Session], principal: Principal, batch_id: str) -> ImportBatch:
-    _require(principal)
+    _require_review(principal)
     batch = get_batch(db, batch_id)
     if batch.status not in ("Ready", "Partially Completed", "Failed"):
         raise ConflictError(f"Batch {batch_id} is {batch.status}; there is nothing ready to store.")
@@ -360,7 +374,7 @@ def items(db: Session, batch_id: str) -> list[DocumentUploadItem]:
 
 
 def cancel(db: Session, principal: Principal, batch_id: str) -> ImportBatch:
-    _require(principal)
+    _require_review(principal)
     batch = get_batch(db, batch_id)
     if batch.status not in EDITABLE:
         raise ConflictError(f"Batch {batch_id} is {batch.status} and cannot be cancelled.")

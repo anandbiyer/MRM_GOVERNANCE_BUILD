@@ -118,6 +118,7 @@ def login(client: TestClient, user_id: str, role: str) -> dict[str, str]:
 
 
 ADMIN = ("U-001", "Admin")
+DEVELOPER = ("U-021", "Model Developer")  # holds document:upload but deliberately not document:review
 AUDITOR = ("U-041", "Auditor")
 EXECUTIVE = ("U-042", "Executive")
 VALIDATOR = ("U-014", "Validator")

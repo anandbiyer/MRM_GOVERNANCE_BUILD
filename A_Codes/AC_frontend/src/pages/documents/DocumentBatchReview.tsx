@@ -101,7 +101,9 @@ export function DocumentBatchReview() {
   if (batch.isLoading) return <Loading />;
   if (batch.isError) return <ErrorState error={batch.error} title={`Batch ${batchId}`} />;
   const b = batch.data!;
-  const editable = EDITABLE.includes(b.status) && can("document:upload");
+  // Reviewing a batch (remap / store / cancel) needs document:review, not document:upload — the
+  // server enforces the same split, so showing the controls to an uploader would only mislead.
+  const editable = EDITABLE.includes(b.status) && can("document:review");
   const running = RUNNING.includes(b.status);
   const counts = b.items.reduce<Record<string, number>>((acc, i) => ({ ...acc, [i.status]: (acc[i.status] ?? 0) + 1 }), {});
   const shown = statusFilter ? b.items.filter((i) => i.status === statusFilter) : b.items;
