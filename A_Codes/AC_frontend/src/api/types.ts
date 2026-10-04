@@ -231,8 +231,15 @@ export interface ModelMeta {
   approval_decisions: string[];
   relationship_types: string[];
   tiering_questions: Record<string, string>;
+  /** R8 score band boundaries and labels, from policy — never restated in the frontend (CR-01). */
+  score_band_warn_min: number;
+  score_band_good_min: number;
+  score_band_labels: Record<string, string>;
   users: { user_id: string; full_name: string; roles: string[]; active: boolean }[];
 }
+
+/** Score band keys returned by the API. They carry no numbers; the boundaries are policy. */
+export const SCORE_BANDS = ["below_warn", "warn_to_good", "good_plus"] as const;
 
 // --- Phase 3: import engine (mirrors app/schemas/ingestion.py) ---
 

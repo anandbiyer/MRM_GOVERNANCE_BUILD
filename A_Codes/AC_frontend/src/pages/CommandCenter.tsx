@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { useModelMeta } from "../api/queries";
 import { useAuth } from "../auth/AuthContext";
 import { DaysToDue, Pill } from "../components/Pills";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../components/States";
@@ -22,10 +23,13 @@ interface Summary {
 const STATUS_TONE: Record<string, string> = {
   High: "bad", Medium: "warn", Low: "good", Critical: "bad",
   Overdue: "bad", "Due Soon": "warn", Scheduled: "info",
-  below_60: "bad", "60_80": "warn", "80_plus": "good",
+  below_warn: "bad", warn_to_good: "warn", good_plus: "good",
 };
-const BAND_LABEL: Record<string, string> = { below_60: "Below 60", "60_80": "60 – 80", "80_plus": "80 and above" };
-const BAND_FLAG: Record<string, string> = { below_60: "scored_below_60", "60_80": "scored_60_80", "80_plus": "scored_80_plus" };
+// Band labels come from /api/models/meta, which derives them from the policy boundaries, so the
+// numbers appear in exactly one place: the policy settings (CR-01).
+const BAND_FLAG: Record<string, string> = {
+  below_warn: "scored_below_warn", warn_to_good: "scored_warn_to_good", good_plus: "scored_good_plus",
+};
 
 function Tile({ label, value, sub, to, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; to?: string; tone?: string }) {
   const navigate = useNavigate();
@@ -83,6 +87,9 @@ const q = (params: Record<string, string>) => `/operations?${new URLSearchParams
 export function CommandCenter() {
   const { can } = useAuth();
   const s = useQuery({ queryKey: ["dashboard"], queryFn: () => api<Summary>("/api/dashboard/summary") });
+  const meta = useModelMeta();
+  // Fall back to the band key itself rather than inventing boundaries while meta is in flight.
+  const bandLabels = meta.data?.score_band_labels ?? {};
   if (s.isLoading) return <Loading label="Calculating the portfolio…" />;
   if (s.isError) return <ErrorState error={s.error} title="Command Center" />;
   const d = s.data!;
@@ -129,7 +136,7 @@ export function CommandCenter() {
                  linkFor={(k) => q({ revalidation_status: k })} note="models with a due date" />
         <BarList title="Open findings by severity" items={dist.open_findings_by_severity} toneFor={(k) => STATUS_TONE[k] ?? "info"}
                  linkFor={() => q({ flag: "open_findings" })} note="findings" />
-        <BarList title="Governance score" items={dist.score_band} label={(k) => BAND_LABEL[k] ?? k} toneFor={(k) => STATUS_TONE[k]}
+        <BarList title="Governance score" items={dist.score_band} label={(k) => bandLabels[k] ?? k} toneFor={(k) => STATUS_TONE[k]}
                  linkFor={(k) => q({ flag: BAND_FLAG[k] })} note="scored models" />
       </div>
 

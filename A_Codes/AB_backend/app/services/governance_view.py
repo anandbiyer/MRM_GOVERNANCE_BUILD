@@ -14,7 +14,7 @@ from app.models import Approval, Finding, Model
 from app.documents import service as doc_service
 from app.rules import document_rules, governance_rules, model_rules, revalidation, score
 from app.services.errors import ValidationFailedError
-from app.services.policy_access import Policy
+from app.services.policy_access import Policy, ScoreBands
 
 
 @dataclass
@@ -137,18 +137,30 @@ def _score(model: Model, policy: Policy, reval: revalidation.RevalidationState, 
     return score.combine(components)
 
 
+@dataclass(frozen=True)
+class FlagContext:
+    """Policy-derived values the drill-down filters need. Passed in so no filter reads a literal."""
+    production: set[str]
+    bands: ScoreBands
+
+
+def _in_band(s, ctx: FlagContext, band: str) -> bool:
+    return s.score.overall is not None and ctx.bands.of(s.score.overall) == band
+
+
 # Drill-down filters used by Command Center tiles and insights (Operations Board ?flag=...).
+# Score-band keys match rules.score.BANDS and carry no numbers — the boundaries are policy (CR-01).
 FLAGS = {
-    "open_findings": lambda m, s, prod: s.open_findings > 0,
-    "overdue_findings": lambda m, s, prod: s.overdue_findings > 0,
-    "critical_overdue": lambda m, s, prod: s.critical_overdue > 0,
-    "sod_breach": lambda m, s, prod: s.sod_breach is not None,
-    "doc_gaps": lambda m, s, prod: bool(s.missing_documents),
-    "open_conditions": lambda m, s, prod: s.open_conditions > 0,
-    "in_production": lambda m, s, prod: m.lifecycle_phase in prod,
-    "scored_below_60": lambda m, s, prod: s.score.overall is not None and s.score.overall < 60,
-    "scored_60_80": lambda m, s, prod: s.score.overall is not None and 60 <= s.score.overall < 80,
-    "scored_80_plus": lambda m, s, prod: s.score.overall is not None and s.score.overall >= 80,
+    "open_findings": lambda m, s, ctx: s.open_findings > 0,
+    "overdue_findings": lambda m, s, ctx: s.overdue_findings > 0,
+    "critical_overdue": lambda m, s, ctx: s.critical_overdue > 0,
+    "sod_breach": lambda m, s, ctx: s.sod_breach is not None,
+    "doc_gaps": lambda m, s, ctx: bool(s.missing_documents),
+    "open_conditions": lambda m, s, ctx: s.open_conditions > 0,
+    "in_production": lambda m, s, ctx: m.lifecycle_phase in ctx.production,
+    f"scored_{score.BAND_BELOW_WARN}": lambda m, s, ctx: _in_band(s, ctx, score.BAND_BELOW_WARN),
+    f"scored_{score.BAND_WARN_TO_GOOD}": lambda m, s, ctx: _in_band(s, ctx, score.BAND_WARN_TO_GOOD),
+    f"scored_{score.BAND_GOOD_PLUS}": lambda m, s, ctx: _in_band(s, ctx, score.BAND_GOOD_PLUS),
 }
 
 
@@ -182,8 +194,8 @@ def portfolio(db: Session, *, model_type: str | None = None, tier: str | None = 
         test = FLAGS.get(flag)
         if test is None:
             raise ValidationFailedError(f"Unknown filter '{flag}'. Allowed: {', '.join(FLAGS)}.")
-        production = set(policy.list("production_phases"))
-        rows = [r for r in rows if test(r[0], r[1], production)]
+        ctx = FlagContext(production=set(policy.list("production_phases")), bands=policy.score_bands)
+        rows = [r for r in rows if test(r[0], r[1], ctx)]
     return rows
 
 

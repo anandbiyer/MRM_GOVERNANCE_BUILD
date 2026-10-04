@@ -19,10 +19,14 @@ export const FLAG_LABELS: Record<string, string> = {
   doc_gaps: "Models missing required documents",
   open_conditions: "Models with open MRC conditions",
   in_production: "Models in production",
-  scored_below_60: "Governance score below 60",
-  scored_60_80: "Governance score 60–80",
-  scored_80_plus: "Governance score 80 and above",
 };
+
+/** Score-band filter labels, built from the policy boundaries in /api/models/meta (CR-01). */
+export function scoreBandFlagLabels(bandLabels: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(bandLabels).map(([band, label]) => [`scored_${band}`, `Governance score ${label.toLowerCase()}`]),
+  );
+}
 
 type SortKey = "model_id" | "model_name" | "effective_tier" | "column" | "days" | "findings" | "score";
 
@@ -62,6 +66,8 @@ export function OperationsBoard() {
   const navigate = useNavigate();
   const { can } = useAuth();
   const meta = useModelMeta();
+  // Static flag labels plus the score-band ones, whose wording follows the policy boundaries.
+  const flagLabels = { ...FLAG_LABELS, ...scoreBandFlagLabels(meta.data?.score_band_labels ?? {}) };
   const [params, setParams] = useSearchParams();
   const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: "model_id", asc: true });
   const [searchDraft, setSearchDraft] = useState(params.get("search") ?? "");
@@ -130,7 +136,7 @@ export function OperationsBoard() {
 
       {filters.flag && (
         <div className="filters">
-          <span className="pill p-acc">{FLAG_LABELS[filters.flag] ?? filters.flag}
+          <span className="pill p-acc">{flagLabels[filters.flag] ?? filters.flag}
             <button className="chip-x" aria-label="Remove filter" onClick={() => setFilter("flag", "")}>×</button></span>
           <span className="note">from the Command Center</span>
         </div>

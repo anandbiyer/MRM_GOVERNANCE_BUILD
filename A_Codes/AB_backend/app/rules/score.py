@@ -23,6 +23,31 @@ class ScoreResult:
     reason: str | None = None  # why there is no score at all
 
 
+# R8 score bands. The keys deliberately carry no numbers: the boundaries are the policy settings
+# `score_band_warn_min` and `score_band_good_min`, so a key like "below_60" would become a lie the
+# moment they were changed (review finding CR-01).
+BAND_BELOW_WARN, BAND_WARN_TO_GOOD, BAND_GOOD_PLUS = "below_warn", "warn_to_good", "good_plus"
+BANDS = (BAND_BELOW_WARN, BAND_WARN_TO_GOOD, BAND_GOOD_PLUS)
+
+
+def band_of(value: Decimal | float, warn_min: int, good_min: int) -> str:
+    """Which band a governance score falls in. Boundaries are inclusive at the lower end."""
+    if value >= good_min:
+        return BAND_GOOD_PLUS
+    if value >= warn_min:
+        return BAND_WARN_TO_GOOD
+    return BAND_BELOW_WARN
+
+
+def band_labels(warn_min: int, good_min: int) -> dict[str, str]:
+    """Human labels built from the configured boundaries, so screens never restate the numbers."""
+    return {
+        BAND_BELOW_WARN: f"Below {warn_min}",
+        BAND_WARN_TO_GOOD: f"{warn_min} – {good_min}",
+        BAND_GOOD_PLUS: f"{good_min} and above",
+    }
+
+
 def _clamp(v: Decimal) -> Decimal:
     return max(Decimal(0), min(Decimal(100), v))
 

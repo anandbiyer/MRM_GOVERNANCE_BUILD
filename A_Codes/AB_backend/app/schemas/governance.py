@@ -371,4 +371,9 @@ class ModelMetaOut(BaseModel):
     approval_decisions: list[str]
     relationship_types: list[str]
     tiering_questions: dict[str, str]
+    # R8 band boundaries and their labels, so screens derive pill colours and filter wording from
+    # policy instead of restating 60 / 80 (review finding CR-01).
+    score_band_warn_min: int
+    score_band_good_min: int
+    score_band_labels: dict[str, str]
     users: list[dict[str, Any]]

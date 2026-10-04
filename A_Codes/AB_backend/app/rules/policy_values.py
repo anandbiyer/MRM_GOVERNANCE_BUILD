@@ -65,6 +65,14 @@ def check_key_specific(key: str, parsed, others: dict[str, object]) -> None:
             raise PolicyValueError(
                 f"'{parsed}' is not one of the configured lifecycle phases ({'; '.join(phases)}). "
                 f"The Revalidation column is derived from it.")
+    if key in ("score_band_warn_min", "score_band_good_min"):
+        warn = parsed if key == "score_band_warn_min" else others.get("score_band_warn_min")
+        good = parsed if key == "score_band_good_min" else others.get("score_band_good_min")
+        if not 0 <= int(parsed) <= 100:
+            raise PolicyValueError(f"{parsed} is outside 0–100; governance scores are percentages.")
+        if warn is not None and good is not None and not int(warn) < int(good):
+            raise PolicyValueError(
+                f"the amber minimum ({warn}) must be below the green minimum ({good}).")
     if key == "lifecycle_phases":
         monitoring = others.get("monitoring_phase")
         if monitoring and monitoring not in parsed:

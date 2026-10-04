@@ -56,7 +56,8 @@ def test_distributions_sum_and_match_filters(loaded_client):
     sev = {x["key"]: x["count"] for x in d["distributions"]["open_findings_by_severity"]}
     assert sum(sev.values()) == d["tiles"]["open_findings"]
     bands = {x["key"]: x["count"] for x in d["distributions"]["score_band"]}
-    assert bands["below_60"] == len(_get(loaded_client, h, "/api/models", flag="scored_below_60"))
+    # Band keys carry no numbers — the boundaries are policy (CR-01).
+    assert bands["below_warn"] == len(_get(loaded_client, h, "/api/models", flag="scored_below_warn"))
     assert sum(bands.values()) == d["tiles"]["scored_models"]
 
 
@@ -98,6 +99,44 @@ def test_insight_disappears_when_resolved(loaded_client):
                         json={"status": "Closed", "row_version": f["row_version"], "reason": "Remediated"})
     after = _get(loaded_client, admin, "/api/dashboard/summary")["insight_counts_by_rule"]["critical_finding_overdue"]
     assert after == before - 1
+
+
+def test_cr_01_score_bands_come_from_policy(loaded_client):
+    """SCR-04, CFG-02, CC-02: the R8 band boundaries are policy, not literals.
+
+    Regression for CR-01: 60 and 80 were hard-coded in governance_view, dashboard_service and three
+    frontend files, so the bands, their drill-downs and the score pill colours could not be changed.
+    """
+    admin = login(loaded_client, *ADMIN)
+
+    def put(key, value):
+        s = next(x for x in _get(loaded_client, admin, "/api/admin/policy") if x["setting_key"] == key)
+        return loaded_client.put(f"/api/admin/policy/{key}", headers=admin,
+                                 json={"value": value, "row_version": s["row_version"]})
+
+    meta = _get(loaded_client, admin, "/api/models/meta")
+    assert (meta["score_band_warn_min"], meta["score_band_good_min"]) == (60, 80)
+    assert meta["score_band_labels"] == {
+        "below_warn": "Below 60", "warn_to_good": "60 – 80", "good_plus": "80 and above"}
+
+    before = {x["key"]: x["count"] for x in
+              _get(loaded_client, admin, "/api/dashboard/summary")["distributions"]["score_band"]}
+
+    # Raise the amber floor: models between the old and new floor move down a band.
+    assert put("score_band_warn_min", "75").status_code == 200
+    after = {x["key"]: x["count"] for x in
+             _get(loaded_client, admin, "/api/dashboard/summary")["distributions"]["score_band"]}
+    assert after["below_warn"] > before["below_warn"], (before, after)
+    assert sum(after.values()) == sum(before.values())
+
+    # The drill-down follows the same boundary, and the labels restate it.
+    assert after["below_warn"] == len(_get(loaded_client, admin, "/api/models", flag="scored_below_warn"))
+    assert _get(loaded_client, admin, "/api/models/meta")["score_band_labels"]["below_warn"] == "Below 75"
+
+    # The boundaries must stay ordered and inside 0-100.
+    assert put("score_band_warn_min", "90").status_code == 422
+    assert put("score_band_good_min", "70").status_code == 422
+    assert put("score_band_good_min", "140").status_code == 422
 
 
 def test_cr_02_renaming_the_monitoring_phase_does_not_break_the_dashboard(loaded_client):

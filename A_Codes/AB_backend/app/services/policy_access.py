@@ -6,6 +6,7 @@ from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from app.models import PolicySetting
+from app.rules import score as score_rules
 from app.rules.model_rules import PhaseRequirements
 from app.rules.policy_values import parse_policy_value
 from app.services.errors import ServiceError
@@ -22,6 +23,19 @@ def _drop_cache_on_rollback(session: Session, _previous_transaction) -> None:
 
 class PolicyMissingError(ServiceError):
     status_code = 500
+
+
+@dataclass(frozen=True)
+class ScoreBands:
+    """The two R8 band boundaries, read from policy. Classification lives in `rules.score`."""
+    warn_min: int
+    good_min: int
+
+    def of(self, value) -> str:
+        return score_rules.band_of(value, self.warn_min, self.good_min)
+
+    def labels(self) -> dict[str, str]:
+        return score_rules.band_labels(self.warn_min, self.good_min)
 
 
 @dataclass
@@ -93,6 +107,11 @@ class Policy:
     def monitoring_phase(self) -> str:
         """The lifecycle phase R3 can displace into the Revalidation column (BRD §8, §10)."""
         return self.text("monitoring_phase")
+
+    @property
+    def score_bands(self) -> "ScoreBands":
+        """R8 governance score bands. The only place these two numbers are read (§57, §69)."""
+        return ScoreBands(warn_min=self.int("score_band_warn_min"), good_min=self.int("score_band_good_min"))
 
     def score_weights(self) -> dict[str, Decimal]:
         return {k: self.decimal(f"weight_{k}") for k in

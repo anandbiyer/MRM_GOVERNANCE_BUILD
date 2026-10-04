@@ -31,6 +31,8 @@ mrc_required_from_phase,Implementation,text,Lifecycle,Phase from which an MRC de
 validator_required_from_phase,Validation,text,Lifecycle,Phase from which a validator must be assigned
 validation_data_required_from_phase,Monitoring,text,Lifecycle,"Phase from which go-live date, revalidation frequency and last validation date are required"
 monitoring_phase,Monitoring,text,Lifecycle,Lifecycle phase the derived Revalidation column is taken from (R3); must be one of lifecycle_phases
+score_band_warn_min,60,integer,Score,Governance score at or above which a model is amber rather than red (R8 bands)
+score_band_good_min,80,integer,Score,Governance score at or above which a model is green (R8 bands)
 model_types,Credit Risk; Provisioning; Balance Sheet; Forecasting; CCAR/Stress Testing,list,Inventory,Allowed model types
 validation_types,Initial; Periodic; Targeted; Change,list,Validation,Allowed validation types (BRD §9)
 validation_outcomes,Approved; Conditional; Rejected; In Progress,list,Validation,Allowed validation outcomes (BRD §9)

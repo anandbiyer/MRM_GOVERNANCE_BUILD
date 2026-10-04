@@ -71,6 +71,7 @@ def model_meta(db: DbSession, _: CurrentPrincipal):
     p = Policy.load(db)
     phases = p.phases
     columns = revalidation.displayed_columns(phases, p.monitoring_phase)
+    bands = p.score_bands
     business_lines = sorted(set(db.scalars(select(Model.business_line))))
     users = [{"user_id": u.user_id, "full_name": u.full_name, "roles": u.role_names, "active": u.active}
              for u in user_service.list_users(db)]
@@ -85,6 +86,8 @@ def model_meta(db: DbSession, _: CurrentPrincipal):
         approval_forums=p.list("approval_forums"), approval_decision_types=p.list("approval_decision_types"),
         approval_decisions=p.list("approval_decisions"), relationship_types=list(model_rules.RELATIONSHIP_TYPES),
         tiering_questions=tiering.TIERING_QUESTION_TEXT, users=users,
+        score_band_warn_min=bands.warn_min, score_band_good_min=bands.good_min,
+        score_band_labels=bands.labels(),
     )
 
 

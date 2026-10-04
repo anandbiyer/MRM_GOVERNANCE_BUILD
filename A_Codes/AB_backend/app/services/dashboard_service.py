@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.clock import today
 from app.models import Approval, Finding, Validation
-from app.rules import governance_rules, insights, revalidation, tiering
+from app.rules import governance_rules, insights, revalidation, score, tiering
 from app.documents import service as doc_service
 from app.services import governance_view
 from app.services.policy_access import Policy
@@ -66,7 +66,8 @@ def summary(db: Session) -> dict:
     open_by_sev = Counter()
     for _, s in rows:
         open_by_sev.update({k: v for k, v in s.open_by_severity.items() if v})
-    bands = Counter("below_60" if v < 60 else "60_80" if v < 80 else "80_plus" for v in scored)
+    score_bands = policy.score_bands
+    bands = Counter(score_bands.of(v) for v in scored)
     distributions = {
         "tier": dist([m.effective_tier for m, _ in rows], list(tiering.TIERS)),
         "model_type": dist([m.model_type for m, _ in rows], policy.list("model_types")),
@@ -77,7 +78,7 @@ def summary(db: Session) -> dict:
         "open_findings_by_severity": [{"key": k, "count": open_by_sev.get(k, 0),
                                        "pct": _pct(open_by_sev.get(k, 0), tiles["open_findings"])} for k in severities],
         "score_band": [{"key": k, "count": bands.get(k, 0), "pct": _pct(bands.get(k, 0), len(scored))}
-                       for k in ("below_60", "60_80", "80_plus")],
+                       for k in score.BANDS],
     }
 
     # --- revalidation timeline: the models in the Revalidation column, most urgent first ----------

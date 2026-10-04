@@ -18,7 +18,8 @@ ENTITY = "policy_setting"
 TIER_KEYS = ("tier_high_min", "tier_medium_min")
 # Settings whose current value another setting is validated against (see rules.check_key_specific).
 # Loaded for every interactive edit so a cross-field rule can see the other side.
-CONTEXT_KEYS = (*TIER_KEYS, "lifecycle_phases", "monitoring_phase")
+CONTEXT_KEYS = (*TIER_KEYS, "lifecycle_phases", "monitoring_phase",
+                "score_band_warn_min", "score_band_good_min")
 
 
 def _snapshot(s: PolicySetting) -> dict:
