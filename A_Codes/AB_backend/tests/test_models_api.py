@@ -309,9 +309,100 @@ def test_approvals_mrc_only_and_conditional_rules(loaded_client):
     assert met.status_code == 200 and met.json()["condition_status"] == "Met"
 
 
+def _outstanding(client, headers) -> set[str]:
+    """Models the system currently shows as having open MRC conditions."""
+    return {m["model_id"] for m in client.get("/api/models", headers=headers,
+                                              params={"flag": "open_conditions"}).json()}
+
+
+def test_apr_03_conditional_stays_outstanding_until_every_condition_closes(loaded_client):
+    """APR-03: a Conditional decision stays visible as outstanding until *every* condition is closed.
+
+    The previous test only round-tripped `condition_status` through a PATCH, so none of the
+    criterion was observed (review finding TR-02). "Every" is the part worth testing: two open
+    conditions on one model, closed one at a time.
+    """
+    mrc = login(loaded_client, *MRC)
+    admin = login(loaded_client, *ADMIN)
+    model_id = "M-0023"  # chosen for having no open conditions to start with
+    assert model_id not in _outstanding(loaded_client, admin)
+    tile_before = loaded_client.get("/api/dashboard/summary", headers=admin).json()["tiles"]["models_with_open_conditions"]
+
+    base = {"model_id": model_id, "forum": "MRC", "decision": "Conditional", "condition_status": "Open",
+            "condition_due_date": "2026-12-31"}
+    first = loaded_client.post("/api/approvals", headers=mrc, json={
+        **base, "decision_date": "2026-08-01", "decision_type": "Pre-implementation",
+        "conditions": "Document the override log"}).json()
+    second = loaded_client.post("/api/approvals", headers=mrc, json={
+        **base, "decision_date": "2026-09-01", "decision_type": "Annual review",
+        "conditions": "Re-run the benchmark"}).json()
+
+    # Outstanding, and counted once however many conditions it holds.
+    assert model_id in _outstanding(loaded_client, admin)
+    tile_after = loaded_client.get("/api/dashboard/summary", headers=admin).json()["tiles"]["models_with_open_conditions"]
+    assert tile_after == tile_before + 1
+
+    # Closing one of two is not enough — this is the assertion the old test could not make.
+    closed = loaded_client.patch(f"/api/approvals/{first['approval_id']}", headers=mrc,
+                                 json={"condition_status": "Met", "row_version": first["row_version"]})
+    assert closed.status_code == 200, closed.text
+    assert model_id in _outstanding(loaded_client, admin), "one condition still open"
+
+    # Closing the last one clears it.
+    loaded_client.patch(f"/api/approvals/{second['approval_id']}", headers=mrc,
+                        json={"condition_status": "Met", "row_version": second["row_version"]})
+    assert model_id not in _outstanding(loaded_client, admin)
+    tile_final = loaded_client.get("/api/dashboard/summary", headers=admin).json()["tiles"]["models_with_open_conditions"]
+    assert tile_final == tile_before
+
+    # The decisions themselves remain on the record; only their outstanding status changed.
+    approvals = _model(loaded_client, admin, model_id)["approvals"]
+    assert {a["approval_id"] for a in approvals} >= {first["approval_id"], second["approval_id"]}
+    assert all(a["condition_status"] == "Met" for a in approvals
+               if a["approval_id"] in (first["approval_id"], second["approval_id"]))
+
+
 def test_model_360_panels(loaded_client):
-    """APR-04: Model 360 returns approvals newest first, alongside findings and validations."""
+    """Model 360 returns the governance panels for a model."""
     m = _model(loaded_client, login(loaded_client, *EXECUTIVE), "M-0071")
-    assert len(m["approvals"]) == 3 and m["approvals"][0]["decision_type"] == "Pre-implementation"
-    assert len(m["findings"]) == 4 and m["validations"]
+    assert len(m["approvals"]) == 3 and len(m["findings"]) == 4 and m["validations"]
     assert m["user_names"][m["model"]["owner_id"]] == "Fiona Johnson"
+
+
+def test_apr_04_decisions_are_listed_newest_first(loaded_client):
+    """APR-04: ordering asserted by comparing dates, not by one row's label.
+
+    The old assertion checked that the first row's `decision_type` was "Pre-implementation", which a
+    reversed or arbitrary order could still satisfy (review finding TR-03).
+    """
+    mrc = login(loaded_client, *MRC)
+    admin = login(loaded_client, *ADMIN)
+
+    dates = [a["decision_date"] for a in _model(loaded_client, admin, "M-0071")["approvals"]]
+    assert len(dates) >= 3
+    assert dates == sorted(dates, reverse=True), dates
+
+    # The discriminating case: a decision that is the NEWEST by date but the LAST inserted, so its
+    # id is highest. Ordering by insertion would put it at the end; ordering by date puts it first.
+    # Without this, the seeded rows happen to be stored newest-first and insertion order passes too.
+    newest = loaded_client.post("/api/approvals", headers=mrc, json={
+        "model_id": "M-0071", "decision_date": "2026-09-29", "forum": "MRC",
+        "decision_type": "Annual review", "decision": "Approved"})
+    assert newest.status_code == 201, newest.text
+    rows = _model(loaded_client, admin, "M-0071")["approvals"]
+    assert rows[0]["approval_id"] == newest.json()["approval_id"], "newest by date must be first"
+    assert [a["decision_date"] for a in rows] == sorted((a["decision_date"] for a in rows), reverse=True)
+
+    # And one older than everything must sort last, however recently it was added.
+    oldest = loaded_client.post("/api/approvals", headers=mrc, json={
+        "model_id": "M-0071", "decision_date": "2020-01-15", "forum": "MRC",
+        "decision_type": "Annual review", "decision": "Approved"})
+    rows = _model(loaded_client, admin, "M-0071")["approvals"]
+    assert rows[-1]["approval_id"] == oldest.json()["approval_id"], "oldest by date must be last"
+    assert [a["decision_date"] for a in rows] == sorted((a["decision_date"] for a in rows), reverse=True)
+
+    # The derived state picks the latest decision from a *separate* query (governance_view
+    # Aggregates), which feeds MRC compliance in the score. It must agree with the list's first row.
+    state = _model(loaded_client, admin, "M-0071")["state"]
+    assert state["latest_decision_date"] == rows[0]["decision_date"]
+    assert state["latest_decision"] == rows[0]["decision"]
