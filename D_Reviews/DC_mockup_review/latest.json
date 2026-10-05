@@ -1,0 +1,783 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--project=functional",
+      "--list"
+    ],
+    "configFile": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\playwright.config.ts",
+    "rootDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mockup",
+        "name": "mockup",
+        "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "app",
+        "name": "app",
+        "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "functional",
+        "name": "functional",
+        "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/functional",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\D_Reviews\\DC_mockup_review\\latest.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "..\\functional\\audit.spec.ts",
+      "file": "../functional/audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-20 AUD-03 the audit trail filters by each documented dimension",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "45efdff6a4d2e1f7e786-2b151945cbba8b5374e2",
+          "file": "../functional/audit.spec.ts",
+          "line": 5,
+          "column": 5
+        },
+        {
+          "title": "FS-24 AUD-01 refused writes leave no audit event; a permitted write adds exactly one",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "45efdff6a4d2e1f7e786-c1e6e9bd97377d878a64",
+          "file": "../functional/audit.spec.ts",
+          "line": 51,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "..\\functional\\dashboards.spec.ts",
+      "file": "../functional/dashboards.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-18 CC-01 CC-02 every tile and bar drills to a list of its own size",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "86a5e4e303644cf814e4-3e42f742743880e10da0",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 6,
+          "column": 5
+        },
+        {
+          "title": "FS-19 CC-04 every insight links to its source record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "86a5e4e303644cf814e4-248aa04e46afb4047de2",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 61,
+          "column": 5
+        },
+        {
+          "title": "FS-34 Copilot answers cite records from the app",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\dashboards.spec.ts",
+                    "line": 87,
+                    "column": 6
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "86a5e4e303644cf814e4-304d8536b5cb2fb0ddb5",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 87,
+          "column": 6
+        }
+      ]
+    },
+    {
+      "title": "..\\functional\\documents.spec.ts",
+      "file": "../functional/documents.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-15 DOC-01 DOC-08 DOC-17 single upload, a new version, and a refused duplicate",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "9111b41e0f82b685c9ea-14dfcbfeabf8bb068aa7",
+          "file": "../functional/documents.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "9111b41e0f82b685c9ea-a8d7568050c677493329",
+          "file": "../functional/documents.spec.ts",
+          "line": 55,
+          "column": 5
+        },
+        {
+          "title": "FS-17 DOC-20 completeness on Model 360 changes after an upload",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "9111b41e0f82b685c9ea-7cc89c55d5ae15edbe10",
+          "file": "../functional/documents.spec.ts",
+          "line": 96,
+          "column": 5
+        },
+        {
+          "title": "FS-33 DOC-16 AI extraction proposals are confirmed or dropped",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\documents.spec.ts",
+                    "line": 134,
+                    "column": 6
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "9111b41e0f82b685c9ea-ff583adc554316908b89",
+          "file": "../functional/documents.spec.ts",
+          "line": 134,
+          "column": 6
+        }
+      ]
+    },
+    {
+      "title": "..\\functional\\import.spec.ts",
+      "file": "../functional/import.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-02 IMP-02 IMP-03 enabled templates download with registry columns; disabled ones do not",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-96da5aff22a3ea94725b",
+          "file": "../functional/import.spec.ts",
+          "line": 15,
+          "column": 5
+        },
+        {
+          "title": "FS-03 IMP-01 IMP-05 IMP-08 INV-03 T02 demo preview names field and row, then loads",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-28f8a59ec7f5d5135b75",
+          "file": "../functional/import.spec.ts",
+          "line": 49,
+          "column": 5
+        },
+        {
+          "title": "FS-04 IMP-01 IMP-07 re-loading the same file does not duplicate models",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-5d89af616f72a99d496e",
+          "file": "../functional/import.spec.ts",
+          "line": 81,
+          "column": 5
+        },
+        {
+          "title": "FS-05 VAL-01 FND-01 APR-01 T03–T05 load onto the right models",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-d8429d49b2cddd014737",
+          "file": "../functional/import.spec.ts",
+          "line": 102,
+          "column": 5
+        },
+        {
+          "title": "FS-21 GEN-01 two resets at the same business date give the same counts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-2a925041509dac97f7eb",
+          "file": "../functional/import.spec.ts",
+          "line": 122,
+          "column": 5
+        },
+        {
+          "title": "FS-30 MON-01 MON-02 MON-03 monitoring plan, metrics, results and breach",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
+                    "line": 150,
+                    "column": 6
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-c0fb3551158b812a7645",
+          "file": "../functional/import.spec.ts",
+          "line": 150,
+          "column": 6
+        },
+        {
+          "title": "FS-31 REG-01 REG-14 inventory classes, vendor models, challenges, dependencies, report",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
+                    "line": 154,
+                    "column": 6
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-7741f4d87748c6f0d9d5",
+          "file": "../functional/import.spec.ts",
+          "line": 154,
+          "column": 6
+        },
+        {
+          "title": "FS-32 CDE and DQ results load and appear on Data Audit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
+                    "line": 159,
+                    "column": 6
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "776bafb40ff21b6b6a7d-a977794fd0301a3f3646",
+          "file": "../functional/import.spec.ts",
+          "line": 159,
+          "column": 6
+        }
+      ]
+    },
+    {
+      "title": "..\\functional\\inventory.spec.ts",
+      "file": "../functional/inventory.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-126136a492fcb1ac1d9f",
+          "file": "../functional/inventory.spec.ts",
+          "line": 21,
+          "column": 5
+        },
+        {
+          "title": "FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-3828d1be4948833c86d2",
+          "file": "../functional/inventory.spec.ts",
+          "line": 54,
+          "column": 5
+        },
+        {
+          "title": "FS-08 TIR-01 TIR-04 TIR-05 tiering follows policy; an override needs a reason",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-0dd390edb3425c6b6e91",
+          "file": "../functional/inventory.spec.ts",
+          "line": 103,
+          "column": 5
+        },
+        {
+          "title": "FS-09 LIF-01 INV-05 a phase move without required data is refused",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-78aedc9d31092d112cba",
+          "file": "../functional/inventory.spec.ts",
+          "line": 139,
+          "column": 5
+        },
+        {
+          "title": "FS-10 VAL-02 VAL-04 revalidation status is correct for the fixed business date",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-40010357510041d3a5d3",
+          "file": "../functional/inventory.spec.ts",
+          "line": 156,
+          "column": 5
+        },
+        {
+          "title": "FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-48f1a26f9daff5fa6410",
+          "file": "../functional/inventory.spec.ts",
+          "line": 174,
+          "column": 5
+        },
+        {
+          "title": "FS-12 APR-03 a conditional approval stays outstanding until its conditions close",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-5e8d1691e1d3ca6de08f",
+          "file": "../functional/inventory.spec.ts",
+          "line": 194,
+          "column": 5
+        },
+        {
+          "title": "FS-13 SCR-01 SCR-05 the score breakdown matches an independent calculation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-6132c18164fd6ebafd2f",
+          "file": "../functional/inventory.spec.ts",
+          "line": 221,
+          "column": 5
+        },
+        {
+          "title": "FS-14 CFG-02 CFG-03 TIR-03 a policy change moves tiers and is audited",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "491382254a121adeeb47-b04339e8efad9b462c1c",
+          "file": "../functional/inventory.spec.ts",
+          "line": 248,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "..\\functional\\security.spec.ts",
+      "file": "../functional/security.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and the API refuses their writes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a7e9410bcc1ef00e9656-7d864ba1063a8bd91ba3",
+          "file": "../functional/security.spec.ts",
+          "line": 8,
+          "column": 5
+        },
+        {
+          "title": "FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a7e9410bcc1ef00e9656-f7ae8e8ee2d51b1a55fe",
+          "file": "../functional/security.spec.ts",
+          "line": 40,
+          "column": 5
+        },
+        {
+          "title": "FS-23 SEC-05 re-importing T01 without a role invalidates that role's session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a7e9410bcc1ef00e9656-59f091435a73327d1dd2",
+          "file": "../functional/security.spec.ts",
+          "line": 94,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-05T13:37:53.611Z",
+    "duration": 149.02499999999998,
+    "expected": 0,
+    "skipped": 29,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

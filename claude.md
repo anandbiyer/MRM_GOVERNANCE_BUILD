@@ -41,9 +41,11 @@ npm run build        # typecheck + build — the only lint/type gate in the repo
 
 # Mock-up parity harness (from A_Codes\AF_e2e) — needs the app running on :5173
 npx playwright test
+npx playwright test --project=functional   # functional suite; the agent runs it against a separate test database
 
 # Review agents (inside Claude Code, from the repository root) — reports go to D_Reviews\
 /review-build              # all three review agents, one consolidated summary
+/review-build --github     # also files functional-test issues on GitHub
 /review-build phase 6      # scope to a phase, a BRD section (§25) or a criterion prefix (MON)
 
 # Infra (optional; only needed for PostgreSQL/MinIO/Redis)
@@ -92,11 +94,11 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
 | `A_Codes/AC_frontend/` | React 19 + TypeScript + Vite + TanStack Query + React Router |
 | `A_Codes/AD_seed/` | `generate_seed.py` — deterministic 256-model seed + ~1,100 synthetic evidence PDFs |
 | `A_Codes/AE_launcher/` | One-click start/stop/setup PowerShell scripts and shortcuts |
-| `A_Codes/AF_e2e/` | Playwright harness and the `mockup-parity.md` checklist; drives the app and the HTML mock-up side by side (review agent 3). Not in CI: it needs a running app |
+| `A_Codes/AF_e2e/` | Playwright harness and the `mockup-parity.md` checklist; drives the app and the HTML mock-up side by side (review agent 3); also the functional test suite (`functional/`, `functional-scenarios.md`) used by review agent 4. Not in CI: it needs a running app |
 | `A_Codes/AZ_tools/snapshot.sh` | Copies a file into `_OLD/` before it is edited |
 | `B_Inputs/` | Input data: `AA_bootstrap` (policy + core users), `AB_sample_data`, `AC_seed`, `AD_demo_files` (deliberate errors for demos) |
 | `C_Requirements/_OLD/` | Earlier requirements and the original HTML prototype (visual reference) |
-| `D_Reviews/` | Review agent reports: `DA_code_review/`, `DB_test_review/`, `DC_mockup_review/`, plus a dated consolidated summary. Committed history, like `_OLD/` |
+| `D_Reviews/` | Review agent reports: `DA_code_review/`, `DB_test_review/`, `DC_mockup_review/`, `DD_functional_test/`, plus a dated consolidated summary. Committed history, like `_OLD/` |
 | `E_ProjectPlan/` | `project_plan.md` — the live plan from today's build to a demonstrable product. Stable activity IDs (`G0.1`, `G1.4`), status per activity, decision register and change log. **Update it in the same change that moves the work**, not afterwards |
 | `.claude/agents/`, `.claude/commands/` | The three review agents and the `/review-build` command (see Review agents below) |
 
@@ -209,7 +211,7 @@ new rules modules, new Alembic revision, new registry templates, replace the `Pl
 
 ## Review agents
 
-Three Claude Code subagents in `.claude/agents/` check the build. `/review-build` runs them and writes one
+Four Claude Code subagents in `.claude/agents/` check the build. `/review-build` runs them and writes one
 consolidated summary to `D_Reviews/<YYYYMMDD>_summary.md`.
 
 | Agent | Checks | Writes |
@@ -217,11 +219,13 @@ consolidated summary to `D_Reviews/<YYYYMMDD>_summary.md`.
 | `requirements-reviewer` | Code against the BRD, the acceptance criteria and the Part 0 invariants: traceability per BRD section, layering, audit in the same transaction, no business numbers in code, server-side authorization, `app.clock.today()`, the snapshot convention | `D_Reviews/DA_code_review/` |
 | `test-outcome-reviewer` | Runs the CI gates, maps every test to its criterion ID, judges whether each assertion proves the criterion's expected result, and recalculates the §76A.14 coverage table | `D_Reviews/DB_test_review/` |
 | `mockup-parity-tester` | Resets the seed with a fixed business date, runs the app and compares each screen with the HTML mock-up through the `A_Codes/AF_e2e` harness and its `mockup-parity.md` checklist | `D_Reviews/DC_mockup_review/`, `A_Codes/AF_e2e/` |
+| `functional-tester` | Uses the app end to end through the browser with real input files and documents, checks each result against the acceptance criteria, and raises issues with root-cause analysis and annotated screenshots. Runs against a separate test database, never the demo data | `D_Reviews/DD_functional_test/`, `A_Codes/AF_e2e/functional/` |
 
 Rules for the agents:
 
 - They report; they never edit product code, backend or frontend tests, seed data, `B_Inputs/` or this
-  file. Only `mockup-parity-tester` maintains `A_Codes/AF_e2e/` (snapshot convention applies).
+  file. `mockup-parity-tester` maintains `A_Codes/AF_e2e/` except `functional/` and
+  `functional-scenarios.md`, which `functional-tester` maintains (snapshot convention applies).
   Findings are fixed afterwards in the main session.
 - Run `/review-build` at the end of every phase and before merging to `main`.
 - When the BRD and the mock-up disagree, the BRD wins; the difference is recorded, not fixed.
@@ -3484,6 +3488,9 @@ Business rules:
 - Breach.
 - Finding.
 - Dashboard drill-down.
+
+Implemented by the `functional-tester` agent's suite in `A_Codes/AF_e2e/functional/` (scenarios FS-nn
+in `functional-scenarios.md`), run locally, not in CI.
 
 ---
 

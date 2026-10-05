@@ -16,6 +16,15 @@ export const MOCKUP_URL = pathToFileURL(
   path.join(REPO_ROOT, "C_Requirements", "_OLD", "MRM_Governance_MIS_Demo.html"),
 ).href;
 
+/**
+ * The running application, for every project that needs it. Declared once: two projects now drive
+ * the app, and a second hard-coded address is how the wrong one survives (review finding MP-04).
+ *
+ * `localhost`, not `127.0.0.1` — AC_frontend/vite.config.ts sets no `host`, so Vite binds localhost
+ * only, which resolves to ::1 first on Windows. See Part 0; do not "fix" this in vite.config.ts.
+ */
+export const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
+
 const VIEWPORT = { width: 1440, height: 900 };
 
 export default defineConfig({
@@ -27,8 +36,12 @@ export default defineConfig({
   reporter: [
     ["list"],
     ["html", { outputFolder: "playwright-report", open: "never" }],
-    // The mockup-parity-tester reads this to build its report table.
-    ["json", { outputFile: path.join(REPO_ROOT, "D_Reviews", "DC_mockup_review", "latest.json") }],
+    // The review agents read these to build their report tables.
+    ["json", {
+      outputFile: path.join(REPO_ROOT, "D_Reviews",
+        process.env.PW_PROJECT === "functional" ? "DD_functional_test" : "DC_mockup_review",
+        "latest.json"),
+    }],
   ],
   use: {
     viewport: VIEWPORT,
@@ -52,10 +65,21 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: VIEWPORT,
-        // `localhost`, not `127.0.0.1`: AC_frontend/vite.config.ts sets no `host`, so Vite binds to
-        // localhost only, which resolves to ::1 first on Windows — 127.0.0.1 refuses the connection.
-        // (Part 0 and the agent spec say 127.0.0.1; that address does not answer.)
-        baseURL: "http://localhost:5173",
+        baseURL: APP_URL,
+      },
+    },
+    {
+      // Review agent 4: drives the app as a user would, against a separate test database. Not in
+      // CI — it needs a running app, a reset seed and its own storage folder.
+      name: "functional",
+      testDir: "./functional",
+      retries: 1, // a step that fails is retried once; a pass on retry is reported as Flaky
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: VIEWPORT,
+        baseURL: APP_URL,
+        trace: "retain-on-failure",
+        screenshot: "on",
       },
     },
   ],

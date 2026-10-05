@@ -21,3 +21,9 @@ desktop.ini
 .DS_Store
 .vscode/
 .idea/
+
+# Functional test runs: the test database and object store are disposable.
+# Screenshots and issue files under D_Reviews/DD_functional_test/ are committed.
+D_Reviews/DD_functional_test/*/env/
+D_Reviews/DD_functional_test/*/env/
+D_Reviews/DD_functional_test/*/inputs/evidence/
