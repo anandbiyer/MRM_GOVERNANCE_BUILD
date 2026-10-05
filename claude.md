@@ -22,7 +22,7 @@ A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env,
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 159 tests: 155 pass, 4 PostgreSQL skip
+.venv\Scripts\python -m pytest                              # 164 tests: 160 pass, 4 PostgreSQL skip
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability

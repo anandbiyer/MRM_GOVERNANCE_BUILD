@@ -16,7 +16,6 @@ Also writes the demo upload files to B_Inputs/AD_demo_files.
 import argparse
 import csv
 import random
-import shutil
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -419,6 +418,56 @@ def demo_files(ref: date, policy: Policy, out: Path) -> None:
     _write(out, "T04_findings_demo_errors.csv", "T04", findings, policy)
 
 
+def sync_documents(docs_dir: Path, documents: list[tuple[str, bytes]]) -> dict[str, int]:
+    """Bring the evidence tree in line with `documents` without deleting before the new content exists.
+
+    This replaced a `shutil.rmtree(docs_dir)` followed by a rewrite. On Windows — and reliably in a
+    OneDrive-synced working copy — rmtree can fail part way with PermissionError, and it deletes as it
+    goes: the tree was then left partly destroyed and the rewrite never ran, losing committed evidence
+    files. That happened once in practice (4 PDFs, recovered from git).
+
+    The order here is what makes it safe:
+
+    1. write the generated files, skipping any that are already byte-identical, so a lock or a crash
+       leaves a superset of the old and new trees rather than a hole;
+    2. only then remove files that are no longer generated;
+    3. remove directories left empty.
+
+    A file that cannot be removed in step 2 is counted and reported, not raised: the seed is already
+    correct at that point, so an obsolete leftover must not fail the run. Step 1 is left to raise,
+    because a failure there means the new content is incomplete and the caller should know.
+    """
+    wanted = {path.replace("\\", "/"): data for path, data in documents}
+    counts = {"written": 0, "unchanged": 0, "removed": 0, "locked": 0}
+
+    for rel, data in wanted.items():
+        target = docs_dir / rel
+        if target.is_file() and target.read_bytes() == data:
+            counts["unchanged"] += 1  # deterministic generator: most files are untouched
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        counts["written"] += 1
+
+    if not docs_dir.is_dir():
+        return counts
+    for path in sorted(docs_dir.rglob("*"), reverse=True):
+        if not path.is_file() or path.relative_to(docs_dir).as_posix() in wanted:
+            continue
+        try:
+            path.unlink()
+            counts["removed"] += 1
+        except OSError:
+            counts["locked"] += 1
+    for path in sorted(docs_dir.rglob("*"), reverse=True):
+        if path.is_dir() and not any(path.iterdir()):
+            try:
+                path.rmdir()
+            except OSError:
+                pass  # a locked leftover keeps its parent alive; harmless
+    return counts
+
+
 def generate(out_dir: Path, reference_date: date, demo_dir: Path | None = DEMO_DIR) -> None:
     policy_rows = _policy_rows()
     policy = _policy(policy_rows)
@@ -429,15 +478,13 @@ def generate(out_dir: Path, reference_date: date, demo_dir: Path | None = DEMO_D
     _write(out_dir, "T03_validation_history.xlsx", "T03", validations, policy)
     _write(out_dir, "T04_findings.xlsx", "T04", findings, policy)
     _write(out_dir, "T05_approvals.xlsx", "T05", approvals, policy)
-    docs_dir = out_dir / "documents"
-    if docs_dir.is_dir():  # generated evidence only: rebuilt for the reference date on every run
-        shutil.rmtree(docs_dir)
     documents = build_documents(models, reference_date)
-    for path, data in documents:
-        target = docs_dir / path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
-    print(f"  {out_dir.name}/documents: {len(documents)} synthetic evidence files")
+    counts = sync_documents(out_dir / "documents", documents)
+    print(f"  {out_dir.name}/documents: {len(documents)} synthetic evidence files "
+          f"({counts['written']} written, {counts['unchanged']} unchanged, {counts['removed']} removed)")
+    if counts["locked"]:
+        print(f"  warning: {counts['locked']} obsolete file(s) could not be removed (locked); "
+              f"the seed is complete, re-run to tidy up", file=sys.stderr)
     if demo_dir is not None:
         demo_files(reference_date, policy, demo_dir)
 
