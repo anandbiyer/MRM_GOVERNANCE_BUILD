@@ -4,11 +4,20 @@ Covers the evidence-tree sync, which used to `shutil.rmtree` the committed tree 
 rmtree deletes as it goes, so a PermissionError part way through — routine in a OneDrive-synced working
 copy — left the tree partly destroyed and the rewrite never ran. Four committed PDFs were lost that
 way once (recovered from git). These tests pin the ordering that prevents it.
+
+Also covers `_unchanged`, which decides whether a template needs rewriting at all, so that a
+regeneration dirties only the files whose content actually changed (G0.15).
 """
 import importlib.util
+import io
+import re
+import zipfile
 from pathlib import Path
 
 import pytest
+
+from app.ingestion import fileio
+from app.ingestion.registry import get_template
 
 GENERATOR = Path(__file__).resolve().parents[2] / "AD_seed" / "generate_seed.py"
 
@@ -116,3 +125,94 @@ def test_sync_reports_a_locked_obsolete_file_instead_of_failing(seed_module, tmp
     assert counts["locked"] == 1 and counts["removed"] == 0
     assert (docs / "wanted.pdf").read_bytes() == b"new", "the seed is still complete"
     assert (docs / "obsolete.pdf").exists(), "the leftover remains, to be tidied on a later run"
+
+
+# --- _unchanged: telling a real template change from a rewrite (G0.15) ---------------------------
+#
+# Writing a workbook twice never produces identical bytes: the zip stores a modification time per
+# member, and openpyxl stamps docProps/core.xml with the time of the save. The generator used to
+# rewrite every template on every run because of it, so `git status` could not show what a
+# regeneration had actually changed, and an unintended file could ride along with an intended one.
+
+
+def _restamp(data: bytes, when: tuple[int, int, int, int, int, int], modified: bytes) -> bytes:
+    """The same workbook content, written at a different time — the churn, reproduced exactly."""
+    with zipfile.ZipFile(io.BytesIO(data)) as src:
+        members = [(i.filename, src.read(i.filename)) for i in src.infolist()]
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
+        for name, payload in members:
+            if name == "docProps/core.xml":
+                payload = re.sub(rb"<dcterms:modified[^>]*>[^<]*</dcterms:modified>", modified, payload)
+            dst.writestr(zipfile.ZipInfo(name, date_time=when), payload)
+    return out.getvalue()
+
+
+ROWS = [{"user_id": "U-001", "full_name": "A B", "email": "a@b.c", "role": "Admin",
+         "business_line": "X", "active": "Y"}]
+ALLOWED = {"role": ["Admin", "Auditor"]}
+
+
+def _workbook(rows=None, allowed=None) -> bytes:
+    return fileio.write_workbook(get_template("T01"), rows or ROWS, allowed or ALLOWED)
+
+
+def test_unchanged_ignores_the_time_a_workbook_was_written(seed_module, tmp_path):
+    """The whole point: same content, later save, no rewrite."""
+    path = tmp_path / "T01_users.xlsx"
+    path.write_bytes(_restamp(_workbook(), (2020, 1, 1, 0, 0, 0),
+                              b"<dcterms:modified>2020-01-01T00:00:00Z</dcterms:modified>"))
+    fresh = _workbook()
+
+    assert path.read_bytes() != fresh, "a byte comparison would see a difference, which is the bug"
+    assert seed_module._unchanged(path, fresh) is True
+
+
+def test_unchanged_detects_a_changed_cell(seed_module, tmp_path):
+    path = tmp_path / "T01_users.xlsx"
+    path.write_bytes(_workbook())
+    changed = _workbook(rows=[dict(ROWS[0], full_name="Someone Else")])
+
+    assert seed_module._unchanged(path, changed) is False
+
+
+def test_unchanged_detects_a_changed_instructions_sheet(seed_module, tmp_path):
+    """Allowed values come from policy and live only in the instructions sheet.
+
+    A comparison of the data rows alone would pass here, and the committed template would keep
+    offering a dropdown the policy no longer allows.
+    """
+    path = tmp_path / "T01_users.xlsx"
+    path.write_bytes(_workbook())
+    repolicied = _workbook(allowed={"role": ["Admin", "Auditor", "Executive"]})
+
+    assert seed_module._unchanged(path, repolicied) is False
+
+
+def test_unchanged_detects_an_added_row(seed_module, tmp_path):
+    path = tmp_path / "T01_users.xlsx"
+    path.write_bytes(_workbook())
+    extra = _workbook(rows=ROWS + [dict(ROWS[0], user_id="U-002")])
+
+    assert seed_module._unchanged(path, extra) is False
+
+
+def test_unchanged_compares_csv_byte_for_byte(seed_module, tmp_path):
+    """CSV output is already deterministic, so there is nothing to normalise and nothing to forgive."""
+    path = tmp_path / "T04_findings.csv"
+    path.write_bytes(b"a,b\n1,2\n")
+
+    assert seed_module._unchanged(path, b"a,b\n1,2\n") is True
+    assert seed_module._unchanged(path, b"a,b\n1,3\n") is False
+
+
+def test_unchanged_is_false_when_there_is_no_file_yet(seed_module, tmp_path):
+    assert seed_module._unchanged(tmp_path / "absent.xlsx", _workbook()) is False
+
+
+def test_unchanged_is_false_when_the_existing_file_is_not_a_workbook(seed_module, tmp_path):
+    """A corrupt or truncated file is replaced rather than trusted."""
+    path = tmp_path / "T01_users.xlsx"
+    path.write_bytes(b"not a workbook at all")
+
+    assert seed_module._unchanged(path, _workbook()) is False

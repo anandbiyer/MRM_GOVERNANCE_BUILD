@@ -15,8 +15,11 @@ Also writes the demo upload files to B_Inputs/AD_demo_files.
 """
 import argparse
 import csv
+import io
 import random
+import re
 import sys
+import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -352,15 +355,63 @@ def _policy(rows: list[dict]) -> Policy:
     return Policy({r["setting_key"]: parse_policy_value(r["value"], r["value_type"]) for r in rows})
 
 
+# openpyxl records when a workbook was written, in docProps/core.xml. Both fields move on every
+# run — `modified` is stamped by the writer at save time, so it cannot be pinned beforehand — and
+# neither says anything about the template's content. These are the only two values the comparison
+# below ignores; every sheet, every cell and the instructions sheet are compared.
+_CORE_PROPERTIES = "docProps/core.xml"
+_WRITTEN_AT = re.compile(rb"<dcterms:(created|modified)[^>]*>[^<]*</dcterms:\1>")
+
+
+def _xlsx_parts(data: bytes) -> dict[str, bytes] | None:
+    """An xlsx workbook as {zip member name: payload}, or None if it cannot be read as one.
+
+    A zip also stores a modification time per member, so two workbooks with identical content
+    never have identical bytes. Comparing payloads rather than bytes ignores those headers.
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            parts = {name: z.read(name) for name in sorted(z.namelist())}
+    except (zipfile.BadZipFile, OSError):
+        return None
+    if _CORE_PROPERTIES in parts:
+        parts[_CORE_PROPERTIES] = _WRITTEN_AT.sub(b"", parts[_CORE_PROPERTIES])
+    return parts
+
+
+def _unchanged(path: Path, data: bytes) -> bool:
+    """True when `path` already holds this content, ignoring xlsx zip member timestamps."""
+    try:
+        existing = path.read_bytes()
+    except OSError:
+        return False
+    if existing == data:
+        return True
+    if path.suffix.lower() != ".xlsx":
+        return False  # CSV output is deterministic, so differing bytes are a real change
+    before, after = _xlsx_parts(existing), _xlsx_parts(data)
+    return before is not None and after is not None and before == after
+
+
 def _write(out: Path, file_name: str, template_id: str, rows: list[dict], policy: Policy) -> None:
+    """Write a template, unless the file on disk already holds exactly this content.
+
+    Rewriting an unchanged workbook used to dirty every seed file on every regeneration, because
+    the zip timestamps moved (G0.15). That made `git status` useless for seeing what a regeneration
+    actually changed — the risk being an unintended file committed alongside an intended one.
+    """
     t = get_template(template_id)
     out.mkdir(parents=True, exist_ok=True)
     if file_name.endswith(".csv"):
         data = fileio.write_csv(t, rows)
     else:
         data = fileio.write_workbook(t, rows, checks.allowed_values(t, policy))
-    (out / file_name).write_bytes(data)
-    print(f"  {out.name}/{file_name}: {len(rows)} rows")
+    target = out / file_name
+    if _unchanged(target, data):
+        print(f"  {out.name}/{file_name}: {len(rows)} rows, unchanged")
+        return
+    target.write_bytes(data)
+    print(f"  {out.name}/{file_name}: {len(rows)} rows, written")
 
 
 def demo_files(ref: date, policy: Policy, out: Path) -> None:
