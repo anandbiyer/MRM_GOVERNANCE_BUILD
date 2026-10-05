@@ -3569,6 +3569,10 @@ Business rules:
 Numbered 81A so no existing section shifts. Claude Code shall not implement an item until its Decision
 column is filled in; the proposed default is a starting point for that decision, not an instruction.
 
+Reasoning, alternatives and consequences are recorded in
+[`E_ProjectPlan/decision_log.md`](E_ProjectPlan/decision_log.md), one entry per ID; the one-line
+outcome is copied into the Decision column below. A decision is not made until that column is filled.
+
 | ID | Decision needed | Sections | Proposed default | Needed before | Decision |
 |---|---|---|---|---|---|
 | D1 | T07/T08 (KPI definitions and results) and T14/T15 (monitoring metrics and results) describe the same data, and §48 keeps both `kpi`/`kpi_result` and `monitoring_metric`/`monitoring_result`. Which is the system of record? | §48, §71, §72 | `monitoring_metric` and `monitoring_result` only. T07 and T08 stay as import aliases that write to them, so older files still load. T09 curves link to `monitoring_run`. `kpi` and `kpi_result` are not created | Phase 6 | — |
