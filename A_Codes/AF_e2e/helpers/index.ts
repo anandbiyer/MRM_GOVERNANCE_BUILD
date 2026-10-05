@@ -67,8 +67,18 @@ export async function signInAs(page: Page, role: string): Promise<void> {
 }
 
 /** Navigate the signed-in app by its sidebar link. */
+/**
+ * Navigate by sidebar link and wait until the destination screen is actually on the page.
+ *
+ * Without the wait, the click returns while the previous screen is still mounted, so a locator
+ * that is not specific to the destination can match the screen being left — look visible, and
+ * then resolve to nothing once the route swaps and the new screen is still loading. Every screen
+ * reachable this way renders its name as an `<h1>` through `PageHeader`, so the heading is the
+ * signal that the swap is done. MUP-34 read 0 Operations Board rows this way (G0.13).
+ */
 export async function openAppScreen(page: Page, linkName: string): Promise<void> {
   await page.locator('nav.rail[aria-label="Main"]').getByRole("link", { name: linkName }).click();
+  await expect(page.getByRole("heading", { level: 1, name: linkName })).toBeVisible();
 }
 
 /**

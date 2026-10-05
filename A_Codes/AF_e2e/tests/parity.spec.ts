@@ -483,10 +483,15 @@ item("MUP-34", "Counts agree across Command Center, Operations Board and Model 3
   expect(total, "Command Center must report a model total").toBeGreaterThan(0);
 
   await openAppScreen(page, "Operations Board");
-  const boardRows = page.locator("div.tablewrap tbody tr");
-  await expect(boardRows.first()).toBeVisible();
-  const rows = await boardRows.count();
-  expect(rows, `Operations Board rows (${rows}) must match the Command Center total (${total})`).toBe(total);
+  // The board states its own total, so check that first: it separates "the board disagrees with the
+  // Command Center" from "the board disagrees with its own table", which are different faults.
+  await expect(page.getByText(/^\d+ models shown\.$/),
+    "the Operations Board's own count must match the Command Center total")
+    .toHaveText(`${total} models shown.`);
+  // toHaveCount retries until the DOM settles. A one-shot count() could run while the table was
+  // being replaced and read 0, which is what made this check flaky in a full run (G0.13).
+  await expect(page.locator("div.tablewrap tbody tr"),
+    `Operations Board rows must match the Command Center total (${total})`).toHaveCount(total);
 });
 
 item("MUP-35", "Actions not permitted are hidden and refused by the API", "1", async ({ page, isMockup }) => {
