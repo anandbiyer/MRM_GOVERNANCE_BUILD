@@ -56,6 +56,14 @@ first on Windows — `127.0.0.1` refuses the connection. Anything scripted again
 `A_Codes/AF_e2e` harness, a health probe, a wait loop) must use `localhost`. The backend is the other
 way round: uvicorn binds `127.0.0.1:8000`, which is what the Vite proxy targets.
 
+Do not "fix" this by setting `server.host` in `vite.config.ts`. `host: true` binds every interface,
+which would put a dev build whose sign-in is a no-password role picker on the local network; and
+`host: "127.0.0.1"` binds IPv4 only, which is the same problem mirrored. Loopback-only is the correct
+posture for dev mode — the addresses are what gets corrected, not the binding.
+
+For readiness checks use `/api/health/live`. `/api/health` is the component report and returns
+`degraded` whenever Redis is absent, which it always is in dev mode, so it never signals ready.
+
 There is no linter or formatter configured. `npm run build` and `pytest` are the gates, and
 `.github/workflows/ci.yml` runs them on every push to `main` and every pull request in three jobs:
 
