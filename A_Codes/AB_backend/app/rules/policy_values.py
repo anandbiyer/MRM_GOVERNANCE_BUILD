@@ -49,6 +49,16 @@ def check_key_specific(key: str, parsed, others: dict[str, object]) -> None:
             name, sep, months = item.partition("=")
             if not sep or not name.strip() or not months.strip().isdigit() or int(months) <= 0:
                 raise PolicyValueError(f"'{item}' must be written as Name=months, e.g. Annual=12.")
+    # §21 breach severity rules, §81A D5: Condition=Severity items, the same shape as
+    # revalidation_frequencies. Only the shape is checked here — the condition vocabulary and the
+    # breach severity vocabulary are settled in Phase 6 with D3 and D7, and this check should then
+    # validate against them rather than accepting any names.
+    if key == "breach_severity_rules":
+        for item in parsed:
+            condition, sep, severity = item.partition("=")
+            if not sep or not condition.strip() or not severity.strip():
+                raise PolicyValueError(
+                    f"'{item}' must be written as Condition=Severity, e.g. repeated_breach=High.")
     if key in ("tier_high_min", "tier_medium_min"):
         high = parsed if key == "tier_high_min" else others.get("tier_high_min")
         medium = parsed if key == "tier_medium_min" else others.get("tier_medium_min")

@@ -3,7 +3,12 @@ from decimal import Decimal
 
 import pytest
 
-from app.rules.policy_values import PolicyValueError, normalise_policy_value, parse_policy_value
+from app.rules.policy_values import (
+    PolicyValueError,
+    check_key_specific,
+    normalise_policy_value,
+    parse_policy_value,
+)
 from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, audit_count, login
 
 
@@ -32,6 +37,44 @@ def test_parse_invalid_values(value, value_type, message):
     """CFG-01: a value of the wrong type is refused with a human-readable message."""
     with pytest.raises(PolicyValueError, match=message):
         parse_policy_value(value, value_type)
+
+
+def test_d5_breach_severity_rules_use_condition_equals_severity():
+    """CFG-01, §81A D5: severity rules follow the `Name=months` shape of revalidation_frequencies.
+
+    Only the shape is enforced today; the condition and severity vocabularies are settled in Phase 6
+    with D3 and D7, at which point this check should validate against them.
+    """
+    good = "metric_fail=Medium; repeated_breach=High; high_tier_critical_metric_fail=Critical"
+    assert parse_policy_value(good, "list") == [
+        "metric_fail=Medium", "repeated_breach=High", "high_tier_critical_metric_fail=Critical"]
+    check_key_specific("breach_severity_rules", parse_policy_value(good, "list"), {})
+
+    for bad in ("repeated_breach", "=High", "repeated_breach=", " = "):
+        with pytest.raises(PolicyValueError, match="Condition=Severity"):
+            check_key_specific("breach_severity_rules", parse_policy_value(bad, "list"), {})
+
+
+def test_d5_and_d10_decided_keys_are_configured(client):
+    """§81A D5 and D10: the decided configuration ships in T12, not just in the decision log."""
+    settings = {s["setting_key"]: s["value"] for s in
+                client.get("/api/admin/policy", headers=login(client, *EXECUTIVE)).json()}
+
+    # D5: the three shipped names kept, the two missing ones added, the renames never introduced.
+    assert settings["repeated_breach_consecutive_periods"] == "2"
+    assert settings["repeated_breach_window_fails"] == "3"
+    assert settings["repeated_breach_window_periods"] == "4"
+    assert settings["warning_escalation_periods"] == "3"
+    assert "repeated_breach=High" in settings["breach_severity_rules"]
+    for rejected in ("repeat_breach_consecutive", "repeat_breach_count", "repeat_breach_window",
+                     "warn_escalation_periods"):
+        assert rejected not in settings, f"{rejected} was the rejected name in §81A's proposal"
+
+    # D10: all six statuses, and the three that count as open.
+    assert settings["finding_statuses"].split("; ") == [
+        "Open", "In Progress", "Deferred", "Closed", "Accepted Risk", "Rejected"]
+    assert settings["finding_open_statuses"].split("; ") == ["Open", "In Progress", "Deferred"]
+    assert "Accepted Risk" not in settings["finding_open_statuses"], "D10: an accepted risk is not open"
 
 
 def test_list_values_are_normalised():

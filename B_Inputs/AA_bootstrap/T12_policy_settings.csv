@@ -23,6 +23,8 @@ monitoring_frequencies,Monthly; Quarterly; Semi-annual; Annual,list,Monitoring,A
 repeated_breach_consecutive_periods,2,integer,Monitoring,Same KPI failing this many consecutive periods is a repeated breach
 repeated_breach_window_fails,3,integer,Monitoring,Failures within the window that count as repeated
 repeated_breach_window_periods,4,integer,Monitoring,Window length (periods) for repeated-breach detection
+warning_escalation_periods,3,integer,Monitoring,Consecutive warning periods before a metric escalates (BRD §21)
+breach_severity_rules,metric_warn=Low; metric_fail=Medium; data_quality_fail=High; regulatory_metric_fail=High; repeated_breach=High; high_tier_critical_metric_fail=Critical,list,Monitoring,"Breach severity rules as Condition=Severity (BRD §21, §81A D5); first match from the most specific wins"
 max_document_size_mb,10,integer,Files,Maximum size of an individual uploaded document
 max_zip_size_mb,200,integer,Files,Maximum size of an uploaded ZIP package
 max_zip_file_count,500,integer,Files,Maximum number of files in a ZIP package

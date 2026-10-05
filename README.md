@@ -48,5 +48,5 @@ show those files as changed after a reset. Commit them or discard with `git chec
 
 ```powershell
 cd A_Codes\AB_backend
-.venv\Scripts\python -m pytest          # 157 tests: 153 pass, 4 PostgreSQL skip; SQLite, no Docker
+.venv\Scripts\python -m pytest          # 159 tests: 155 pass, 4 PostgreSQL skip; SQLite, no Docker
 ```

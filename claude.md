@@ -22,7 +22,7 @@ A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env,
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 157 tests: 153 pass, 4 PostgreSQL skip
+.venv\Scripts\python -m pytest                              # 159 tests: 155 pass, 4 PostgreSQL skip
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
@@ -641,10 +641,14 @@ Initial status:
 - In Progress
 - Closed
 
-Additional recommended status:
+Also required (§81A **D10**, decided 2026-10-05 — these were "additional recommended" until then):
 - Accepted Risk
 - Deferred
 - Rejected
+
+Of the six, `Open`, `In Progress` and `Deferred` count as open for finding ageing and the
+issue-remediation score; `Closed`, `Accepted Risk` and `Rejected` do not. Both sets are the policy
+lists `finding_statuses` and `finding_open_statuses`.
 
 The system shall calculate:
 - Days open.
@@ -3579,12 +3583,12 @@ outcome is copied into the Decision column below. A decision is not made until t
 | D2 | The "within range" direction (§16) needs a lower and an upper bound, but a metric has one threshold, one warning and one breach value | §16, §48, T14 | Add `range_lower` and `range_upper`, used only when direction is within range | Phase 6 | — |
 | D3 | §20 says the system creates a breach when a threshold is violated; T16 also imports breaches. How do the two meet? | §20, T16 | Breaches are created only by the rules. A T16 row must match an existing breach on run and metric and updates its status, root cause and response; an unmatched row is rejected | Phase 6 | — |
 | D4 | Backtests (§23) have fields but no table and no template | §23, §48, §71 | A backtest is a `monitoring_run` with `monitoring_type` = Backtest; methodology is recorded on the run; screens filter it separately | Phase 6 | — |
-| D5 | Escalation (§21) and repeated-breach (§22) rules must be configurable, but no policy keys are defined, and Part 0 requires a T12 row for every constant | §21, §22, §69 | T12 keys: `breach_severity_rules` (list), `repeat_breach_consecutive` = 2, `repeat_breach_count` = 3, `repeat_breach_window` = 4, `warn_escalation_periods` = 3 | Phase 6 | — |
+| D5 | Escalation (§21) and repeated-breach (§22) rules must be configurable, but no policy keys are defined, and Part 0 requires a T12 row for every constant | §21, §22, §69 | T12 keys: `breach_severity_rules` (list), `repeat_breach_consecutive` = 2, `repeat_breach_count` = 3, `repeat_breach_window` = 4, `warn_escalation_periods` = 3 | Phase 6 | **Keep the three shipped key names**, drop the proposed renames; add `warning_escalation_periods` = 3 and `breach_severity_rules`. The latter uses `Condition=Severity` items separated by `;`, the same shape as `revalidation_frequencies`. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
 | D6 | Once monitoring exists, what feeds the Monitoring component of the governance score, and how are Not Available results treated? | §57 | Share of active metrics whose latest result is Pass. Not Applicable is excluded; Not Available is excluded and listed as missing information | Phase 6 | — |
 | D7 | §77 has no criteria for escalation rules (§21), repeated breaches (§22), backtest separation (§23), evidence links (§24) or T13–T16 import validation | §21–§24, §77 | Add MON-13 onwards to §77 before coding starts | Phase 6 | — |
 | D8 | Data Audit has no acceptance criteria | §55.5, §76A.13 | Write DQ criteria as §76B | Phase 7 | — |
 | D9 | The mock-up generates an MRC governance report (download, AI commentary), but no BRD section requires one | §55 | Decide whether it is in scope; if so, add a requirement and criteria | Any | In scope as the model risk report, §12A REQ-REG-10 and REG-13; AI commentary waits for Phase 9 |
-| D10 | Finding statuses Accepted Risk, Deferred and Rejected are "additional recommended" in §11 — required or not? | §11, FND-03 | Required, because breaches already use Accepted Risk (§20) and can become findings (MON-09) | Any | — |
+| D10 | Finding statuses Accepted Risk, Deferred and Rejected are "additional recommended" in §11 — required or not? | §11, FND-03 | Required, because breaches already use Accepted Risk (§20) and can become findings (MON-09) | Any | **Required**, all six statuses. `Open`, `In Progress` and `Deferred` count as open for ageing and the remediation score; `Closed`, `Accepted Risk` and `Rejected` do not — so an accepted risk scores as remediated, confirmed deliberately. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
 | D11 | The Audit Copilot has no acceptance criteria | §61, §76A.13 | Write COP criteria as §76C | Phase 9 | — |
 
 ---

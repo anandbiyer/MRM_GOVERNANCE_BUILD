@@ -45,13 +45,13 @@ existed.*
 
 | | |
 |---|---|
-| **Status** | `Proposed` — awaiting sign-off |
+| **Status** | **Decided** |
 | **Sections** | §11, criterion FND-03 |
 | **Needed before** | Any |
-| **Decided on** | — |
-| **Decided by** | — |
+| **Decided on** | 2026-10-05 |
+| **Decided by** | Anand |
 
-**Proposed decision.** Required. All six statuses stand: `Open`, `In Progress`, `Deferred`, `Closed`,
+**Decision.** Required. All six statuses stand: `Open`, `In Progress`, `Deferred`, `Closed`,
 `Accepted Risk`, `Rejected`. Of these, `Open`, `In Progress` and `Deferred` count as open for ageing
 and the issue-remediation score; `Closed`, `Accepted Risk` and `Rejected` do not.
 
@@ -62,16 +62,20 @@ needs `Accepted Risk` independently: §20 gives breaches that status, and MON-09
 finding, so a finding must be able to carry it. Ratifying what ships is therefore the lower-risk
 option; the alternative would mean removing shipped configuration.
 
-**The substantive point to confirm.** It is not the list, it is the classification. **`Accepted Risk`
-does not count as open**, so a model with a formally accepted critical finding scores as though it had
-been remediated and drops out of the overdue-findings tile and insight. That is defensible — the risk
-was accepted, so no remediation is outstanding — but it is a governance judgement, and a supervisor may
-expect accepted risks to stay visible. Changing it is one value in T12 (`finding_open_statuses`), not a
-code change. **Please confirm the classification explicitly, not just the list.**
+**The classification, confirmed deliberately.** The substantive part of this decision is not the list
+but which statuses count as open. **`Accepted Risk` does not count as open**, so a model with a
+formally accepted critical finding scores as though it had been remediated and drops out of the
+overdue-findings tile and insight. That is the intended behaviour: the risk was accepted, so no
+remediation is outstanding. It was confirmed explicitly rather than inherited.
 
-**Consequences if accepted as proposed.** No code or configuration changes. Spec issue S1 closes.
-§11's "additional recommended" wording should be amended to "required" so the BRD stops contradicting
-the build.
+If a supervisor later expects accepted risks to stay visible, the change is one value in
+`finding_open_statuses` in T12 — no code — and should be recorded here as a superseding entry.
+
+**Consequences.** No code or configuration changes; the build already matched. §11's wording changed
+from "Additional recommended status" to "Also required", with the open/closed split stated there.
+Spec issue **S1 closes**. Covered by `test_d5_and_d10_decided_keys_are_configured`, which asserts the
+six statuses and that `Accepted Risk` is absent from the open list — so the decision cannot be
+silently reversed by a configuration edit.
 
 ---
 
@@ -79,14 +83,14 @@ the build.
 
 | | |
 |---|---|
-| **Status** | `Proposed` — awaiting sign-off |
+| **Status** | **Decided** |
 | **Sections** | §21, §22, §69 |
 | **Needed before** | Phase 6 (Gate 3) |
-| **Decided on** | — |
-| **Decided by** | — |
+| **Decided on** | 2026-10-05 |
+| **Decided by** | Anand |
 
-**Proposed decision.** Keep the three keys already shipped and drop §81A's proposed renames. Add the
-two that are genuinely missing, named to match the shipped convention.
+**Decision.** Keep the three keys already shipped and drop §81A's proposed renames. Add the two that
+are genuinely missing, named to match the shipped convention.
 
 | Key | Status | Value | Meaning |
 |---|---|---|---|
@@ -106,18 +110,30 @@ are the clearer ones — `repeated_breach_window_fails` says what it counts, whe
 does not. The two additions are real gaps: §21 requires configurable escalation and neither key exists,
 so Phase 6 would otherwise hard-code them, which Part 0 forbids.
 
-**Still open, and worth deciding with this.** `breach_severity_rules` is typed as a list, but its item
-grammar is undefined. §69 requires the rules to be configurable and §21's examples are conditional
-("high-risk model + failed critical KPI = Critical"), which a flat list cannot express without a
-convention. `revalidation_frequencies` set the precedent with `Name=months` items validated in
-`policy_values.check_key_specific`. A grammar is needed before Phase 6 writes against the key —
-otherwise the first implementation invents one by accident. **This is the part most likely to cause
-rework if left until the build.**
+**Rule grammar, decided with this.** `breach_severity_rules` items are **`Condition=Severity`**,
+separated by `;` — deliberately the same shape as `revalidation_frequencies`' `Name=months`, so the
+file has one convention for keyed lists rather than two. Seeded default:
 
-**Consequences if accepted as proposed.** Two T12 rows added to `B_Inputs/AA_bootstrap`, the seed
-regenerated so the baseline test stays green, and `check_key_specific` extended once the grammar is
-agreed. Spec issue S2 closes. Gate 2's G2.5 can be marked Decided; Gate 3 stays blocked on D1–D4, D6
-and D7.
+```
+metric_warn=Low; metric_fail=Medium; data_quality_fail=High;
+regulatory_metric_fail=High; repeated_breach=High; high_tier_critical_metric_fail=Critical
+```
+
+`policy_values.check_key_specific` enforces the **shape only** — both sides present and non-empty. It
+deliberately does not yet validate the names, because neither vocabulary exists:
+
+- The **condition** names above are provisional. The set of conditions a rule can test is part of the
+  Phase 6 rules engine (§21, §22) and belongs with **D7**.
+- There is no **breach severity** vocabulary. §21's examples use `High`, which `finding_severities`
+  (Critical; Medium; Low) does not contain, so breach severities are a separate list that Phase 6 must
+  add — likely a `breach_severities` T12 key, settled with **D3**.
+
+When those land, `check_key_specific` should validate both sides against them instead of accepting any
+names. Recorded here so Phase 6 tightens an existing check rather than discovering the gap.
+
+**Consequences.** Two T12 rows added to `B_Inputs/AA_bootstrap` and the seed regenerated, so the GR.9
+baseline test stays green (65 → 67 settings). `check_key_specific` extended with the shape rule.
+Spec issue **S2 closes**; G2.5 is Decided. Gate 3 stays blocked on D1–D4, D6 and D7.
 
 ---
 
