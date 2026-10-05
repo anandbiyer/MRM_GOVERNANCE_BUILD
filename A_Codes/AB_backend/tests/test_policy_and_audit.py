@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from app.rules.policy_values import PolicyValueError, normalise_policy_value, parse_policy_value
-from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, login
+from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, audit_count, login
 
 
 # --- rules --------------------------------------------------------------------------
@@ -113,6 +113,98 @@ def test_audit_read_is_restricted(client):
     """AUD-04: audit access needs the audit-read permission; Executive is refused."""
     assert client.get("/api/audit", headers=login(client, *AUDITOR)).status_code == 200
     assert client.get("/api/audit", headers=login(client, *EXECUTIVE)).status_code == 403
+
+
+def test_aud_01_a_refused_write_leaves_no_audit_event(loaded_client):
+    """AUD-01: a write that is refused must leave both the record and the audit trail untouched.
+
+    Seven tests prove an event appears after a *successful* write; none proved the other direction
+    (review finding TR-01). Three refusal paths are checked, because they fail at different depths:
+    a rule inside the service, a permission check, and a value that fails parsing.
+    """
+    admin = login(loaded_client, *ADMIN)
+    # Counted per slice rather than in total: the endpoint caps a page at 1000 events, and a capped
+    # page would make "unchanged" true by accident.
+    creates = audit_count(loaded_client, admin, entity="model", action="create")
+    policy_updates = audit_count(loaded_client, admin, entity="policy_setting", action="update")
+
+    # 1. A business rule inside the service: segregation of duties on model creation.
+    sod = loaded_client.post("/api/models", headers=admin, json={
+        "model_id": "M-0400", "model_name": "SoD probe", "model_type": "Credit Risk", "model_subtype": "PD",
+        "purpose": "Checks that a refused create writes nothing.", "business_line": "Business Banking",
+        "owner_id": "U-003", "developer_id": "U-021", "validator_id": "U-003", "lifecycle_phase": "Validation",
+        "version": "v1.0", "q_materiality": 2, "q_complexity": 2, "q_reliance": 2, "q_regulatory_use": 2})
+    assert sod.status_code == 422
+    assert loaded_client.get("/api/models/M-0400", headers=admin).status_code == 404
+    assert audit_count(loaded_client, admin, entity="model", action="create") == creates
+    assert audit_count(loaded_client, admin, model_id="M-0400") == 0
+
+    # 2. A permission refusal: the Auditor may not edit policy.
+    current = _setting(loaded_client, admin, "reval_lead_days")
+    refused = loaded_client.put("/api/admin/policy/reval_lead_days", headers=login(loaded_client, *AUDITOR),
+                                json={"value": "90", "row_version": current["row_version"]})
+    assert refused.status_code == 403
+    assert _setting(loaded_client, admin, "reval_lead_days")["value"] == current["value"]
+    assert audit_count(loaded_client, admin, entity="policy_setting", action="update") == policy_updates
+
+    # 3. A value that fails parsing.
+    bad = loaded_client.put("/api/admin/policy/reval_lead_days", headers=admin,
+                            json={"value": "sixty", "row_version": current["row_version"]})
+    assert bad.status_code == 422
+    assert _setting(loaded_client, admin, "reval_lead_days")["value"] == current["value"]
+    assert audit_count(loaded_client, admin, entity="policy_setting", action="update") == policy_updates
+
+    # Control: a permitted, valid write of the same setting *does* add exactly one event, so the
+    # three assertions above are not passing because auditing is simply broken.
+    ok = loaded_client.put("/api/admin/policy/reval_lead_days", headers=admin,
+                           json={"value": "90", "row_version": current["row_version"]})
+    assert ok.status_code == 200, ok.text
+    assert audit_count(loaded_client, admin, entity="policy_setting", action="update") == policy_updates + 1
+
+
+def test_aud_01_a_failed_audit_rolls_back_the_business_change(db_session):
+    """AUD-01: the audit event and the business change share one transaction.
+
+    Every service calls `audit.record(...)` and only then `db.commit()`, so a failure in the audit
+    write must take the business change with it. Forced here by making `record` raise: without the
+    shared transaction the policy value would already be committed.
+    """
+    from sqlalchemy import select
+
+    from app.audit import service as audit
+    from app.auth.security import Principal
+    from app.models import PolicySetting
+    from app.services import policy_service
+
+    principal = Principal(user_id="U-001", role="Admin", full_name="Priya Raman")
+    key = "reval_lead_days"
+
+    with db_session() as db:
+        setting = db.get(PolicySetting, key)
+        original, version = setting.value, setting.row_version
+    assert original != "90"
+
+    boom = RuntimeError("audit storage unavailable")
+    original_record = audit.record
+    audit.record = lambda *a, **k: (_ for _ in ()).throw(boom)
+    try:
+        with db_session() as db:
+            with pytest.raises(RuntimeError, match="audit storage unavailable"):
+                policy_service.update_setting(db, principal, key, "90", version)
+            db.rollback()
+    finally:
+        audit.record = original_record
+
+    # A separate session: proves nothing reached the database, not merely that this session forgot.
+    with db_session() as db:
+        assert db.get(PolicySetting, key).value == original
+        assert db.get(PolicySetting, key).row_version == version
+
+    # Control: the same write succeeds once auditing works, so the test is not passing by accident.
+    with db_session() as db:
+        policy_service.update_setting(db, principal, key, "90", version)
+    with db_session() as db:
+        assert db.get(PolicySetting, key).value == "90"
 
 
 def test_bootstrap_is_idempotent(db_session):

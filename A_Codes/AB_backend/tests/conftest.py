@@ -119,6 +119,22 @@ def login(client: TestClient, user_id: str, role: str) -> dict[str, str]:
 
 ADMIN = ("U-001", "Admin")
 DEVELOPER = ("U-021", "Model Developer")  # holds document:upload but deliberately not document:review
+
+
+LIMIT = 1000  # the audit endpoint's maximum
+
+
+def audit_count(client: TestClient, headers: dict[str, str], **params) -> int:
+    """Number of audit events matching `params`, for asserting that a refused write wrote none.
+
+    Always pass a filter narrow enough to stay under the endpoint's limit — a truncated page would
+    make "the count did not change" true by accident. The assertion below enforces that.
+    """
+    resp = client.get("/api/audit", headers=headers, params={"limit": LIMIT, **params})
+    assert resp.status_code == 200, resp.text
+    events = resp.json()
+    assert len(events) < LIMIT, f"audit page is capped at {LIMIT}; narrow the filter: {params}"
+    return len(events)
 AUDITOR = ("U-041", "Auditor")
 EXECUTIVE = ("U-042", "Executive")
 VALIDATOR = ("U-014", "Validator")
