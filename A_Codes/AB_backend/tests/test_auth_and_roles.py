@@ -107,3 +107,51 @@ def test_deactivated_user_token_stops_working(client, db_session):
         s.get(AppUser, "U-014").active = False
         s.commit()
     assert client.get("/api/auth/me", headers=headers).status_code == 401
+
+
+def _set_roles(db_session, user_id: str, roles: list[str]) -> None:
+    """Change a user's roles the way a T01 re-import does, rather than editing rows by hand."""
+    from app.models import AppUser
+    from app.services import user_service
+
+    with db_session() as s:
+        u = s.get(AppUser, user_id)
+        user_service.upsert_user(s, None, user_id=u.user_id, full_name=u.full_name, email=u.email,
+                                 business_line=u.business_line, roles=roles, active=u.active)
+        s.commit()
+
+
+def test_sec_05_removing_a_role_invalidates_a_token_for_that_role(client, db_session):
+    """SEC-05: *removing a role* invalidates an issued token — a different check from deactivation.
+
+    The token carries a role, which must be re-validated against the user's current roles on every
+    request. Only the deactivation half was tested (review finding TR-04). The user stays active
+    here, so an `active` check alone would let the old token through.
+    """
+    headers = login(client, *VALIDATOR)  # U-014, whose only role is Validator
+    assert client.get("/api/auth/me", headers=headers).status_code == 200
+
+    _set_roles(db_session, "U-014", ["Model Developer"])
+
+    refused = client.get("/api/auth/me", headers=headers)
+    assert refused.status_code == 403, refused.text
+    assert "no longer holds the role 'Validator'" in refused.json()["detail"]
+
+    # Still active — so this was the role check, not the active check.
+    assert client.get("/api/users/U-014", headers=login(client, *ADMIN)).json()["active"] is True
+    # And the user can sign in again under the role they now hold.
+    assert client.get("/api/auth/me", headers=login(client, "U-014", "Model Developer")).status_code == 200
+
+
+def test_sec_05_removing_one_role_leaves_tokens_for_the_others(client, db_session):
+    """SEC-05: the check is per role, not per user — U-040 holds MRC Member and Executive."""
+    mrc_token = login(client, "U-040", "MRC Member")
+    exec_token = login(client, "U-040", "Executive")
+    assert client.get("/api/auth/me", headers=mrc_token).status_code == 200
+    assert client.get("/api/auth/me", headers=exec_token).status_code == 200
+
+    _set_roles(db_session, "U-040", ["Executive"])
+
+    assert client.get("/api/auth/me", headers=mrc_token).status_code == 403
+    assert client.get("/api/auth/me", headers=exec_token).status_code == 200, "the retained role still works"
+    assert client.get("/api/auth/me", headers=exec_token).json()["role"] == "Executive"
