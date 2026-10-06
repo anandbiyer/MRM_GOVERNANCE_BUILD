@@ -21,7 +21,7 @@ referenced in commits and reviews.
   to the change log at the bottom. Keep the "Status as at" line current.
 - Findings referenced as `CR-nn` / `TR-nn` / `MP-nn` / `FT-nn` come from `D_Reviews/20261002_summary.md`
   and the reports beneath it — `DA_code_review`, `DB_test_review`, `DC_mockup_review` and
-  `DD_functional_test`. `D1`–`D11` are the §81A decisions in `CLAUDE.md`.
+  `DD_functional_test`. `D1`–`D12` are the §81A decisions in `CLAUDE.md`.
 
 ---
 
@@ -29,17 +29,17 @@ referenced in commits and reviews.
 
 | Dimension | Built | Remaining |
 |---|---|---|
-| BRD phases (§81) | 1, 2, 3, 4 + core of 8 | 2A, 5, 6, 7, 9, 10 |
+| BRD phases (§81) | 1, 2, 3, 4 + core of 8 | 2A (deferred, D12, except core report), 5, 6, 7, 9, 10 |
 | Screens (§55) | 7 of 11 | 2 placeholders (Monitoring, Data Audit) + 2 absent (Model Risk Report, Copilot) |
-| Database tables | 21 | ~17 — monitoring (6), CDE/DQ (4), KPI/performance (3), `document_extraction`, §12A (3) |
+| Database tables | 21 | ~18 — monitoring (6), CDE/DQ (4), KPI/performance (3), `document_extraction`, `model_risk_report` (core report, next), §12A (3, deferred D12) |
 | Import templates | 8 of 21 — T01–T05, T12, T17, T18 | 10 registered but disabled (T06–T11, T13–T16) + T19–T21 not registered |
 | API groups (§54) | ~11 | 8 — monitoring (5), cde, dq, copilot |
-| Acceptance criteria | 69 of 112 proven | 16 open in built scope (3 untested, 13 partly proven) + 27 unbuilt |
-| Mock-up parity | 24 of 35 items Match | 10 not built, 1 flaky harness |
-| Roles / permissions | 10 × 15, enforced server-side | `REG_CLASSIFY`, `OVERLAY_APPROVE` (Phase 2A) |
+| Acceptance criteria | 69 of 115 proven | 16 open in built scope (3 untested, 13 partly proven) + 30 unbuilt |
+| Mock-up parity | 25 of 35 items Match | 10 not built (MUP-29 next, with the core report) |
+| Roles / permissions | 10 × 15, enforced server-side | `REPORT_GENERATE` (core report, next); `REG_CLASSIFY`, `OVERLAY_APPROVE` (Phase 2A, deferred D12) |
 
 **The shape of it:** the governance spine is complete — recording and governing a model works end to
-end. The measurement half is absent — nothing observes a model over time. That is why 69 of 112
+end. The measurement half is absent — nothing observes a model over time. That is why 69 of 115
 criteria are proven while only about 55% of the data model exists.
 
 ### Two demo bars
@@ -49,10 +49,10 @@ criteria are proven while only about 55% of the data model exists.
 | **A — what exists** | Inventory, tiering, validation, findings, approvals, score, structured import, documents, Command Center, Operations Board, Model 360, Admin, Audit Trail | Near ready; Gate 0 closes it out |
 | **B — what the customer saw** | All 35 mock-up items, including monitoring, backtesting, CDE/DQ, the MRC report and the Copilot | Needs Gates 1–6 |
 
-**Recommended target:** Gate 0 → 1 → 2 → 3. That is the shortest credible customer demo: the full
-governance lifecycle, the SR 26-2 regulatory story, the model risk report and monitoring. Data Audit,
-AI extraction and the Copilot are self-contained and nothing depends on them, so they can be presented
-as roadmap.
+**Recommended target:** Gate 0 → core report (G1.16–G1.18) → Gate 2 decisions → Gate 3. That is the
+shortest credible customer demo: the full governance lifecycle, the model risk report and monitoring.
+The rest of the SR 26-2 regulatory story is deferred by **D12**. Data Audit, AI extraction and the
+Copilot are self-contained and nothing depends on them, so they can be presented as roadmap.
 
 ---
 
@@ -99,30 +99,32 @@ Small, high value, no dependencies. Everything here is an open finding from the 
 | G0.15 | `_write` rewrites every xlsx template on each regeneration — zip timestamps differ, so six files show as modified in git while their cell content is identical | new, found 2026-10-05 | **Done** 2026-10-05 | Fixed in `generate_seed._unchanged`: an xlsx is compared by zip **member payload**, which ignores the per-member timestamps, with `dcterms:created`/`modified` in `docProps/core.xml` normalised out — those two values and nothing else. CSV is compared byte for byte. `_write` now prints `written` or `unchanged`. Regenerating at the committed reference date leaves `git status B_Inputs` empty; regenerating at a different date writes only the date-dependent templates (T02–T05) and leaves T12, T01 and the T02 demo alone. 7 new tests in `tests/test_seed_generator.py` (167 pass, 4 skip) |
 | G0.14 | Migration/ORM drift: `validation.report_document_id` and `approval.supporting_document_id` were `VARCHAR(40)` in migration 0002 but `String(20)` in the ORM | new, found 2026-10-04 | **Done** | Migration `0006_document_fk_widths` narrows both to match the referenced `document.document_id`. Found only once PostgreSQL was available; the drift guard had never run. Also closes **TR-05**, which flagged that drift and the append-only trigger were unverifiable |
 
-## 4. Gate 1 — Phase 2A, Regulatory alignment (SR 26-2)
+## 4. Gate 1 — Phase 2A, Regulatory alignment (SR 26-2) — deferred (D12) except the core Model Risk Report
 
-First in the Part 0 build order. **Needs no §81A decision**, so it can start immediately and in
-parallel with Gate 2.
+Deferred by **D12** except the core Model Risk Report, which is built next. Rows G1.1–G1.15 wait on D12.
 
 | ID | Activity | Criteria | Status |
 |---|---|---|---|
-| G1.1 | Migration: §12A `model` columns, `model_dependency`, `effective_challenge`, `model_limitation` | — | Not started |
-| G1.2 | Inventory classification (Model / Tool / AI system) with reason, audit and exclusion from model counts | REG-01, REG-02 | Not started |
-| G1.3 | Exposure fields; materiality suggestion from `materiality_exposure_bands` that never overwrites the user's answer; `tier_rationale` | REG-03, REG-05 | Not started |
-| G1.4 | Proportionate revalidation defaults from `reval_frequency_by_tier` + deviation reason | REG-06 | Not started |
-| G1.5 | Vendor model fields and `vendor_required_documents` in completeness | REG-07 | Not started |
-| G1.6 | Effective challenge log; independence check; "Finding raised" creates the finding in the same transaction | REG-08 | Not started |
-| G1.7 | Limitations / overlays / use exceptions with approver rules, expiry insights and the Critical in-use insight | REG-09, REG-10 | Not started |
-| G1.8 | Model dependencies: self- and cycle-refusal, upstream-issue propagation | REG-11 | Not started |
-| G1.9 | Permissions `REG_CLASSIFY`, `OVERLAY_APPROVE` | — | Not started |
-| G1.10 | Templates T19–T21 and optional T02 columns — existing T02 files must still load | REG-14 | Not started |
-| G1.11 | Command Center aggregate model risk view with drill-down | REG-09, REG-12 | Not started |
-| G1.12 | **Model Risk Report** (§55.10) — generate, preview, download, audited, reproducible | REG-10, REG-13 | Not started |
-| G1.13 | Model 360 sections: classification, exposure, vendor, limitations, challenges, dependencies | — | Not started |
-| G1.14 | Auditor read-all + evidence package download | REG-11 | Not started |
-| G1.15 | Seed additions (§12A.4) and REG-01…REG-14 tests | — | Not started |
+| G1.1 | Migration: §12A `model` columns, `model_dependency`, `effective_challenge`, `model_limitation` | — | Blocked (D12) |
+| G1.2 | Inventory classification (Model / Tool / AI system) with reason, audit and exclusion from model counts | REG-01, REG-02 | Blocked (D12) |
+| G1.3 | Exposure fields; materiality suggestion from `materiality_exposure_bands` that never overwrites the user's answer; `tier_rationale` | REG-03, REG-05 | Blocked (D12) |
+| G1.4 | Proportionate revalidation defaults from `reval_frequency_by_tier` + deviation reason | REG-06 | Blocked (D12) |
+| G1.5 | Vendor model fields and `vendor_required_documents` in completeness | REG-07 | Blocked (D12) |
+| G1.6 | Effective challenge log; independence check; "Finding raised" creates the finding in the same transaction | REG-08 | Blocked (D12) |
+| G1.7 | Limitations / overlays / use exceptions with approver rules, expiry insights and the Critical in-use insight | REG-09, REG-10 | Blocked (D12) |
+| G1.8 | Model dependencies: self- and cycle-refusal, upstream-issue propagation | REG-11 | Blocked (D12) |
+| G1.9 | Permissions `REG_CLASSIFY`, `OVERLAY_APPROVE` | — | Blocked (D12) |
+| G1.10 | Templates T19–T21 and optional T02 columns — existing T02 files must still load | REG-14 | Blocked (D12) |
+| G1.11 | Command Center aggregate model risk view with drill-down | REG-09, REG-12 | Blocked (D12) |
+| G1.12 | **Model Risk Report** (§55.10) — the full §12A report: aggregate model risk, vendor models, dependency concentration, overlays and challenges | REG-10, REG-13 | Blocked (D12) — extends the core report (G1.16–G1.18) when resumed |
+| G1.13 | Model 360 sections: classification, exposure, vendor, limitations, challenges, dependencies | — | Blocked (D12) |
+| G1.14 | Auditor read-all + evidence package download | REG-11 | Blocked (D12) |
+| G1.15 | Seed additions (§12A.4) and REG-01…REG-14 tests | — | Blocked (D12) |
+| G1.16 | **Core Model Risk Report — backend**: migration for `model_risk_report`, T12 key `regulatory_framework`, permission `REPORT_GENERATE`, report service (sections, figures from the Command Center's aggregates, storage, audit, content hash, "changes since") | REG-15, REG-16 | Not started |
+| G1.17 | **Core Model Risk Report — screen** (§55.10): generate, preview, list earlier reports, PDF download; Command Center link to it | REG-15, REG-17 | Not started |
+| G1.18 | **Core Model Risk Report — seed and tests**: one earlier report dated one month before the business date, so "changes since" has content; tests for REG-15…17; functional scenario FS-25; MUP-29 / MUP-30 brought into scope | REG-15…REG-17 | Not started |
 
-**Delivers mock-up items MUP-29, MUP-30.**
+**Delivers MUP-29 (core report) now; MUP-30 (MRC report pack) is partial until Phase 2A resumes.**
 
 ## 5. Gate 2 — record decisions D1–D7 ⛔ blocks Gate 3
 
@@ -219,14 +221,17 @@ Blocked by **D11** (write COP criteria as §76C).
 
 ## 11. Critical path and risks
 
-1. **Gate 2 is a decision bottleneck, not an engineering one.** It gates the largest block of work
-   (Gate 3). Start it now, in parallel with Gate 1. If it slips, Gate 3 slips with it.
-2. **G0.6 must precede Gate 3.** Adding `model_version` to documents after monitoring evidence is
+1. **Gate 2 is now the critical path.** With Phase 2A deferred, the core report is the only work that
+   runs alongside the D1–D7 decisions. Once it is done, nothing but Gate 5 (AI extraction) can be
+   built until D1–D7 are recorded.
+2. **Gate 2 is a decision bottleneck, not an engineering one.** It gates the largest block of work
+   (Gate 3). Start it now, alongside the core report. If it slips, Gate 3 slips with it.
+3. **G0.6 must precede Gate 3.** Adding `model_version` to documents after monitoring evidence is
    attached means migrating live associations.
-3. **Scores move when Gate 3 lands.** Anything quoting today's governance scores — seed expectations,
+4. **Scores move when Gate 3 lands.** Anything quoting today's governance scores — seed expectations,
    demo scripts, GEN-01's documented figures — needs revisiting then.
-4. **The review agents need a Claude Code restart** before `/review-build` works as intended (GR.4).
-5. **No deadline estimates appear in this plan deliberately.** There is no velocity data for this team;
+5. **The review agents need a Claude Code restart** before `/review-build` works as intended (GR.4).
+6. **No deadline estimates appear in this plan deliberately.** There is no velocity data for this team;
    sequencing and dependencies are stated instead, so dates can be attached once capacity is known.
 
 ---
@@ -236,6 +241,7 @@ Blocked by **D11** (write COP criteria as §76C).
 | Date | Change |
 |---|---|
 | 2026-10-03 | Plan created. Records GR.1–GR.10 as Done from the current session; Gates 0–7 opened with all activities `Not started` or `Blocked`. |
+| 2026-10-06 | **D12: Phase 2A deferred, except a core Model Risk Report.** Gate 1 renamed; G1.1–G1.15 become `Blocked (D12)`, with G1.12 marked as *extending* the core report when Phase 2A resumes rather than being replaced by it — so resuming cannot produce a second report. Three new rows, **G1.16–G1.18** (backend, screen, then seed and tests), carry the core report, which is specified as §12A REQ-REG-10A with criteria REG-15…REG-17; the §76D total goes 14 → 17 and §76A.14's total 112 → 115. REG-01…REG-14 are now reported as *Not built (Phase 2A, deferred D12)*, never as defects. **Gate 2 becomes the critical path** — once the core report is done, only Gate 5 can proceed until D1–D7 are recorded — and that is now risk 1 in §11. The report needs no new data: tier, phase, revalidation status, findings, approvals, score and completeness are already computed on read, which is why it was the one part of §12A worth keeping. Specification and plan only; no product code, tests, seed or `B_Inputs` touched. Also corrected three stale §1 figures while here (criteria total, table and permission counts, and parity 24 → 25 after G0.13). |
 | 2026-10-06 | **G0.18 Done (FT-02).** `start_reset` refuses a concurrent reset with 409 instead of failing on a lock, and `GET /api/admin/reset/status` gives the caller a signal that spans the whole operation. Suite 178 / 4 skip; PostgreSQL 4/4; frontend build green. Three lessons, all from running things rather than reasoning about them. **My own fix had a gap**: the guard inferred "a reset is running" from batch statuses, and between the seed batch going terminal and the documents batch being created there was a window with neither — a second reset could start inside it. My own live poller is what exposed it, and `_reset_job` now holds the seed batch non-terminal across that call. **Two of my five new tests proved nothing** until a defect simulation caught them: one looped over the very constant it was meant to pin, so narrowing the constant narrowed the test; the other asserted a 403 that FastAPI's route dependency already produced before the service ran, so it passed whichever order the service's own checks were in. Both are rewritten and now fail against the defect they describe. And **a code comment I wrote was wrong** — it claimed the hold made the caller's own batch id the right thing to poll, when the seed batch returns to Completed while the evidence is still being stored; corrected in place. Also found: a reset deletes `app_user`, so authentication is impossible for a second or two — logged as **G0.19**. |
 | 2026-10-05 | **G0.17 Done — and it found a second, separate problem.** `configure_sqlite` now sets `journal_mode=WAL` and a configurable `busy_timeout`. Verified on a *fresh* database so the pragmas came from the code and not from my earlier manual pragma: 0 HTTP 500s and 0 locks in the document scenarios, against 9 and 6 before, and **FS-15 passes**, moving DOC-01/DOC-08/DOC-17 from blocked to proven. Suite 177 / 172 pass; PostgreSQL 4/4. Two things worth recording. The defect simulation caught a **false-passing test of my own**: I had asserted `busy_timeout == 5000`, which pysqlite already applies by default, so the test passed identically with and without the fix — it is now written to override the setting, which is the only way it can fail. And the fix deliberately does **not** close FS-21: WAL stops readers blocking the writer but SQLite still allows one writer, and FS-21 starts a second reset while the first is still loading 1116 evidence files. Chasing that revealed the reset API hands the caller the *seed* batch id while the job afterwards creates a second *documents* batch, so "my batch completed" does not mean "the reset finished" — a harness defect (H-10) on top of a product gap, logged as **FT-02**: `start_reset` has no in-flight guard, and on PostgreSQL two resets would interleave destructive deletes rather than merely failing. | 
 | 2026-10-05 | **G0.13 Done, and the G0.16 check corrected FT-01.** MUP-34 was not a flaky count but a navigation race: the shared `openAppScreen` returned before the destination screen existed, so the row locator matched the Command Center's still-mounted table and then resolved to nothing. Delaying `/api/models` by 1.5s turned the intermittent failure into a deterministic one — old logic `firstRowVisible=yes count()=0` — which is the kind of evidence I should insist on before calling a flake fixed. The fix went in the helper, so all five screens it navigates to are covered. Parity: mockup 35/35, app 25+10 skip, twice. Checking G0.16 then **overturned my own FT-01 diagnosis**: I had blamed OneDrive and Playwright parallelism, but `workers: 1` was already set at the top level, so the run had always been serial, and `MRM_JOB_MODE=inline` changed nothing either. The real cause is `configure_sqlite` leaving SQLite in rollback-journal mode, where a read-then-write connection cannot promote its lock and SQLite skips the busy handler entirely; the concurrency comes from the SPA's parallel calls per page load, not the runner. WAL takes it 6 → 0, logged as **G0.17** — and it affects the shipped dev launcher, not only the tests. I also briefly mis-read an intermediate result (0 locks with inline jobs) that had been measured against an empty database, so no upload had run; the corrected comparison is on a fully seeded one. Lesson worth keeping: I diagnosed FT-01 from a plausible story (synced folder, parallel tests) that fitted the symptom, without checking the one config value that would have falsified it. |

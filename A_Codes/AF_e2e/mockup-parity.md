@@ -82,8 +82,8 @@ Built today: 1, 2, 3, 4 and the core of 8. Items on any other phase are reported
 | MUP-26 | Documents | AI extraction: proposed fields with confirm / drop | Validator | 5 |
 | MUP-27 | Data Audit | CDE list with DQ scores by source | Data Owner | 7 |
 | MUP-28 | Data Audit | DQ issue list and drill-down | Data Owner | 7 |
-| MUP-29 | Report | Governance report generated and downloadable | Executive | 2A |
-| MUP-30 | Report | MRC report pack (in scope as the model risk report — §12A REQ-REG-10, §81A D9) | Executive | 2A |
+| MUP-29 | Report | Governance report generated and downloadable | Executive | G1.16–G1.18 (core report) |
+| MUP-30 | Report | MRC report pack (in scope as the model risk report — §12A REQ-REG-10, §81A D9) | Executive | Partial after the core report; full with Phase 2A (D12) |
 | MUP-31 | Copilot | Ask a question, answer cites models / records from the app | Executive | 9 |
 | MUP-32 | Copilot | Suggested questions | Executive | 9 |
 | MUP-33 | All | Theme colours, no drop shadows, no horizontal scroll at 1440×900 | any | 8 |
@@ -109,7 +109,7 @@ Never renumber an ID; the Phase column is corrected against §81 where the origi
 | MUP-12, 14, 15, 16, 17 | 4 | 8 | The rules are Phase 2, but these are Model 360 panels (Phase 8); Phase 4 is the Document Centre |
 | MUP-22, 23, 24 | 2 | 3 | The import engine is Phase 3; Phase 2 is the governance core |
 | MUP-25 | 3 | 4 | The Document Centre is Phase 4 |
-| MUP-29 | 8 | 2A | The report is now required by §12A REQ-REG-10 (Phase 2A), not Phase 8 |
-| MUP-30 | — | 2A | §81A D9 is **decided**: the MRC report pack is in scope as the model risk report (REQ-REG-10, REG-13) |
+| MUP-29 | 8 | G1.16–G1.18 | The report is required by §12A, not Phase 8. **D12** builds the core report (REQ-REG-10A, REG-15…17) ahead of the rest of Phase 2A, so this item lands with G1.17 |
+| MUP-30 | — | Partial, then 2A | §81A D9 is **decided**: the MRC report pack is in scope as the model risk report (REQ-REG-10, REG-13). **D12** defers the §12A sections, so this is *partial* once the core report lands and full only when Phase 2A resumes |
 
 MUP-35's role was "Viewer", which does not exist in §5; it now reads Executive.

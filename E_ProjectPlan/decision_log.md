@@ -36,6 +36,9 @@ separate one.
 **Consequences.** Delivered by Gate 1 (Phase 2A), not Phase 8. Mock-up items MUP-29 and MUP-30 moved
 to Phase 2A, and MUP-30 is no longer "no BRD requirement".
 
+*Met first by REQ-REG-10A (core report); full report deferred with **D12**. MUP-29 is delivered by the
+core report; MUP-30 stays partial until Phase 2A resumes.*
+
 *Recorded retrospectively: this decision was already written into §81A and §12A before this log
 existed.*
 
@@ -134,6 +137,43 @@ names. Recorded here so Phase 6 tightens an existing check rather than discoveri
 **Consequences.** Two T12 rows added to `B_Inputs/AA_bootstrap` and the seed regenerated, so the GR.9
 baseline test stays green (65 → 67 settings). `check_key_specific` extended with the shape rule.
 Spec issue **S2 closes**; G2.5 is Decided. Gate 3 stays blocked on D1–D4, D6 and D7.
+
+---
+
+## D12 — Is Phase 2A built now?
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A, §55.10, §76D, §81A, §85, Part 0 |
+| **Needed before** | Gate 1 |
+| **Decided on** | 2026-10-05 |
+| **Decided by** | Anand |
+
+**Decision.** Phase 2A deferred, except the core Model Risk Report. Gate 1 (§12A, REQ-REG-01 to 11) is
+not built until I say so. Exception: **REQ-REG-10A**, a core Model Risk Report built from existing data,
+is built now (§12A.2). When Phase 2A resumes, G1.12 extends that report with the §12A sections instead
+of creating a second one. **D9** (the mock-up's MRC report is in scope as the model risk report) stands,
+and is met first by the core report.
+
+**Why.** Phase 2A is the largest unbuilt block that nothing else depends on: it adds columns, three
+templates, six new record types and two screens before producing anything a customer sees. The report
+is the opposite — it is the one piece of §12A that is visible, that the mock-up already promises
+(MUP-29, MUP-30), and that needs no new data: tier, phase, revalidation status, findings, approvals,
+score and document completeness are all already computed on read by `governance_view`.
+
+**Consequences.**
+
+- Gate 1 rows G1.1–G1.15 become `Blocked (D12)`. G1.12 is marked as extending the core report rather
+  than being replaced by it, so resuming Phase 2A does not produce a second report.
+- Three new plan rows (G1.16–G1.18) carry the core report: backend, screen, then seed and tests.
+- Criteria **REG-15, REG-16, REG-17** are added for the core report; **REG-01 to REG-14** become
+  "deferred, D12" and the review agents report them as *Not built (Phase 2A, deferred D12)*, never as
+  defects. The §76A.14 total goes 112 → 115.
+- The policy key `regulatory_framework` arrives early, with the core report rather than with §12A.
+- **Gate 2 becomes the critical path.** Once the core report is done, nothing but Gate 5 (AI
+  extraction) can be built until D1–D7 are recorded. That risk is recorded in the plan's §11.
+- `model_risk_report` is added to §48 now; the rest of §12A's tables stay deferred.
 
 ---
 

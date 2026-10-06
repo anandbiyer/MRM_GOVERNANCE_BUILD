@@ -147,13 +147,19 @@ test("FS-21 GEN-01 two resets at the same business date give the same counts", a
   expect(first.policy).toBe(67);
 });
 
+test.fixme("FS-25 REG-15 REG-16 REG-17 core Model Risk Report: figures, reproducibility and access",
+  async () => {
+    // Not built (G1.16–G1.18). The core report is specified as §12A REQ-REG-10A and is built ahead
+    // of the rest of Phase 2A (D12), so this scenario precedes FS-31 rather than waiting on it.
+  });
+
 test.fixme("FS-30 MON-01 MON-02 MON-03 monitoring plan, metrics, results and breach", async () => {
   // Not built (Phase 6).
 });
 
-test.fixme("FS-31 REG-01 REG-14 inventory classes, vendor models, challenges, dependencies, report",
+test.fixme("FS-31 REG-01 REG-14 inventory classes, vendor models, challenges, dependencies",
   async () => {
-    // Not built (Phase 2A).
+    // Not built (Phase 2A, deferred D12). The report half of this scenario moved to FS-25.
   });
 
 test.fixme("FS-32 CDE and DQ results load and appear on Data Audit", async () => {

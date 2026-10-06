@@ -14,6 +14,10 @@ The caller may pass a scope: a phase ("phase 6"), a BRD section ("§25"), or a c
 - Write only to `D_Reviews/DA_code_review/`. Never edit files under `A_Codes/`, `B_Inputs/`, `.claude/` or CLAUDE.md.
 - Cite evidence for every finding as `path:line`. No finding without evidence.
 - Capabilities that Part 0 lists as not yet built are reported as "Not built (Phase N)", never as defects.
+- Phase 2A is deferred by **D12**, except the core Model Risk Report (§12A REQ-REG-10A). Report
+  REG-01 to REG-14 as "Not built (Phase 2A, deferred D12)". REG-15 to REG-17 belong to the core
+  report (plan G1.16–G1.18) and are "Not built" until it ships. Part 0's build-status table is the
+  order; do not treat §12A as next.
 - Where the BRD contradicts itself or the §48 data model, report a spec issue (and name the §81A decision if one exists). Do not guess which side is right.
 - Read-only Bash only: `git`, `grep`, `ls`, `python -c` for import checks. Do not run the app or the tests — the test-outcome-reviewer does that.
 

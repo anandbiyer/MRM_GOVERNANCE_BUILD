@@ -13,7 +13,8 @@ them means the reset did not take, and the run must stop. The policy count has m
 ## Conventions
 
 - **Stable IDs.** `FS-nn` never changes meaning. New scenarios take the next free number; gaps are
-  deliberate (FS-25…FS-29 are reserved so the unbuilt-phase block FS-30+ keeps its numbers).
+  deliberate (FS-26…FS-29 are reserved so the unbuilt-phase block FS-30+ keeps its numbers).
+  FS-25 took the first reserved number for the core Model Risk Report (D12).
 - Scenarios for phases Part 0 lists as unbuilt use `test.fixme` with "Not built (Phase N)" and appear
   in the report as *Not built*, never as failures.
 - Every expectation is quoted from CLAUDE.md or `decision_log.md`. Where neither says what should
@@ -49,8 +50,9 @@ them means the reset did not take, and the run must stop. The policy count has m
 | FS-22 | A Model Developer and a Data Owner can upload a document batch but cannot remap, confirm or cancel it in review; the API returns 403 and nothing changes. A role with `document:review` can (CR-04, G0.3) | SEC-02, DOC-03 | Model Developer, Data Owner | seed PDFs | 4 |
 | FS-23 | Removing one role from a user by re-importing T01 (there is no role-edit screen or API yet, CR-19) invalidates that role's session at once, in the UI and the API. The user's other roles keep working (TR-04, G0.9) | SEC-05 | Admin | generated T01 | 1 |
 | FS-24 | Refused writes through the UI leave no audit event: an SoD breach, a tier override without a reason, and an action without permission. A permitted write adds exactly one event (TR-01, G0.7) | AUD-01 | Admin | — | 2 |
+| FS-25 | Generate the core Model Risk Report as a Validator; its figures equal the Command Center; generating again gives the same content; an Executive can view and download but not generate; an Auditor can download | REG-15…17 | Validator, Executive, Auditor | — | 2A-core |
 | FS-30 | Monitoring plan, metrics and results load; Pass/Warn/Fail is calculated; a breach is created | MON-01…MON-03 | Monitoring Analyst | T13–T16 | 6 |
-| FS-31 | Inventory classes, vendor models, challenges, overlays, dependencies and the model risk report. When Gate 1 lands, split into one scenario per REG criterion as FS-40 onwards | REG-01…REG-14 | various | T19–T21 | 2A |
+| FS-31 | Inventory classes, vendor models, challenges, overlays and dependencies. When Phase 2A resumes, split into one scenario per REG criterion as FS-40 onwards. The report itself is FS-25, built ahead of this (D12) | REG-01…REG-14 | various | T19–T21 | 2A (deferred, D12) |
 | FS-32 | CDE and DQ results load and appear on Data Audit | §76B (D8, undecided) | Data Owner | T06, T10 | 7 |
 | FS-33 | AI extraction proposals are confirmed or dropped, and nothing is saved before confirmation | DOC-16 | Validator | seed PDF | 5 |
 | FS-34 | Copilot answers cite records from the app | §76C (D11, undecided) | Executive | — | 9 |

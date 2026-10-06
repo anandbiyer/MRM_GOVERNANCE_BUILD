@@ -15,6 +15,8 @@ import {
 
 /** Phases Part 0 lists as implemented: 1-4 and the core of 8. */
 const BUILT = new Set(["1", "2", "3", "4", "8"]);
+// "2A-core" is the core Model Risk Report (D12, plan G1.16–G1.18): add it to BUILT when G1.17 lands.
+// Plain "2A" is the rest of Phase 2A, deferred by D12 — those items stay Not built, never failures.
 
 interface Ctx {
   page: Page;
@@ -410,7 +412,7 @@ item("MUP-28", "DQ issue list and drill-down", "7", async ({ page, isMockup }) =
 
 // --- Report ---------------------------------------------------------------------------------
 
-item("MUP-29", "Governance report generated and downloadable", "2A", async ({ page, isMockup }) => {
+item("MUP-29", "Governance report generated and downloadable", "2A-core", async ({ page, isMockup }) => {
   if (isMockup) {
     await openMockupScreen(page, "report");
     await expect(page.locator("#repDoc")).toBeVisible();
@@ -420,7 +422,7 @@ item("MUP-29", "Governance report generated and downloadable", "2A", async ({ pa
   await expect(page.getByRole("link", { name: /Report/i })).toBeVisible();
 });
 
-item("MUP-30", "MRC report pack (model risk report, REQ-REG-10)", "2A", async ({ page, isMockup }) => {
+item("MUP-30", "MRC report pack (model risk report, REQ-REG-10; partial after the core report)", "2A", async ({ page, isMockup }) => {
   if (isMockup) {
     await openMockupScreen(page, "report");
     await expect(page.locator("#repDoc")).toContainText(/MRC|governance|model risk/i);

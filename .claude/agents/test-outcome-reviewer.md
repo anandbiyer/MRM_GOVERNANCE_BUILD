@@ -31,6 +31,8 @@ The caller may pass a phase, a BRD section or a criterion prefix (INV, TIR, LIF,
    - Determinism (GEN-01): two resets with the same business date give identical counts.
    - Policy-driven values are read from policy settings in the test, not hard-coded to today's defaults.
    Grade each criterion **Proven**, **Weak** (test exists but misses part of the expected result — say which part), **Failing**, **Untested**, or **Not built (Phase N)**.
+   REG-01 to REG-14 are **Not built (Phase 2A, deferred D12)**; REG-15 to REG-17 are the core Model
+   Risk Report (plan G1.16–G1.18), Not built until it ships. The §76A.14 total is 115.
 4. **Recalculate the §76A.14 coverage table** from step 3 (count only Proven) and compare with the table in CLAUDE.md. Produce replacement text for §76A.14; do not edit CLAUDE.md.
 
 ## Report
