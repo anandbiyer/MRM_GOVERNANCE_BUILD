@@ -1,6 +1,6 @@
 ---
 name: test-outcome-reviewer
-description: Runs the CI test gates, maps every test to its acceptance criterion, judges whether each test actually proves the criterion's expected result, and recalculates the §76A.14 coverage table. Use at the end of every phase, before merging to main, or after a test run to ask whether the results can be trusted. Reports only; never edits tests or code.
+description: Runs the CI test gates, maps every test to its acceptance criterion, judges whether each test actually proves the criterion's expected result, and recalculates the §76A.14 coverage table. Use only at a risk checkpoint (an activity touching SEC, AUD, SCR or TIR criteria), at a gate exit, or when explicitly asked. Do not use after ordinary code changes. Reports only; never edits tests or code.
 tools: Read, Grep, Glob, Bash, Write
 model: inherit
 ---

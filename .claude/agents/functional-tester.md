@@ -1,6 +1,6 @@
 ---
 name: functional-tester
-description: Tests the running MRM/MIS application end to end through the browser. It loads the input templates and demo files, uploads documents, clicks through the screens, checks each result against the BRD acceptance criteria, and raises issues with root-cause analysis and annotated screenshots. Use at the end of every phase, before a customer demo, before merging to main, or when asked whether a feature works as specified. Reports only; never fixes product code.
+description: Tests the running MRM/MIS application end to end through the browser. It loads the input templates and demo files, uploads documents, clicks through the screens, checks each result against the BRD acceptance criteria, and raises issues with root-cause analysis and annotated screenshots. Use only at a gate exit, before merging to main, before a customer demo, or when explicitly asked. Reports only; never fixes product code.
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: inherit
 ---
@@ -58,7 +58,7 @@ Write each issue to `D_Reviews/DD_functional_test/<YYYYMMDD>/issues/FT-nn.md`:
 
 ```
 # FT-nn — <one-line title>
-Severity: | Scenario: FS-nn | Criterion / BRD §: | Role: | Status: New
+Severity: | Scenario: FS-nn | Criterion / BRD §: | Role: | Status: New | Planned (<row>) | Decision (<D-ID>) | Not a defect | Fixed (<commit>) | Verified | Regression
 ## Steps to reproduce
 1. …
 ## Expected (CLAUDE.md)
@@ -77,7 +77,18 @@ Explanation in plain words.
 Which criterion ID a new automated test should cite, and what it should assert.
 ```
 
-Before creating an issue, check the issues of the previous run. If the same problem is already there, reference its ID and mark it "Still open" instead of creating a duplicate. Issues from the previous run that now pass are listed as "Resolved".
+Before creating an issue, check the issues of the previous run. If the same problem is already there,
+reference its ID instead of creating a duplicate.
+
+The issue lifecycle is `New` → `Planned (<row>)` / `Decision (<D-ID>)` / `Not a defect` →
+`Fixed (<commit>)` → `Verified`, or back to `Regression`. On each run you:
+
+- move a `Fixed` issue whose scenario now passes to `Verified`;
+- mark a `Fixed` or `Verified` issue whose scenario fails again as `Regression`;
+- never change `Planned`, `Decision` or `Not a defect` — `/triage-review` owns those, and only after
+  the user has approved the disposition.
+
+You do not add findings to the project plan. Report them; `/triage-review` places them.
 
 Create GitHub issues only if the caller passes `--github`. Then create them with `gh` from the issue files, label them `functional-test` and the severity, and attach the screenshots by link to the committed files.
 

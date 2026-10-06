@@ -1,0 +1,5 @@
+{
+  "_comment": "Written by /review-checkpoint and /review-build. The skip rule reads it: a checkpoint whose scope has the same git write-tree, or a gate whose Ready review has the same head, is not re-run. The merge hook (.claude/hooks/review_gate.py) reads gates only.",
+  "checkpoints": {},
+  "gates": {}
+}

@@ -22,6 +22,22 @@ referenced in commits and reviews.
 - Findings referenced as `CR-nn` / `TR-nn` / `MP-nn` / `FT-nn` come from `D_Reviews/20261002_summary.md`
   and the reports beneath it — `DA_code_review`, `DB_test_review`, `DC_mockup_review` and
   `DD_functional_test`. `D1`–`D12` are the §81A decisions in `CLAUDE.md`.
+- **Findings.** Every review ends with `/triage-review`. Approved findings become rows in the current
+  gate (Critical, High and regressions block its exit), attach to a later gate's row, become a §81A
+  decision, or are closed as not a defect. A finding's row is `Done` when the issue is `Verified` at a
+  gate exit. IDs: `CR-nn` / `TR-nn` / `MP-nn` / `FT-nn`, from the reports under `D_Reviews/`.
+- **Reviews.** Review agents run at four points only (CLAUDE.md Part 0, "When reviews run"): a schema
+  checkpoint after each gate's migration, a risk checkpoint for activities touching permissions, audit,
+  score or tier (currently **G1.16, G1.18, G3.4, G3.10, G3.13, G5.4**; G1.2, G1.6, G1.7, G1.9 and G1.14
+  when Phase 2A resumes), a gate exit review, and before merging to `main` or a demo. Other activities
+  need no review agent to be `Done`.
+  This list is the authority, because two of its entries do not match the criteria-prefix rule and would
+  otherwise be missed: **G1.18** writes the REG-16 tests, which assert that a caller without
+  `REPORT_GENERATE` is refused and that *nothing is stored and no audit event is written* — a
+  permission-and-audit claim under a REG prefix, and exactly the kind of test that can pass while
+  proving nothing. **G5.4** requires that nothing persists without human confirmation and that every AI
+  step is audited — an audit-in-the-same-transaction claim under a DOC prefix. Add an activity here
+  whenever it makes such a claim, whatever its criteria are named.
 
 ---
 
@@ -63,7 +79,7 @@ Copilot are self-contained and nothing depends on them, so they can be presented
 | GR.1 | §76A acceptance criteria for the governance core (57 criteria) ported from the superseded `design.md` §12, with a traceability map | Done | `claude.md` §76A, commit `83afa1f` |
 | GR.2 | Tests tagged with criterion IDs — 104 of 111 functions | Done | commit `83afa1f` |
 | GR.3 | CI workflow: backend pytest, migrations + PostgreSQL, frontend build | Done | `.github/workflows/ci.yml`, commit `83afa1f` |
-| GR.4 | Three review agents + `/review-build` + `D_Reviews/` | Done | `.claude/`, commit `7ecb31c`. **Caveat:** agents register only after a Claude Code restart |
+| GR.4 | Three review agents + `/review-build` + `D_Reviews/` | Done | `.claude/`, commit `7ecb31c`. The restart was needed only because this created the **first** file in a new `.claude/agents/` folder; edits and additions since are picked up within seconds |
 | GR.5 | Playwright mock-up parity harness, 35-item checklist | Done | `A_Codes/AF_e2e/`, commit `7ecb31c`. `mockup` project 35/35 |
 | GR.6 | `setup_first_time.ps1` requires Python 3.14 and installs the harness | Done | commit `7ecb31c` |
 | GR.7 | First full review run — 1 Critical, 7 High | Done | `D_Reviews/20261002_summary.md` |
@@ -93,11 +109,17 @@ Small, high value, no dependencies. Everything here is an open finding from the 
 | G0.12 | Make `generate_seed.py`'s `shutil.rmtree` safe in a OneDrive-synced copy | new | **Done** | `rmtree`-then-write replaced by `sync_documents()`: write (skipping byte-identical files), then prune, then drop empty directories. A lock while writing now leaves a superset rather than a hole; a lock while pruning is counted and warned, not raised. Five tests in `test_seed_generator.py`, including the data-loss case. Side benefit: a full regeneration reports **0 written, 1116 unchanged** — it no longer rewrites every evidence file in a synced folder |
 | G0.13 | Stabilise the flaky MUP-34 cross-screen count check | MP-03 (Low) | **Done** 2026-10-05 | Not a flake in the count — a navigation race. `openAppScreen` clicked a sidebar link and returned immediately, so `div.tablewrap tbody tr` matched the **Command Center's** still-mounted table (`CommandCenter.tsx:169`), passed `.first()` visibility, and then `count()` ran during the Operations Board's loading phase when no table existed at all. Reproduced deterministically by delaying `/api/models` by 1.5s: old logic `firstRowVisible=yes count()=0`, new logic passes. Fixed in the shared helper (waits for the destination `<h1>`, which fixes the whole class for all five screens it navigates to) and in MUP-34 (auto-retrying `toHaveCount`, plus a check of the board's own "N models shown" count so a board-vs-table disagreement is distinguishable from a board-vs-Command-Center one). Parity: mockup 35/35, app 25 pass + 10 skip, twice |
 | G0.18 | `start_reset` has no in-flight guard: a second reset can start while one is running, and the caller cannot tell when a reset has actually finished | FT-02 (Medium) | **Done** 2026-10-06 | Refuses with 409 naming the in-flight batch, before regenerating the seed or deleting anything, and after the permission check so an unauthorised caller still gets 403. New `GET /api/admin/reset/status` gives the signal that spans the whole reset — needed because a reset creates **two** batches and the seed one goes terminal long before the evidence is stored. Verified live: at the instant the caller's own batch read Completed, a second reset returned **409** where it previously returned 500. 6 tests; suite 178 pass / 4 skip; PostgreSQL 4/4; frontend build green. Two discoveries while fixing: the guard alone still had a gap between the seed batch completing and the documents batch existing, now closed by holding the seed batch non-terminal across that call; and **a reset deletes `app_user`, so for a second or two nobody can authenticate** — existing tokens 401 and login itself fails. Any client polling through a reset must re-authenticate and the Admin page does not. Logged as **G0.19** |
-| G0.19 | A reset makes authentication impossible for a second or two: `app_user` is deleted and reloaded, so live tokens 401 and even login fails | found 2026-10-06 while fixing FT-02 | **Not started** | Observed directly: a poller had to re-login mid-reset, and `POST /api/auth/login` returned no token for a window. The Admin page fires the reset and stops watching, so a user does not see it, but any client that polls — the functional suite, a future progress display (DOC-11) — must handle it. Decide the intent: either the reset should preserve the acting Admin, or clients must treat 401 during a reset as expected and re-authenticate. Needs a criterion either way; SEC-05/SEC-06 cover token invalidation but say nothing about this |
+| G0.19 | A reset makes authentication impossible for a second or two: `app_user` is deleted and reloaded, so live tokens 401 and even login fails | found 2026-10-06 while fixing FT-02 | **Dropped** — moved to **BL.1** | Observed directly: a poller had to re-login mid-reset, and `POST /api/auth/login` returned no token for a window. The Admin page fires the reset and stops watching, so a user does not see it, but any client that polls — the functional suite, a future progress display (DOC-11) — must handle it. Decide the intent: either the reset should preserve the acting Admin, or clients must treat 401 during a reset as expected and re-authenticate. Needs a criterion either way; SEC-05/SEC-06 cover token invalidation but say nothing about this |
 | G0.17 | Dev-mode SQLite is left in rollback-journal mode, so a read-then-write connection cannot promote its lock and the API returns HTTP 500 | FT-01 (Medium) | **Done** 2026-10-05 | Two lines in `configure_sqlite` (`app/db.py:9`): `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout=5000`. Verified: same file, same folder, same thread-mode jobs, lock errors 6 → **0**, and the document scenarios then fail only on ordinary business behaviour. WAL is the load-bearing half — in the promotion case SQLite skips the busy handler, so a timeout alone does not help. Affects the product, not just the tests: `start_mrm.ps1` uses the same configuration, so Upload could 500 in dev mode. Shipped with the timeout as a `Settings` field (`MRM_SQLITE_BUSY_TIMEOUT_MS`) — infrastructure, so `app/config.py` rather than `policy_setting` — and 5 tests in the new `tests/test_db_config.py`, which had no coverage before. Verified end to end on a **fresh** database so the pragmas came from the code: document scenarios 0 HTTP 500s and 0 locks (was 9 and 6), **FS-15 now passes**, so DOC-01/DOC-08/DOC-17 are proven. Suite 177 tests / 172 pass / 4 skip; PostgreSQL 4/4. **Scope limit, deliberately not papered over:** WAL stops readers blocking the writer; SQLite still permits one writer at a time, so FS-21's second reset still collides with the first reset's evidence-loading job. That is H-10 (harness polls the wrong batch) plus **FT-02** (no in-flight guard on reset), not this item |
-| G0.16 | Functional tester agent (review agent 4), suite and scenario catalogue | new, 2026-10-05 | **Built, suite not yet green** | `.claude/agents/functional-tester.md`, the `functional` Playwright project, 24 built + 10 unbuilt scenarios in `functional-scenarios.md`, wired into `/review-build`. Evidence: `D_Reviews/DD_functional_test/20261005_all.md`. The agent itself registers only after a Claude Code restart (GR.4), so the first run was performed by hand following its procedure. First run: **13 pass, 11 fail, 5 fixme** — 9 failures are harness defects (H-01…H-07 in the report), 2 are environment (FT-01, SQLite lock under OneDrive), **0 confirmed product defects**. Acceptance set FS-07/FS-18/FS-22/FS-23/FS-24 **not met**: FS-18 (the G0.2/G0.4 proof) and FS-24 (the G0.7 proof) pass; FS-07, FS-22 and FS-23 failed on harness defects, not regressions. Closing G0.16 requires H-01…H-10 fixed, then 24 passing in one run (FT-01 is settled by **G0.17**, which also makes **FS-15 pass**, taking the run to 14 pass / 10 fail). **Checked 2026-10-05:** FT-01's diagnosis was wrong and is corrected — it is a backend issue (now **G0.17**), not the environment; `workers: 1` was already set, so the run had always been serial. Two further harness defects found: **H-08** (`openScreen` has the same navigation race fixed in G0.13 — latent, no scenario fails on it yet, which is why it is worth fixing now) and **H-09** (the suite is not re-runnable: FS-15 is refused as a duplicate on a second run, which incidentally proves DOC-01's store path works). Also confirmed here: a real `cli reset` now leaves `B_Inputs` clean, so the "restore B_Inputs after every reset" chore is retired by G0.15 |
+| G0.16 | Functional tester agent (review agent 4), suite and scenario catalogue | new, 2026-10-05 | **In progress** | `.claude/agents/functional-tester.md`, the `functional` Playwright project, 24 built + 10 unbuilt scenarios in `functional-scenarios.md`, wired into `/review-build`. Evidence: `D_Reviews/DD_functional_test/20261005_all.md`. The agent itself registers only after a Claude Code restart (GR.4), so the first run was performed by hand following its procedure. First run: **13 pass, 11 fail, 5 fixme** — 9 failures are harness defects (H-01…H-07 in the report), 2 are environment (FT-01, SQLite lock under OneDrive), **0 confirmed product defects**. Acceptance set FS-07/FS-18/FS-22/FS-23/FS-24 **not met**: FS-18 (the G0.2/G0.4 proof) and FS-24 (the G0.7 proof) pass; FS-07, FS-22 and FS-23 failed on harness defects, not regressions. **Done when the defects that can produce a false result are fixed** — H-05 (capped audit counts), H-07 (role switch not confirmed) and H-10 (polls the wrong batch / re-auth during reset) — **and FS-07, FS-18, FS-22, FS-23 and FS-24 pass together in one run.** The remaining harness defects (H-01…H-04, H-06, H-08, H-09) move to **BL.2**: they make scenarios fail loudly, which is a nuisance, not a false result. FT-01 is settled by **G0.17**, which also makes **FS-15 pass**, taking the run to 14 pass / 10 fail. **Checked 2026-10-05:** FT-01's diagnosis was wrong and is corrected — it is a backend issue (now **G0.17**), not the environment; `workers: 1` was already set, so the run had always been serial. Two further harness defects found: **H-08** (`openScreen` has the same navigation race fixed in G0.13 — latent, no scenario fails on it yet, which is why it is worth fixing now) and **H-09** (the suite is not re-runnable: FS-15 is refused as a duplicate on a second run, which incidentally proves DOC-01's store path works). Also confirmed here: a real `cli reset` now leaves `B_Inputs` clean, so the "restore B_Inputs after every reset" chore is retired by G0.15 |
 | G0.15 | `_write` rewrites every xlsx template on each regeneration — zip timestamps differ, so six files show as modified in git while their cell content is identical | new, found 2026-10-05 | **Done** 2026-10-05 | Fixed in `generate_seed._unchanged`: an xlsx is compared by zip **member payload**, which ignores the per-member timestamps, with `dcterms:created`/`modified` in `docProps/core.xml` normalised out — those two values and nothing else. CSV is compared byte for byte. `_write` now prints `written` or `unchanged`. Regenerating at the committed reference date leaves `git status B_Inputs` empty; regenerating at a different date writes only the date-dependent templates (T02–T05) and leaves T12, T01 and the T02 demo alone. 7 new tests in `tests/test_seed_generator.py` (167 pass, 4 skip) |
+| G0.20 | **Gate 0 exit review (R3)** — `/review-build gate 0`: all four agents, verdict must be **Ready** | — | Blocked (G0.16) | No full review since 2026-10-02; this confirms G0.1–G0.18 together. The parity tester's first run since G0.4 changed MUP-01 |
 | G0.14 | Migration/ORM drift: `validation.report_document_id` and `approval.supporting_document_id` were `VARCHAR(40)` in migration 0002 but `String(20)` in the ORM | new, found 2026-10-04 | **Done** | Migration `0006_document_fk_widths` narrows both to match the referenced `document.document_id`. Found only once PostgreSQL was available; the drift guard had never run. Also closes **TR-05**, which flagged that drift and the append-only trigger were unverifiable |
+
+**Gate 0 is closed to new rows (2026-10-06).** Its remaining work is G0.16, on the narrower bar above,
+then the exit review G0.20. Every fix here turned up the next edge case — G0.6 led to G0.14, G0.12 to
+G0.15, FT-01 to G0.17, G0.17 to G0.18, G0.18 to G0.19 — and none was a product defect a user would meet
+in a demo. Anything found from now on goes through `/triage-review` to the Backlog or a later gate.
 
 ## 4. Gate 1 — Phase 2A, Regulatory alignment (SR 26-2) — deferred (D12) except the core Model Risk Report
 
@@ -123,6 +145,9 @@ Deferred by **D12** except the core Model Risk Report, which is built next. Rows
 | G1.16 | **Core Model Risk Report — backend**: migration for `model_risk_report`, T12 key `regulatory_framework`, permission `REPORT_GENERATE`, report service (sections, figures from the Command Center's aggregates, storage, audit, content hash, "changes since") | REG-15, REG-16 | Not started |
 | G1.17 | **Core Model Risk Report — screen** (§55.10): generate, preview, list earlier reports, PDF download; Command Center link to it | REG-15, REG-17 | Not started |
 | G1.18 | **Core Model Risk Report — seed and tests**: one earlier report dated one month before the business date, so "changes since" has content; tests for REG-15…17; functional scenario FS-25; MUP-29 / MUP-30 brought into scope | REG-15…REG-17 | Not started |
+| G1.19 | **Schema checkpoint (R1)** after G1.16 — `/review-checkpoint schema G1.16`: `model_risk_report` against §48, before the report service is built on it | — | Blocked (G1.16) |
+| G1.20 | **Core report exit review (R3)** — `/review-build gate 1`, covering G1.16–G1.18: all four agents, FS-25 and MUP-29 | REG-15…REG-17 | Blocked (G1.18) |
+| G1.21 | **Gate 1 exit review (R3) for the rest of Phase 2A** — run only once D12 is lifted; MUP-30 full | REG-01…REG-14 | Blocked (D12) |
 
 **Delivers MUP-29 (core report) now; MUP-30 (MRC report pack) is partial until Phase 2A resumes.**
 
@@ -161,6 +186,8 @@ Blocked by Gate 2. Also requires G0.6.
 | G3.13 | Monitoring score component (D6) | MON-12 | Blocked (G2) |
 | G3.14 | Templates T13–T16 and T07–T09 | — | Blocked (G2) |
 | G3.15 | MON-01…MON-12 plus whatever D7 adds | — | Blocked (G2) |
+| G3.16 | **Schema checkpoint (R1)** after G3.1 — the six monitoring tables against §48 and T13–T16 | — | Blocked (G3.1) |
+| G3.17 | **Gate 3 exit review (R3)** — all four agents; MUP-18, MUP-19 | MON-01…MON-12 | Blocked (G3.15) |
 
 **Delivers MUP-18, MUP-19.** Note: every model's governance score shifts when this lands — the 15%
 monitoring weight stops being rescaled away. Expect the seeded portfolio figures to change.
@@ -177,6 +204,8 @@ Blocked by **D8** (write DQ criteria as §76B).
 | G4.4 | Data Audit screen (§55.5), replacing the placeholder | Blocked (D8) |
 | G4.5 | Model 360 CDE/DQ tab | Blocked (D8) |
 | G4.6 | §76B criteria and tests | Blocked (D8) |
+| G4.7 | **Schema checkpoint (R1)** after G4.1 — `cde`, `dq_rule`, `dq_result`, `dq_issue` against §48 and T06/T10 | Blocked (G4.1) |
+| G4.8 | **Gate 4 exit review (R3)** — all four agents; MUP-20, MUP-27, MUP-28 | Blocked (G4.6) |
 
 **Delivers MUP-20, MUP-27, MUP-28.**
 
@@ -189,6 +218,8 @@ Blocked by **D8** (write DQ criteria as §76B).
 | G5.3 | Document classification and per-type extraction (ToR, MDD, Validation Report, Monitoring Report) | Not started |
 | G5.4 | Review queue; **nothing persists without human confirmation**; every AI step audited | Not started |
 | G5.5 | DOC-16 and MDD section completeness in the documentation score | Not started |
+| G5.6 | **Schema checkpoint (R1)** after G5.1 — `document_extraction` and its §60 provenance fields against §48 | Blocked (G5.1) |
+| G5.7 | **Gate 5 exit review (R3)** — all four agents; MUP-26 | Blocked (G5.5) |
 
 **Delivers MUP-26.**
 
@@ -202,6 +233,7 @@ Blocked by **D11** (write COP criteria as §76C).
 | G6.2 | Answers cite model IDs and underlying records; refuse to act | Blocked (D11) |
 | G6.3 | Suggested questions; Copilot screen and route | Blocked (D11) |
 | G6.4 | §76C criteria and tests | Blocked (D11) |
+| G6.5 | **Gate 6 exit review (R3)** — all four agents; MUP-31, MUP-32 | Blocked (G6.4) |
 
 **Delivers MUP-31, MUP-32.**
 
@@ -216,6 +248,29 @@ Blocked by **D11** (write COP criteria as §76C).
 | G7.5 | **Frontend tests — none exist.** `tsc -b` is the only frontend gate | Not started |
 | G7.6 | E2E in CI (the parity harness is deliberately outside it) | Not started |
 | G7.7 | Backup / restore, health checks, deployment | Not started |
+| G7.8 | **Gate 7 exit review (R3)** — all four agents, before any external demo | Not started |
+
+---
+
+## 10A. Backlog — triaged, not in any gate
+
+Findings that are real but do not block a gate. Each names what should pick it up; none is added to the
+current gate (CLAUDE.md Part 0, "Fixing review findings" — scope freeze).
+
+| ID | Item | Source | Pick up with | Status |
+|---|---|---|---|---|
+| BL.1 | A reset deletes and reloads `app_user`, so for a second or two tokens 401 and login fails. Decide whether the reset keeps the acting Admin, or clients re-authenticate | G0.19 (dropped), found while fixing FT-02 | DOC-11 (progress display) or G7.7 | Not started |
+| BL.2 | Functional harness hardening — the harness defects that fail loudly rather than producing a false result: H-01 (`getByLabel` exact on a wrapping label), H-02 (buttons behind Model 360 tabs), H-03 (asserts before async batch analysis), H-04 (fixture model has no documentation gap), H-06 (wrong seed evidence path), H-08 (`openScreen` navigation race), H-09 (suite not re-runnable without a reset) | `D_Reviews/DD_functional_test/20261005_all.md` | G7.6 (E2E in CI) | Not started |
+| BL.3 | `ImportCentre.tsx:205` picks its default tab in a `useState` initialiser from an asynchronously loaded permission, so the selected tab never re-derives once the session arrives. Could not be reproduced with a settled session — see the note below | First functional run, "Unspecified behaviour" 1 | G7.5 (frontend tests) or the next Import Centre change | Not started |
+| BL.4 | `/api/audit` caps results at 1000 with no `total` and no cursor, so a client cannot tell a complete result from a truncated one. AUD-03 is silent on it | First functional run, "Unspecified behaviour" 2; the cause of harness defect H-05 | G7.4 (performance / paging) or whoever next needs the full trail | Not started |
+
+**On BL.3 and BL.4 not being High.** Neither meets the "Fix now" bar. BL.3 looked like a blocked journey
+at first, but the FS-23 failure that surfaced it was H-07 — the role switch never happened, so the
+session really was Executive, which legitimately lacks `import:run`. With a settled session the tab
+defaults correctly, and no reproduction exists; what remains is a latent ordering risk in code, not an
+observed defect. BL.4 is reachable only by a client that reads more than 1000 audit events, which today
+means the harness; the screen itself pages visibly. Both are recorded rather than fixed because a fix
+without a reproduction is a guess.
 
 ---
 
@@ -230,7 +285,8 @@ Blocked by **D11** (write COP criteria as §76C).
    attached means migrating live associations.
 4. **Scores move when Gate 3 lands.** Anything quoting today's governance scores — seed expectations,
    demo scripts, GEN-01's documented figures — needs revisiting then.
-5. **The review agents need a Claude Code restart** before `/review-build` works as intended (GR.4).
+5. **Reviews run at four fixed points, not continuously.** A merge or push to `main` without a Ready
+   gate review of that commit is blocked by a hook; nothing else is.
 6. **No deadline estimates appear in this plan deliberately.** There is no velocity data for this team;
    sequencing and dependencies are stated instead, so dates can be attached once capacity is known.
 
@@ -241,6 +297,7 @@ Blocked by **D11** (write COP criteria as §76C).
 | Date | Change |
 |---|---|
 | 2026-10-03 | Plan created. Records GR.1–GR.10 as Done from the current session; Gates 0–7 opened with all activities `Not started` or `Blocked`. |
+| 2026-10-06 | **Reviews now run at four defined points, and Gate 0's scope is frozen.** The agents ran only when asked, and the last full review was 2 October with fourteen Gate 0 items landed since. CLAUDE.md Part 0 gains "When reviews run — and when they do not" (R1 schema checkpoint, R2 risk checkpoint, R3 gate exit, R4 merge/demo) plus "Fixing review findings"; each agent's `description:` is narrowed so Claude Code stops offering them after ordinary edits, which is what "use proactively" wording would have caused. New `/review-checkpoint` (one static reviewer, no app) and `/triage-review` (findings become plan rows, decisions or closures — **only after approval**); `/review-build` takes `gate <N>`, applies a skip rule on the reviewed commit, and records the verdict in `D_Reviews/review_state.json`. One hook enforces R4 only: `.claude/hooks/review_gate.py` denies a merge or push to `main` without a Ready review of that exact commit, and denies if it fails itself, so a broken gate is noticed rather than silently skipped — `git commit` is never gated. Review rows added: G0.20, G1.19–G1.21, G3.16, G3.17, G4.7, G4.8, G5.6, G5.7, G6.5, G7.8 (no renumbering needed; every assumed ID was free). The risk-checkpoint list gained **G1.18** and **G5.4** on top of the specified set: neither matches the criteria-prefix rule — their criteria are REG-16 and DOC-16 — yet both assert a permission refusal or an audit write, so the prefix rule would have skipped exactly the tests most able to pass while proving nothing. Also corrected two things the prompt specified that could not work: the skip rule used `git write-tree`, which digests the whole index and so returns one value for every scope (now a scoped `git ls-files -s | git hash-object --stdin` digest), and §11's "risk 4" is item 5 after the D12 insertion, so it was replaced by content rather than position. **Gate 0 frozen:** G0.19 `Dropped` to **BL.1**; G0.16 `In progress` on a narrower bar — only the harness defects that can produce a *false result* (H-05, H-07, H-10) plus the five acceptance scenarios passing together; the rest to **BL.2**. New Backlog section (§10A) with BL.1–BL.4; neither decision item (BL.3, BL.4) is High, and the reason is recorded with them. Specification, plan and tooling only; no product code, tests, seed or `B_Inputs`. |
 | 2026-10-06 | **D12: Phase 2A deferred, except a core Model Risk Report.** Gate 1 renamed; G1.1–G1.15 become `Blocked (D12)`, with G1.12 marked as *extending* the core report when Phase 2A resumes rather than being replaced by it — so resuming cannot produce a second report. Three new rows, **G1.16–G1.18** (backend, screen, then seed and tests), carry the core report, which is specified as §12A REQ-REG-10A with criteria REG-15…REG-17; the §76D total goes 14 → 17 and §76A.14's total 112 → 115. REG-01…REG-14 are now reported as *Not built (Phase 2A, deferred D12)*, never as defects. **Gate 2 becomes the critical path** — once the core report is done, only Gate 5 can proceed until D1–D7 are recorded — and that is now risk 1 in §11. The report needs no new data: tier, phase, revalidation status, findings, approvals, score and completeness are already computed on read, which is why it was the one part of §12A worth keeping. Specification and plan only; no product code, tests, seed or `B_Inputs` touched. Also corrected three stale §1 figures while here (criteria total, table and permission counts, and parity 24 → 25 after G0.13). |
 | 2026-10-06 | **G0.18 Done (FT-02).** `start_reset` refuses a concurrent reset with 409 instead of failing on a lock, and `GET /api/admin/reset/status` gives the caller a signal that spans the whole operation. Suite 178 / 4 skip; PostgreSQL 4/4; frontend build green. Three lessons, all from running things rather than reasoning about them. **My own fix had a gap**: the guard inferred "a reset is running" from batch statuses, and between the seed batch going terminal and the documents batch being created there was a window with neither — a second reset could start inside it. My own live poller is what exposed it, and `_reset_job` now holds the seed batch non-terminal across that call. **Two of my five new tests proved nothing** until a defect simulation caught them: one looped over the very constant it was meant to pin, so narrowing the constant narrowed the test; the other asserted a 403 that FastAPI's route dependency already produced before the service ran, so it passed whichever order the service's own checks were in. Both are rewritten and now fail against the defect they describe. And **a code comment I wrote was wrong** — it claimed the hold made the caller's own batch id the right thing to poll, when the seed batch returns to Completed while the evidence is still being stored; corrected in place. Also found: a reset deletes `app_user`, so authentication is impossible for a second or two — logged as **G0.19**. |
 | 2026-10-05 | **G0.17 Done — and it found a second, separate problem.** `configure_sqlite` now sets `journal_mode=WAL` and a configurable `busy_timeout`. Verified on a *fresh* database so the pragmas came from the code and not from my earlier manual pragma: 0 HTTP 500s and 0 locks in the document scenarios, against 9 and 6 before, and **FS-15 passes**, moving DOC-01/DOC-08/DOC-17 from blocked to proven. Suite 177 / 172 pass; PostgreSQL 4/4. Two things worth recording. The defect simulation caught a **false-passing test of my own**: I had asserted `busy_timeout == 5000`, which pysqlite already applies by default, so the test passed identically with and without the fix — it is now written to override the setting, which is the only way it can fail. And the fix deliberately does **not** close FS-21: WAL stops readers blocking the writer but SQLite still allows one writer, and FS-21 starts a second reset while the first is still loading 1116 evidence files. Chasing that revealed the reset API hands the caller the *seed* batch id while the job afterwards creates a second *documents* batch, so "my batch completed" does not mean "the reset finished" — a harness defect (H-10) on top of a product gap, logged as **FT-02**: `start_reset` has no in-flight guard, and on PostgreSQL two resets would interleave destructive deletes rather than merely failing. | 

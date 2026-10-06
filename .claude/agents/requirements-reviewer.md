@@ -1,6 +1,6 @@
 ---
 name: requirements-reviewer
-description: Reviews the code that has been built against the BRD in CLAUDE.md, the acceptance criteria (§76A–§79) and the Part 0 invariants. Use at the end of every phase, before merging to main, or when asked whether a feature meets its requirements. Reports only; never edits code.
+description: Reviews the code that has been built against the BRD in CLAUDE.md, the acceptance criteria (§76A–§79) and the Part 0 invariants. Use only at a schema checkpoint (right after a gate's migration activity), at a gate exit, or when explicitly asked. Do not use after ordinary code changes. Reports only; never edits code.
 tools: Read, Grep, Glob, Bash, Write
 model: inherit
 ---

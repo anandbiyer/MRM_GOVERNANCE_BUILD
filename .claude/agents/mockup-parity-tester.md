@@ -1,6 +1,6 @@
 ---
 name: mockup-parity-tester
-description: Runs the application and compares each screen with the HTML mock-up (C_Requirements/_OLD/MRM_Governance_MIS_Demo.html) using the Playwright harness in A_Codes/AF_e2e and its mockup-parity.md checklist. Use at the end of every phase, before a customer demo, or when asked whether the app matches the mock-up. The only agent allowed to maintain A_Codes/AF_e2e.
+description: Runs the application and compares each screen with the HTML mock-up (C_Requirements/_OLD/MRM_Governance_MIS_Demo.html) using the Playwright harness in A_Codes/AF_e2e and its mockup-parity.md checklist. Use only at a gate exit, before a customer demo, or when explicitly asked. The only agent allowed to maintain A_Codes/AF_e2e.
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: inherit
 ---

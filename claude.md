@@ -44,9 +44,13 @@ npx playwright test
 npx playwright test --project=functional   # functional suite; the agent runs it against a separate test database
 
 # Review agents (inside Claude Code, from the repository root) — reports go to D_Reviews\
-/review-build              # all three review agents, one consolidated summary
-/review-build --github     # also files functional-test issues on GitHub
-/review-build phase 6      # scope to a phase, a BRD section (§25) or a criterion prefix (MON)
+# They run at four points only; see "When reviews run" below. Not per commit, not per activity.
+/review-build gate 1            # gate exit review (R3): the agents that gate's row names
+/review-build --github          # also files functional-test issues on GitHub
+/review-build phase 6           # scope to a phase, a BRD section (§25) or a criterion prefix (MON)
+/review-checkpoint schema G1.16 # R1: one static reviewer, new tables against §48. No app
+/review-checkpoint risk G0.9    # R2: one static reviewer, that activity's SEC/AUD/SCR/TIR criteria
+/triage-review                  # turn a report's findings into plan rows, decisions or closures
 
 # Infra (optional; only needed for PostgreSQL/MinIO/Redis)
 docker compose -f A_Codes/AA_infra/docker-compose.yml --env-file A_Codes/AA_infra/.env up -d
@@ -100,7 +104,7 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
 | `C_Requirements/_OLD/` | Earlier requirements and the original HTML prototype (visual reference) |
 | `D_Reviews/` | Review agent reports: `DA_code_review/`, `DB_test_review/`, `DC_mockup_review/`, `DD_functional_test/`, plus a dated consolidated summary. Committed history, like `_OLD/` |
 | `E_ProjectPlan/` | `project_plan.md` — the live plan from today's build to a demonstrable product. Stable activity IDs (`G0.1`, `G1.4`), status per activity, decision register and change log. **Update it in the same change that moves the work**, not afterwards |
-| `.claude/agents/`, `.claude/commands/` | The three review agents and the `/review-build` command (see Review agents below) |
+| `.claude/agents/`, `.claude/commands/`, `.claude/hooks/` | The four review agents; the `/review-build`, `/review-checkpoint` and `/triage-review` commands; and the merge-to-`main` review hook (see Review agents below) |
 
 ## Two repository conventions that override normal practice
 
@@ -232,10 +236,68 @@ Rules for the agents:
   file. `mockup-parity-tester` maintains `A_Codes/AF_e2e/` except `functional/` and
   `functional-scenarios.md`, which `functional-tester` maintains (snapshot convention applies).
   Findings are fixed afterwards in the main session.
-- Run `/review-build` at the end of every phase and before merging to `main`.
 - When the BRD and the mock-up disagree, the BRD wins; the difference is recorded, not fixed.
 - Capabilities not yet built are reported as "Not built (Phase N)", never as failures.
 - Where the BRD contradicts itself, the agent reports a spec issue for a decision instead of guessing.
+- Claude Code picks up a new or edited agent file within a few seconds. A restart is needed only when
+  the **first** file is created in a new `.claude/agents/` folder, which is what happened in GR.4;
+  editing these four, or adding a fifth, needs no restart.
+
+### When reviews run — and when they do not
+
+Reviews run only at four points. Ordinary activities finish with the normal tests and no review agent.
+
+- **R1 Schema checkpoint.** Right after a gate's migration activity (G1.16 for the core report, G3.1,
+  G4.1, G5.1; G1.1 if Phase 2A resumes), run
+  `/review-checkpoint schema <ID>` before building services on the new tables.
+- **R2 Risk checkpoint.** When an activity's criteria include SEC, AUD, SCR or TIR, or it changes a
+  permission or what is written in the same transaction as an audit event, run
+  `/review-checkpoint risk <ID>` before marking it `Done`. The criteria prefix is a prompt, not the
+  test: an activity whose criteria are named REG or DOC still needs one if it asserts a permission
+  refusal or an audit write. The plan's **Reviews** bullet holds the current list.
+- **R3 Gate exit.** When the last activity of a gate is `Done`, run `/review-build gate <N>` and record
+  the verdict in the gate's exit row. The gate closes only on **Ready**.
+- **R4 Merge to main or customer demo.** Needs a Ready gate review of the same commit. The hook in
+  `.claude/settings.json` enforces this; if it blocks you, run the review it names.
+
+Do not run review agents at any other time unless I ask. A checkpoint whose scope has not changed since
+its last review is skipped, and the earlier report is cited.
+
+Which agents run at a gate exit:
+
+| Gate | `requirements-reviewer` | `test-outcome-reviewer` | `functional-tester` | `mockup-parity-tester` |
+|---|---|---|---|---|
+| 0 — close the review | ✓ | ✓ | ✓ | ✓ (first run since G0.4 changed MUP-01) |
+| 1 — core Model Risk Report (while D12 holds) | ✓ | ✓ | ✓ (FS-25) | ✓ (MUP-29; MUP-30 partial) |
+| 1 — rest of Phase 2A (when D12 is lifted) | ✓ | ✓ | ✓ | ✓ (MUP-30) |
+| 2 — decisions D1–D7 | — | — | — | — |
+| 3 — Monitoring | ✓ | ✓ | ✓ | ✓ (MUP-18, MUP-19) |
+| 4 — Data Audit | ✓ | ✓ | ✓ | ✓ (MUP-20, 27, 28) |
+| 5 — AI extraction | ✓ | ✓ | ✓ | ✓ (MUP-26) |
+| 6 — Copilot | ✓ | ✓ | ✓ | ✓ (MUP-31, MUP-32) |
+| 7 — hardening | ✓ | ✓ | ✓ | ✓ |
+
+Gate 2 is decisions only, so it has no review. At each exit the two static reviewers are scoped to the
+gate's own criteria, while the CI gates and the functional suite run in full — that catches regressions
+elsewhere without re-reviewing finished work line by line. The two testers start the app and reset the
+data, so they run one after the other, never together.
+
+### Fixing review findings
+
+- A finding is fixed through its plan row, like any other activity.
+- **Scope freeze.** Something new you discover while fixing a row is not fixed on the spot and not added
+  to the current gate. Log it, finish the row, and let `/triage-review` place it. Only Critical or High
+  issues that affect data integrity, security or the demo enter the current gate; the rest go to the
+  Backlog.
+- Write the regression test the issue names first, cite the criterion ID, and confirm it fails. Then fix
+  the code, and confirm the test passes.
+- For FT issues, rerun only the affected scenario: `npx playwright test --project=functional -g "FS-nn"`.
+  If it passes, set the issue's Status to `Fixed (<commit>)`. Do not rerun the whole suite or call a
+  review agent for this.
+- If the fix touches permissions, audit, score or tier, it also gets a risk checkpoint (R2).
+- At the next gate exit, the functional tester reruns everything and moves `Fixed` issues to `Verified`,
+  or reopens them as `Regression`. The plan row becomes `Done` only once the issue is `Verified`, or
+  for CR, TR and MP findings, once the gate review no longer reports it.
 
 ---
 
@@ -3764,7 +3826,9 @@ A feature is complete only when:
 - Relevant documentation updated.
 - No hard-coded business data.
 - Existing functionality remains operational.
-- `/review-build` run for the feature, with no open Critical or High finding.
+- The feature's review points passed (Part 0, "When reviews run"): a schema checkpoint if it added
+  tables, a risk checkpoint if it touched permissions, audit, score or tier, and its gate's exit review
+  **Ready**, with no open Critical or High finding.
 - Mock-up parity checks for the feature's screens are Match or recorded as an accepted difference.
 
 ---
