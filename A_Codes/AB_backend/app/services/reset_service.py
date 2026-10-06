@@ -40,13 +40,23 @@ from app.models import (
     Validation,
 )
 from app.services import bootstrap_service
-from app.services.errors import ForbiddenError, ValidationFailedError
+from app.services.errors import ConflictError, ForbiddenError, ValidationFailedError
 from app.services.policy_access import Policy
 from app.workers import runner
 
 # Children before parents.
 DELETE_ORDER = (Finding, Approval, Validation, DocumentLink, DocumentVersion, Document, DocumentFolder, ModelRelationship,
                 ModelVersion, ModelPhaseHistory, TierOverride, TieringAnswer, Model, UserRole, AppUser, PolicySetting)
+
+# The §42 batch statuses that mean a batch has finished, one way or another. The rest — Uploaded,
+# Validating, Ready, Processing — mean work is still expected.
+TERMINAL_BATCH_STATUSES = ("Completed", "Partially Completed", "Failed", "Validation Failed", "Cancelled")
+
+# A reset produces two batches: the seed import (source "reset") and, at the very end of the job, a
+# documents batch for the evidence files (source "seed", created only by `load_seed_documents`).
+# Both must be finished before another reset may start, which is why the seed batch's own status is
+# not a sufficient signal.
+RESET_BATCH_SOURCES = ("reset", "seed")
 
 
 def regenerate_seed(directory: Path) -> None:
@@ -89,12 +99,36 @@ def seed_files(directory: Path) -> list[tuple[str, bytes]]:
     return [(p.name, p.read_bytes()) for p in files]
 
 
+def reset_in_progress(db: Session) -> ImportBatch | None:
+    """The batch of a reset that has not finished yet, or None.
+
+    Covers both batches a reset creates, because the seed import completes well before the evidence
+    files are loaded: a caller polling the batch id it was given sees "Completed" while the reset is
+    still writing.
+    """
+    return db.scalars(
+        select(ImportBatch)
+        .where(ImportBatch.source.in_(RESET_BATCH_SOURCES),
+               ImportBatch.status.not_in(TERMINAL_BATCH_STATUSES))
+        .order_by(ImportBatch.batch_id)
+    ).first()
+
+
 def start_reset(db: Session, session_factory: Callable[[], Session], principal: Principal | None,
                 directory: Path | None = None) -> ImportBatch:
     if not get_settings().allow_reset:
         raise ForbiddenError("Reset is disabled in this environment (MRM_ALLOW_RESET=false).")
     if principal and not has_permission(principal.role, Permission.POLICY_EDIT):
         raise ForbiddenError("Only an Admin can reset the application data.")
+    # Refuse before regenerating the seed or deleting anything: a reset clears every governance
+    # table and reloads it, so two overlapping runs would interleave one's deletes with the other's
+    # inserts. The check comes after the permission checks so an unauthorised caller still gets 403.
+    running = reset_in_progress(db)
+    if running:
+        raise ConflictError(
+            f"A reset is already running: batch {running.batch_id} is {running.status}. "
+            f"Wait for it to finish and try again. If it is stuck, cancel that batch first."
+        )
     directory = directory or get_settings().seed_dir
     if get_settings().regenerate_seed_on_reset:
         regenerate_seed(directory)
@@ -137,7 +171,28 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
             db.commit()
             return
 
-    load_seed_documents(session_factory, get_settings().seed_dir / "documents")
+    # `engine.run` marks the batch Completed once the seed templates are loaded, but the reset is not
+    # finished: the evidence still has to be loaded. That left a gap in which the seed batch was
+    # terminal and the documents batch did not exist yet, so `reset_in_progress` saw nothing in
+    # flight and a second reset could start inside it. Holding the status across the call closes the
+    # gap — `load_seed_documents` returns as soon as the documents batch exists, and that batch then
+    # keeps the reset visibly in flight. Note the seed batch does go back to Completed while the
+    # evidence is still being stored, so it is not a signal for "the reset has finished";
+    # GET /api/admin/reset/status is.
+    with session_factory() as db:
+        batch = db.get(ImportBatch, batch_id)
+        loaded_status, batch.status = batch.status, "Processing"
+        db.commit()
+    try:
+        load_seed_documents(session_factory, get_settings().seed_dir / "documents")
+    finally:
+        # Restore the status the seed load concluded with (Completed or Partially Completed) even if
+        # the evidence load raises: leaving the batch stuck in Processing would block every later
+        # reset, which is worse than the failure itself.
+        with session_factory() as db:
+            batch = db.get(ImportBatch, batch_id)
+            batch.status = loaded_status
+            db.commit()
 
 
 def load_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:

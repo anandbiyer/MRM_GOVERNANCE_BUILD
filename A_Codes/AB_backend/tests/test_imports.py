@@ -6,8 +6,14 @@ import csv
 import io
 import shutil
 
+import pytest
 from openpyxl import load_workbook
+from sqlalchemy import delete as sa_delete
 
+from app.auth.security import Principal
+from app.models import ImportBatch
+from app.services import reset_service
+from app.services.errors import ForbiddenError
 from tests.conftest import ADMIN, AUDITOR, VALIDATOR, login
 
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -372,3 +378,127 @@ def test_reset_disabled(client, test_settings):
     test_settings.allow_reset = False
     resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
     assert resp.status_code == 403
+
+
+def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test_settings):
+    """GEN-02 (FT-02): a reset clears every governance table and reloads it, so two overlapping runs
+    would interleave one run's deletes with the other's inserts.
+
+    The batch the caller is handed is not a sufficient signal on its own: a reset creates the seed
+    import batch *and then* a documents batch for the evidence files, so the first reports Completed
+    while the reset is still writing. Both are covered.
+    """
+    h = login(client, *ADMIN)
+    with db_session() as db:
+        for status, source in (("Processing", "reset"), ("Ready", "seed")):
+            db.add(ImportBatch(batch_id=f"B-TEST-{source}", batch_type="seed", source=source,
+                               status=status, options={}))
+            db.commit()
+
+            resp = client.post("/api/admin/reset", headers=h)
+            assert resp.status_code == 409, f"{source} batch in {status} must block a reset"
+            assert f"B-TEST-{source}" in resp.json()["detail"], "the message must name the batch to watch"
+
+            db.execute(sa_delete(ImportBatch).where(ImportBatch.batch_id == f"B-TEST-{source}"))
+            db.commit()
+
+
+def test_a_finished_reset_does_not_block_the_next_one(client, db_session, test_settings):
+    """GEN-02: the guard must not latch. Every terminal status leaves a reset startable.
+
+    The statuses are written out rather than read from `reset_service.TERMINAL_BATCH_STATUSES`: a
+    test that iterates the constant it is checking cannot fail when that constant is wrong. This
+    list is the §42 contract, so it belongs in the test.
+    """
+    h = login(client, *ADMIN)
+    with db_session() as db:
+        for status in ("Completed", "Partially Completed", "Failed", "Validation Failed", "Cancelled"):
+            db.add(ImportBatch(batch_id="B-TEST-done", batch_type="seed", source="reset",
+                               status=status, options={}))
+            db.commit()
+            assert reset_service.reset_in_progress(db) is None, f"{status} must count as finished"
+            db.execute(sa_delete(ImportBatch).where(ImportBatch.batch_id == "B-TEST-done"))
+            db.commit()
+
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+
+
+def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, test_settings):
+    """A batch waiting for a user's review is not a reset, and must not stand in the way of one."""
+    with db_session() as db:
+        db.add(ImportBatch(batch_id="B-TEST-upload", batch_type="documents", source="upload",
+                           status="Ready", options={}))
+        db.commit()
+        assert reset_service.reset_in_progress(db) is None
+
+    assert client.post("/api/admin/reset", headers=login(client, *ADMIN)).status_code == 202
+
+
+def test_reset_status_reports_the_batch_to_watch(client, db_session, test_settings):
+    """GEN-02 (FT-02): the signal that covers the whole reset, which POST /reset's batch id does not."""
+    h = login(client, *ADMIN)
+    idle = client.get("/api/admin/reset/status", headers=h)
+    assert idle.status_code == 200
+    assert idle.json() == {"in_progress": False, "batch": None}
+
+    with db_session() as db:
+        db.add(ImportBatch(batch_id="B-TEST-docs", batch_type="documents", source="seed",
+                           status="Processing", options={}))
+        db.commit()
+
+    busy = client.get("/api/admin/reset/status", headers=h).json()
+    assert busy["in_progress"] is True
+    assert busy["batch"]["batch_id"] == "B-TEST-docs", "names the documents batch, not just the seed one"
+
+
+def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session, test_settings):
+    """403 beats 409: a non-Admin must not learn from the error message whether a reset is running.
+
+    Called at the service, not through the API: the route's `require(Permission.POLICY_EDIT)`
+    dependency already refuses an Auditor before `start_reset` runs, so an API-level test passes
+    whichever order the two checks are in and proves nothing. `start_reset` re-checks the permission
+    because the CLI and the seed loader call it directly, and that is the order under test here.
+    """
+    with db_session() as db:
+        db.add(ImportBatch(batch_id="B-TEST-reset", batch_type="seed", source="reset",
+                           status="Processing", options={}))
+        db.commit()
+
+        auditor = Principal(user_id="U-041", role="Auditor", full_name="Grace Liu")
+        with pytest.raises(ForbiddenError):
+            reset_service.start_reset(db, db_session, auditor)
+
+
+def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
+        client, db_session, test_settings, monkeypatch):
+    """GEN-02 (FT-02): loading the evidence is part of the reset, so the batch must not read as
+    finished while it is still happening.
+
+    Two things used to go wrong in the gap between the seed load finishing and the documents batch
+    being created: a caller polling the batch id it was handed saw "Completed" while the reset was
+    still writing, and `reset_in_progress` saw nothing in flight — so a second reset could start
+    inside the gap. This observes the status at the moment the evidence load runs, which is the only
+    point where the invariant can be checked.
+    """
+    observed = {}
+
+    def spy(session_factory, directory):
+        with session_factory() as db:
+            running = reset_service.reset_in_progress(db)
+            observed["batch_id"] = running.batch_id if running else None
+            observed["status"] = running.status if running else None
+        return None  # the real loader is skipped: the invariant is about the status, not the files
+
+    monkeypatch.setattr(reset_service, "load_seed_documents", spy)
+
+    resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+    assert resp.status_code == 202
+    batch_id = resp.json()["batch_id"]
+
+    assert observed["batch_id"] == batch_id, "the batch the caller was given is the one still in flight"
+    assert observed["status"] == "Processing", "the reset batch must not be terminal yet"
+
+    # And once the evidence load is done, the reset is finished and another may start.
+    with db_session() as db:
+        assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
+        assert reset_service.reset_in_progress(db) is None

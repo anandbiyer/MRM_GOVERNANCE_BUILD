@@ -7,7 +7,7 @@ from app.db import get_session_factory
 from app.auth.roles import Permission
 from app.auth.security import Principal
 from app.schemas.core import PolicySettingOut, PolicySettingUpdate
-from app.schemas.ingestion import ImportBatchOut
+from app.schemas.ingestion import ImportBatchOut, ResetStatusOut
 from app.services import policy_service, reset_service
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -33,3 +33,15 @@ def reset_to_seed(
 ):
     """Clear governance data and reload the seed through the import engine (demo/dev only)."""
     return reset_service.start_reset(db, session_factory, principal)
+
+
+@router.get("/reset/status", response_model=ResetStatusOut)
+def reset_status(db: DbSession, _: CurrentPrincipal):
+    """Whether a reset is still running, and which batch to watch.
+
+    A reset creates two batches — the seed import and then one for the evidence files — so the batch
+    id returned by POST /reset reports Completed while the reset is still writing. This is the signal
+    that covers the whole operation (FT-02).
+    """
+    running = reset_service.reset_in_progress(db)
+    return ResetStatusOut(in_progress=running is not None, batch=running)

@@ -86,6 +86,12 @@ class ImportBatchDetail(ImportBatchOut):
     progress: dict | None
 
 
+class ResetStatusOut(ORMModel):
+    """Whether a reset is still running. `batch` is the one to watch, or null when idle."""
+    in_progress: bool
+    batch: ImportBatchOut | None
+
+
 class ImportIssueOut(ORMModel):
     issue_id: int
     import_file_id: int
