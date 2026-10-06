@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
     redis_url: str = "redis://localhost:6379/0"
 
+    # SQLite only (dev/tests): how long a connection waits for a write lock before giving up.
+    # Infrastructure, not a business rule, so it belongs here and not in policy_setting. See
+    # app.db.configure_sqlite for why WAL rather than this value is what fixes lock promotion.
+    sqlite_busy_timeout_ms: int = 5000
+
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "mrm_minio"
     minio_secret_key: str = "mrm_minio_password"
