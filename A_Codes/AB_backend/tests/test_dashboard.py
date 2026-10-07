@@ -110,6 +110,13 @@ def test_cr_05_each_severity_bar_drills_to_its_own_models(loaded_client):
 
     Regression for CR-05: `linkFor` discarded the bar key, so clicking "Critical" listed every model
     with any open finding, and `/api/models` had no severity filter at all.
+
+    The first version asserted soundness (every model listed really holds such a finding) and an
+    upper bound (no more models than findings), but never **completeness** — so a filter returning
+    half its models stayed green, which is the same class of defect CR-05 itself was (TR-26,
+    verified by mutation: 178 passed). The set is now compared for equality against the models
+    derived independently from `/api/findings?severity=…`, which is a different code path
+    (`finding_service.list_findings`) from the one under test (`governance_view`'s model filter).
     """
     h = login(loaded_client, *EXECUTIVE)
     d = _get(loaded_client, h, "/api/dashboard/summary")
@@ -119,9 +126,18 @@ def test_cr_05_each_severity_bar_drills_to_its_own_models(loaded_client):
     open_statuses = set(_get(loaded_client, h, "/api/models/meta")["finding_open_statuses"])
     seen_models: list[set[str]] = []
     for severity, finding_count in sev.items():
-        models = _get(loaded_client, h, "/api/models", finding_severity=severity)
-        ids = {m["model_id"] for m in models}
+        ids = {m["model_id"] for m in _get(loaded_client, h, "/api/models", finding_severity=severity)}
         seen_models.append(ids)
+
+        # The models that *should* be listed, derived from the findings themselves through a
+        # different service than the one under test. Set equality, so a filter that drops models is
+        # caught as well as one that adds them — the upper bound alone was not enough (TR-26).
+        expected = {f["model_id"] for f in _get(loaded_client, h, "/api/findings", severity=severity)
+                    if f["status"] in open_statuses}
+        assert ids == expected, (
+            f"{severity}: missing {sorted(expected - ids)}, unexpected {sorted(ids - expected)}")
+        assert expected, f"{severity} has a bar but no open findings behind it"
+
         # Every model returned really holds an open finding of that severity...
         for model_id in ids:
             found = _get(loaded_client, h, "/api/findings", model_id=model_id)

@@ -318,9 +318,14 @@ def _outstanding(client, headers) -> set[str]:
 def test_apr_03_conditional_stays_outstanding_until_every_condition_closes(loaded_client):
     """APR-03: a Conditional decision stays visible as outstanding until *every* condition is closed.
 
-    The previous test only round-tripped `condition_status` through a PATCH, so none of the
-    criterion was observed (review finding TR-02). "Every" is the part worth testing: two open
-    conditions on one model, closed one at a time.
+    The first version only round-tripped `condition_status` through a PATCH, so none of the
+    criterion was observed (TR-02). The second used two conditions but closed the **older** one
+    first, and `Aggregates.approvals` is newest-first — so an implementation that looked only at
+    `approvals[0]` stayed green through it (TR-25, verified by mutation: 178 passed).
+
+    Three conditions now, dated out of insertion order, and closed newest → oldest → middle. That
+    defeats every single-element shortcut: closing the newest breaks `approvals[0]`, closing the
+    oldest breaks `approvals[-1]`, and the model must stay outstanding until the third goes.
     """
     mrc = login(loaded_client, *MRC)
     admin = login(loaded_client, *ADMIN)
@@ -330,36 +335,47 @@ def test_apr_03_conditional_stays_outstanding_until_every_condition_closes(loade
 
     base = {"model_id": model_id, "forum": "MRC", "decision": "Conditional", "condition_status": "Open",
             "condition_due_date": "2026-12-31"}
-    first = loaded_client.post("/api/approvals", headers=mrc, json={
+    # Inserted middle, newest, oldest — so insertion order and decision-date order disagree.
+    middle = loaded_client.post("/api/approvals", headers=mrc, json={
         **base, "decision_date": "2026-08-01", "decision_type": "Pre-implementation",
         "conditions": "Document the override log"}).json()
-    second = loaded_client.post("/api/approvals", headers=mrc, json={
+    newest = loaded_client.post("/api/approvals", headers=mrc, json={
         **base, "decision_date": "2026-09-01", "decision_type": "Annual review",
         "conditions": "Re-run the benchmark"}).json()
+    oldest = loaded_client.post("/api/approvals", headers=mrc, json={
+        **base, "decision_date": "2026-07-01", "decision_type": "Periodic review",
+        "conditions": "Refresh the challenger comparison"}).json()
 
     # Outstanding, and counted once however many conditions it holds.
     assert model_id in _outstanding(loaded_client, admin)
     tile_after = loaded_client.get("/api/dashboard/summary", headers=admin).json()["tiles"]["models_with_open_conditions"]
     assert tile_after == tile_before + 1
 
-    # Closing one of two is not enough — this is the assertion the old test could not make.
-    closed = loaded_client.patch(f"/api/approvals/{first['approval_id']}", headers=mrc,
-                                 json={"condition_status": "Met", "row_version": first["row_version"]})
-    assert closed.status_code == 200, closed.text
-    assert model_id in _outstanding(loaded_client, admin), "one condition still open"
+    def close(approval, note):
+        resp = loaded_client.patch(f"/api/approvals/{approval['approval_id']}", headers=mrc,
+                                   json={"condition_status": "Met", "row_version": approval["row_version"]})
+        assert resp.status_code == 200, resp.text
+        return note
 
-    # Closing the last one clears it.
-    loaded_client.patch(f"/api/approvals/{second['approval_id']}", headers=mrc,
-                        json={"condition_status": "Met", "row_version": second["row_version"]})
+    # Newest first: an implementation reading only the latest decision loses the model here.
+    close(newest, "newest closed")
+    assert model_id in _outstanding(loaded_client, admin), "two conditions are still open"
+
+    # Then oldest: one reading only the earliest loses it here.
+    close(oldest, "oldest closed")
+    assert model_id in _outstanding(loaded_client, admin), "the middle condition is still open"
+
+    # Only the third clears it.
+    close(middle, "all closed")
     assert model_id not in _outstanding(loaded_client, admin)
     tile_final = loaded_client.get("/api/dashboard/summary", headers=admin).json()["tiles"]["models_with_open_conditions"]
     assert tile_final == tile_before
 
     # The decisions themselves remain on the record; only their outstanding status changed.
+    raised = {a["approval_id"] for a in (middle, newest, oldest)}
     approvals = _model(loaded_client, admin, model_id)["approvals"]
-    assert {a["approval_id"] for a in approvals} >= {first["approval_id"], second["approval_id"]}
-    assert all(a["condition_status"] == "Met" for a in approvals
-               if a["approval_id"] in (first["approval_id"], second["approval_id"]))
+    assert {a["approval_id"] for a in approvals} >= raised
+    assert all(a["condition_status"] == "Met" for a in approvals if a["approval_id"] in raised)
 
 
 def test_model_360_panels(loaded_client):
