@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { resetCachesAndIdentity } from "../api/queries";
 import { invalidatePolicy } from "../api/queries";
 import type { ImportBatch, PolicySetting, User } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
@@ -134,8 +135,10 @@ function ResetPanel() {
   const [confirm, setConfirm] = useState("");
   const reset = useMutation({
     mutationFn: () => api<ImportBatch>("/api/admin/reset", { method: "POST" }),
-    onSuccess: (b) => {
-      qc.clear();
+    onSuccess: async (b) => {
+      // A reset deletes and reloads `app_user`, so the signed-in identity must be re-read as well
+      // as the data — the same reason as a role switch (FT-03).
+      await resetCachesAndIdentity(qc);
       navigate(`/imports/${b.batch_id}`);
     },
   });

@@ -27,6 +27,25 @@ export function invalidatePolicy(qc: QueryClient): void {
   invalidateGovernance(qc, ["policy"], ["model-meta"]);
 }
 
+/**
+ * Drop every cached read, then read the identity again.
+ *
+ * For a role switch or a reset, everything cached was fetched as a different user or against data
+ * that no longer exists, so clearing is right. Clearing *alone* was not: `["me"]` has a mounted
+ * observer whose inputs do not change across a switch, so dropping the entry left `me` at its
+ * previous value — the token became the new role while the application kept the old one's
+ * permissions, and only a full page reload fixed it (FT-03, plan G0.21). The refetch is what makes
+ * the new identity take effect.
+ */
+export async function resetCachesAndIdentity(qc: QueryClient): Promise<void> {
+  // Invalidate rather than clear. `clear()` removes the queries outright, which leaves the mounted
+  // `["me"]` observer holding its last value with nothing to refetch — a `refetchQueries` after a
+  // `clear()` matches nothing at all, which is why the first attempt at this fix changed nothing.
+  // Invalidation marks every cached read stale and refetches the active ones, so the identity is
+  // re-read and the rest follows on next use.
+  await qc.invalidateQueries();
+}
+
 export function useModelMeta() {
   return useQuery({ queryKey: ["model-meta"], queryFn: () => api<ModelMeta>("/api/models/meta"), staleTime: 60_000 });
 }
