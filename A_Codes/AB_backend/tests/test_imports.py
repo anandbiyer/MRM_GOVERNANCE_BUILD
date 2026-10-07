@@ -487,9 +487,9 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
             running = reset_service.reset_in_progress(db)
             observed["batch_id"] = running.batch_id if running else None
             observed["status"] = running.status if running else None
-        return None  # the real loader is skipped: the invariant is about the status, not the files
+        return None  # the real stager is skipped: the invariant is about the status, not the files
 
-    monkeypatch.setattr(reset_service, "load_seed_documents", spy)
+    monkeypatch.setattr(reset_service, "stage_seed_documents", spy)
 
     resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
     assert resp.status_code == 202
@@ -502,3 +502,74 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
     with db_session() as db:
         assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
         assert reset_service.reset_in_progress(db) is None
+
+
+def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(
+        client, db_session, test_settings, monkeypatch):
+    """GEN-01, GEN-05 (FT-04): a reset must make no further database write once it has handed the
+    evidence batch to a background job.
+
+    This is the defect G0.18's status hold introduced, and it cost all 1,116 evidence documents
+    behind an HTTP 202. `load_seed_documents` returns as soon as the documents batch exists and its
+    analysis has been *submitted*, so restoring the seed batch's status in a `finally` afterwards
+    raced that job: the reset's commit took SQLite's write lock, SQLite refused the job's lock
+    promotion without consulting `busy_timeout` (see `app/db.configure_sqlite`), and the analysis
+    died at `documents/batch.py`.
+
+    The **ordering** is asserted, not the race. Every test forces `MRM_JOB_MODE=inline`, which runs
+    the two jobs one after the other so the race cannot happen — which is precisely why CI could not
+    see FT-04. An ordering assertion holds in either mode, and it is the invariant that matters:
+    whatever the reset still has to write, it writes before it starts something else writing.
+    """
+    from sqlalchemy.orm import Session as SASession
+    from sqlalchemy import event as sa_event
+
+    from app.workers import runner
+
+    events: list[str] = []
+
+    def recording_submit(fn, *args):
+        events.append(f"submit:{fn.__name__}")
+        if fn is reset_service._reset_job:
+            fn(*args)  # the reset itself still runs; the jobs it starts are only recorded
+
+    def on_commit(_session):
+        events.append("commit")
+
+    monkeypatch.setattr(runner, "submit", recording_submit)
+    sa_event.listen(SASession, "after_commit", on_commit)
+    try:
+        resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+    finally:
+        sa_event.remove(SASession, "after_commit", on_commit)
+
+    assert resp.status_code == 202, resp.text
+    assert "submit:analyse_job" in events, f"the reset never handed the evidence over: {events}"
+    after = events[events.index("submit:analyse_job") + 1:]
+    assert after == [], (
+        f"the reset committed {after.count('commit')} time(s) after submitting the evidence analysis; "
+        f"in thread mode those writes race the job and lose the evidence (FT-04)"
+    )
+
+
+def test_ft_04_a_reset_leaves_the_seed_batch_terminal_and_the_evidence_loaded(client, test_settings):
+    """GEN-01, GEN-05 (FT-04): the two halves the fix must not trade against each other.
+
+    The seed batch has to end terminal, or `reset_in_progress` latches and every later reset is
+    refused (FT-05's failure mode); and the evidence has to be there, or the reset silently empties
+    the Document Centre. The original hold achieved the first by writing after the job started,
+    which destroyed the second.
+    """
+    h = login(client, *ADMIN)
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    seed = client.get(f"/api/imports/batches/{batch_id}", headers=h).json()
+    assert seed["status"] in ("Completed", "Partially Completed"), seed
+    assert client.get("/api/admin/reset/status", headers=h).json()["in_progress"] is False
+
+    docs = client.get("/api/documents/batches", headers=h).json()
+    evidence = next(b for b in docs if b["source"] == "seed")
+    assert evidence["status"] == "Completed" and evidence["successful_records"] > 1000, evidence
+    assert client.get("/api/documents", headers=h, params={"limit": 1}).json(), "no evidence survived the reset"

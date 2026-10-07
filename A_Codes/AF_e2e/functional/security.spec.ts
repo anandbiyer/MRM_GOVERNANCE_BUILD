@@ -105,20 +105,35 @@ test("FS-23 SEC-05 re-importing T01 without a role invalidates that role's sessi
 
   // There is no role-edit screen or API (CR-19), so the role is removed the only supported way:
   // re-importing T01 through the Import Centre.
-  await signInAs(page, "Admin");
-  await openScreen(page, "Import Centre");
-  const input = page.locator('input[type="file"]').first();
-  await input.setInputFiles(path.join(RUN_DIR, "inputs", "T01_role_removed.csv"));
-  await page.getByRole("button", { name: /Upload and validate/i }).click();
-  await expect(page.getByText(/Ready|Validation Failed/)).toBeVisible({ timeout: 15_000 });
-  await checkpoint(page, "FS-23_t01_preview");
-  await page.getByRole("button", { name: /^Load/ }).click();
-  await expect(page.getByText(/Completed|Partially Completed/)).toBeVisible({ timeout: 20_000 });
+  const importT01 = async (file: string, shot?: string) => {
+    await signInAs(page, "Admin");
+    await openScreen(page, "Import Centre");
+    const input = page.locator('input[type="file"]').first();
+    await input.setInputFiles(path.join(RUN_DIR, "inputs", file));
+    await page.getByRole("button", { name: /Upload and validate/i }).click();
+    await expect(page.getByText(/Ready|Validation Failed/)).toBeVisible({ timeout: 15_000 });
+    if (shot) await checkpoint(page, shot);
+    await page.getByRole("button", { name: /^Load/ }).click();
+    await expect(page.getByText(/Completed|Partially Completed/)).toBeVisible({ timeout: 20_000 });
+  };
 
-  // The removed role's session is refused at once; the retained role still works.
-  expect((await page.request.get("/api/auth/me", { headers: headers(mrcToken) })).status(),
-         "the removed role's token").toBe(403);
-  expect((await page.request.get("/api/auth/me", { headers: headers(execToken) })).status(),
-         "the retained role's token").toBe(200);
-  await checkpoint(page, "FS-23_after_reimport");
+  try {
+    await importT01("T01_role_removed.csv", "FS-23_t01_preview");
+
+    // The removed role's session is refused at once; the retained role still works.
+    expect((await page.request.get("/api/auth/me", { headers: headers(mrcToken) })).status(),
+           "the removed role's token").toBe(403);
+    expect((await page.request.get("/api/auth/me", { headers: headers(execToken) })).status(),
+           "the retained role's token").toBe(200);
+    await checkpoint(page, "FS-23_after_reimport");
+  } finally {
+    // Put MRC Member back (H-13). U-040 is the seed's only MRC Member, so leaving the role removed
+    // takes FS-12 out with it on every later run — and this scenario is FT-03's regression test, so
+    // it is re-run often. In a `finally` because a failed assertion above must not leave the suite
+    // unable to run again.
+    await importT01("T01_role_restored.csv");
+    const restored = await page.request.post("/api/auth/login",
+                                             { data: { user_id: "U-040", role: "MRC Member" } });
+    expect(restored.status(), "MRC Member must be signable again after FS-23").toBe(200);
+  }
 });

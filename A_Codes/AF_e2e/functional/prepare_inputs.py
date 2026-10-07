@@ -61,12 +61,16 @@ def main(run: Path) -> None:
         "q_materiality": "2", "q_complexity": "2", "q_reliance": "2", "q_regulatory_use": "2",
     })])
 
-    # FS-23: U-040 re-imported with MRC Member removed, keeping Executive.
-    users = inputs / "T01_role_removed.csv"
-    _write_csv(users, "T01", [_row("T01", {
-        "user_id": "U-040", "full_name": "Robert Diaz", "email": "r.diaz@demo-bank.example",
-        "role": "Executive", "business_line": "Enterprise Risk", "active": "Y",
-    })])
+    # FS-23: U-040 re-imported with MRC Member removed, keeping Executive — and the file that puts
+    # it back. U-040 is the seed's only MRC Member, so a scenario that removes the role and stops
+    # there leaves the database with none and FS-12 cannot sign in on any later run (H-13). The
+    # restore is part of the fixture rather than a note in the scenario, so the two files stay in
+    # step: whatever roles the removal file drops, this one re-states in full.
+    u040 = {"user_id": "U-040", "full_name": "Robert Diaz", "email": "r.diaz@demo-bank.example",
+            "business_line": "Enterprise Risk", "active": "Y"}
+    _write_csv(inputs / "T01_role_removed.csv", "T01", [_row("T01", u040 | {"role": "Executive"})])
+    _write_csv(inputs / "T01_role_restored.csv", "T01",
+               [_row("T01", u040 | {"role": "MRC Member; Executive"})])
 
     # FS-15 / FS-17: small valid PDFs, distinct bytes so duplicate detection is exercised.
     def pdf(text: str) -> bytes:

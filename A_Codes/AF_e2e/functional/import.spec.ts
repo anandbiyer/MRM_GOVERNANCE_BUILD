@@ -119,11 +119,19 @@ test("FS-05 VAL-01 FND-01 APR-01 T03–T05 load onto the right models", async ({
   await checkpoint(page, "FS-05_model360");
 });
 
-test("FS-21 GEN-01 two resets at the same business date give the same counts", async ({ page }) => {
+test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the same counts",
+     async ({ page }) => {
+  // Each reset's own poll allows 300 s, so the default 30 s test timeout aborted the scenario before
+  // the first reset could finish and the retry then collided with its own first attempt (H-12).
+  test.setTimeout(900_000);
   await signInAs(page, "Admin");
+  // `documents` is part of the snapshot because FT-04 lost all 1,116 of them on a single reset and
+  // nothing here noticed: the counts were equal both times, so determinism alone passes on an empty
+  // Document Centre. The absolute assertion below is what catches it.
   const snapshot = () => ({
     models: dbCount("model"), users: dbCount("app_user"), validations: dbCount("validation"),
     findings: dbCount("finding"), approvals: dbCount("approval"), policy: dbCount("policy_setting"),
+    documents: dbCount("document"),
   });
   // A reset deletes and reloads `app_user`, so the acting token stops working part way through and
   // even signing in again fails for a moment. The token is therefore re-read when it is refused
@@ -170,6 +178,8 @@ test("FS-21 GEN-01 two resets at the same business date give the same counts", a
   expect(second, "GEN-01: a reset at the same business date is deterministic").toEqual(first);
   expect(first.models).toBe(256);
   expect(first.policy).toBe(67);
+  expect(first.documents, "FT-04: a reset must reload the evidence, not just delete it")
+    .toBeGreaterThan(1000);
 });
 
 test.fixme("FS-25 REG-15 REG-16 REG-17 core Model Risk Report: figures, reproducibility and access",

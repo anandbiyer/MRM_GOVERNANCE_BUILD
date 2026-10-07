@@ -94,8 +94,15 @@ def _parse_manifests(db: Session, manifests: list[tuple[str, bytes]]) -> dict:
 
 
 def create_batch(db: Session, session_factory: Callable[[], Session], principal: Principal | None,
-                 uploads: list[tuple[str, bytes]], *, source: str = "batch", auto_confirm: bool = False) -> ImportBatch:
-    """uploads: (relative path, bytes); .zip entries are expanded safely. Analysis starts in the background."""
+                 uploads: list[tuple[str, bytes]], *, source: str = "batch", auto_confirm: bool = False,
+                 start_analysis: bool = True) -> ImportBatch:
+    """uploads: (relative path, bytes); .zip entries are expanded safely. Analysis starts in the background.
+
+    `start_analysis=False` stages the batch and returns without submitting the analysis, leaving the
+    caller to call `start_analysis(...)` when it is ready. Only the reset uses it, and the reason is
+    FT-04: a caller that still has writes of its own to make must finish them *before* a background
+    job starts writing, or the two race for SQLite's write lock and the job loses its evidence.
+    """
     _require_upload(principal)
     if not uploads:
         raise ValidationFailedError("Choose at least one file or folder to upload.")
@@ -149,8 +156,15 @@ def create_batch(db: Session, session_factory: Callable[[], Session], principal:
                  import_batch_id=batch.batch_id, after={"files": len(docs), "manifests": len(manifests),
                                                         "source": source})
     db.commit()
-    runner.submit(analyse_job, session_factory, batch.batch_id, principal)
+    if start_analysis:
+        start_analysis_job(session_factory, batch.batch_id, principal)
     return batch
+
+
+def start_analysis_job(session_factory: Callable[[], Session], batch_id: str,
+                       principal: Principal | None) -> None:
+    """Hand a staged batch to the analyser. Separate from `create_batch` for FT-04 (see above)."""
+    runner.submit(analyse_job, session_factory, batch_id, principal)
 
 
 def _items(db: Session, batch_id: str) -> list[DocumentUploadItem]:

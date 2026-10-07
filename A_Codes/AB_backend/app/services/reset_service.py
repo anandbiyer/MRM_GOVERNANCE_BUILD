@@ -53,7 +53,7 @@ DELETE_ORDER = (Finding, Approval, Validation, DocumentLink, DocumentVersion, Do
 TERMINAL_BATCH_STATUSES = ("Completed", "Partially Completed", "Failed", "Validation Failed", "Cancelled")
 
 # A reset produces two batches: the seed import (source "reset") and, at the very end of the job, a
-# documents batch for the evidence files (source "seed", created only by `load_seed_documents`).
+# documents batch for the evidence files (source "seed", created only by `stage_seed_documents`).
 # Both must be finished before another reset may start, which is why the seed batch's own status is
 # not a sufficient signal.
 RESET_BATCH_SOURCES = ("reset", "seed")
@@ -175,29 +175,47 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
     # finished: the evidence still has to be loaded. That left a gap in which the seed batch was
     # terminal and the documents batch did not exist yet, so `reset_in_progress` saw nothing in
     # flight and a second reset could start inside it. Holding the status across the call closes the
-    # gap — `load_seed_documents` returns as soon as the documents batch exists, and that batch then
+    # gap — `stage_seed_documents` returns as soon as the documents batch exists, and that batch then
     # keeps the reset visibly in flight. Note the seed batch does go back to Completed while the
     # evidence is still being stored, so it is not a signal for "the reset has finished";
     # GET /api/admin/reset/status is.
+    #
+    # The order below is load-bearing, and getting it wrong cost every evidence document (FT-04).
+    # The evidence batch is *staged* first — created, committed, non-terminal — then the seed batch's
+    # status is restored, and only then is the analysis handed to a background job. The reset
+    # therefore finishes all of its own writes before anything else starts writing. Previously the
+    # restore happened in a `finally` after the job had been submitted, and in thread mode that
+    # commit raced the job: it took SQLite's write lock, SQLite refused the job's lock promotion
+    # without consulting `busy_timeout` (see `app.db.configure_sqlite`), and the analysis died with
+    # 1,116 documents deleted and none reloaded, behind an HTTP 202.
     with session_factory() as db:
         batch = db.get(ImportBatch, batch_id)
         loaded_status, batch.status = batch.status, "Processing"
         db.commit()
+    staged = None
     try:
-        load_seed_documents(session_factory, get_settings().seed_dir / "documents")
+        staged = stage_seed_documents(session_factory, get_settings().seed_dir / "documents")
     finally:
         # Restore the status the seed load concluded with (Completed or Partially Completed) even if
-        # the evidence load raises: leaving the batch stuck in Processing would block every later
-        # reset, which is worse than the failure itself.
+        # staging raises: leaving the batch stuck in Processing would block every later reset, which
+        # is worse than the failure itself (FT-05).
         with session_factory() as db:
             batch = db.get(ImportBatch, batch_id)
             batch.status = loaded_status
             db.commit()
+    if staged:
+        from app.documents import batch as doc_batch
+
+        doc_batch.start_analysis_job(session_factory, staged, None)
 
 
-def load_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:
-    """Seed evidence goes through the Document Centre batch path: folder/file classification, then
-    automatic confirmation of confidently classified files (system seed only)."""
+def stage_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:
+    """Stage the seed evidence as a Document Centre batch and return its id, without analysing it.
+
+    Seed evidence goes through the Document Centre batch path: folder/file classification, then
+    automatic confirmation of confidently classified files (system seed only). Analysis is started by
+    the caller once it has no writes left of its own — see `_reset_job` and FT-04.
+    """
     if not directory.is_dir():
         return None
     uploads = [(p.relative_to(directory).as_posix(), p.read_bytes()) for p in sorted(directory.rglob("*")) if p.is_file()]
@@ -206,4 +224,5 @@ def load_seed_documents(session_factory: Callable[[], Session], directory: Path)
     from app.documents import batch as doc_batch
 
     with session_factory() as db:
-        return doc_batch.create_batch(db, session_factory, None, uploads, source="seed", auto_confirm=True).batch_id
+        return doc_batch.create_batch(db, session_factory, None, uploads, source="seed", auto_confirm=True,
+                                      start_analysis=False).batch_id
