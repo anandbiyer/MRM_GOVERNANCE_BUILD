@@ -14,7 +14,7 @@ weight_mrc_compliance,15,percent,Governance score,MRC compliance component weigh
 weight_monitoring,15,percent,Governance score,Monitoring component weight (R8)
 required_docs_development,Terms of Reference,list,Documents,Required document types in Development (BRD §40)
 required_docs_validation,Terms of Reference; Model Development Document,list,Documents,Required document types in Validation (BRD §40)
-required_docs_production,Terms of Reference; Model Development Document; Validation Report; Model Approval/MRC Paper; Monitoring Plan,list,Documents,Required document types from Implementation onwards (BRD §40)
+required_docs_production,Terms of Reference; Model Development Document; Validation Report; Model Approval/MRC Paper; Monitoring Plan,list,Documents,Required document types from required_docs_production_from_phase onwards (BRD §40)
 mdd_required_sections,Purpose and use; Data; Methodology; Assumptions; Limitations; Testing and performance; Implementation; Monitoring plan,list,Documents,Sections an MDD must contain
 document_types,Terms of Reference; Model Development Document; Validation Report; Monitoring Plan; Monitoring Report; Backtesting Report; Model Approval/MRC Paper; Model Change Document; Data Quality Report; Regulatory/Audit Evidence; Model Inventory Evidence; Other,list,Documents,Allowed document types (BRD §28)
 dq_default_pass_pct,98,percent,Data quality,DQ pass threshold when a rule gives none (R7)
@@ -33,6 +33,9 @@ mrc_required_from_phase,Implementation,text,Lifecycle,Phase from which an MRC de
 validator_required_from_phase,Validation,text,Lifecycle,Phase from which a validator must be assigned
 validation_data_required_from_phase,Monitoring,text,Lifecycle,"Phase from which go-live date, revalidation frequency and last validation date are required"
 monitoring_phase,Monitoring,text,Lifecycle,Lifecycle phase the derived Revalidation column is taken from (R3); must be one of lifecycle_phases
+required_docs_development_from_phase,Development,text,Documents,"Phase from which required_docs_development applies (BRD §40); must be one of lifecycle_phases"
+required_docs_validation_from_phase,Validation,text,Documents,"Phase from which required_docs_validation applies (BRD §40); must be one of lifecycle_phases"
+required_docs_production_from_phase,Implementation,text,Documents,"Phase from which required_docs_production applies (BRD §40); must be one of lifecycle_phases"
 score_band_warn_min,60,integer,Score,Governance score at or above which a model is amber rather than red (R8 bands)
 score_band_good_min,80,integer,Score,Governance score at or above which a model is green (R8 bands)
 model_types,Credit Risk; Provisioning; Balance Sheet; Forecasting; CCAR/Stress Testing,list,Inventory,Allowed model types

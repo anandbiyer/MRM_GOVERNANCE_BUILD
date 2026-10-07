@@ -1,5 +1,5 @@
 Business date: **2026-09-30** (`MRM_TODAY_OVERRIDE=2026-09-30`) — the committed seed's date, same as `mockup-parity.md`
-Expected seed counts: models **256** · users **65** · validations **415** · findings **206** · approvals **383** · documents **1116** · policy settings **67**
+Expected seed counts: models **256** · users **65** · validations **415** · findings **206** · approvals **383** · documents **1116** · policy settings **70**
 
 # Functional scenario catalogue
 
@@ -8,7 +8,7 @@ through the browser with real input files and checks the result against a BRD ac
 
 The counts above are read from the committed seed, not from a prompt — a reset that does not reproduce
 them means the reset did not take, and the run must stop. The policy count has moved repeatedly (60 →
-62 → 63 → 65 → 67); re-read it rather than trusting any document.
+62 → 63 → 65 → 67 → 70); re-read it rather than trusting any document.
 
 ## Conventions
 

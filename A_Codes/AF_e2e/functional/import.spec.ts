@@ -177,7 +177,7 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
   await checkpoint(page, "FS-21_after_two_resets");
   expect(second, "GEN-01: a reset at the same business date is deterministic").toEqual(first);
   expect(first.models).toBe(256);
-  expect(first.policy).toBe(67);
+  expect(first.policy).toBe(70);
   expect(first.documents, "FT-04: a reset must reload the evidence, not just delete it")
     .toBeGreaterThan(1000);
 });

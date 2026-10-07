@@ -280,9 +280,12 @@ def present_types(db: Session, model_ids: list[str] | None = None) -> dict[str, 
 
 
 def required_for(policy: Policy, phase: str) -> list[str]:
-    return document_rules.required_types(phase, policy.phases, policy.list("required_docs_development"),
-                                         policy.list("required_docs_validation"),
-                                         policy.list("required_docs_production"))
+    """The required-document bands, read entirely from policy — no phase name in code (CR-21)."""
+    return document_rules.required_types(phase, policy.phases, [
+        (policy.text("required_docs_development_from_phase"), policy.list("required_docs_development")),
+        (policy.text("required_docs_validation_from_phase"), policy.list("required_docs_validation")),
+        (policy.text("required_docs_production_from_phase"), policy.list("required_docs_production")),
+    ])
 
 
 def completeness(db: Session, model: Model, policy: Policy | None = None) -> document_rules.Completeness:

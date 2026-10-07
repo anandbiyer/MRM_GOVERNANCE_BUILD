@@ -104,15 +104,35 @@ def is_newer(candidate: str, existing: list[str]) -> bool:
     return not existing or _version_key(candidate) > max(_version_key(v) for v in existing)
 
 
-def required_types(phase: str, phases: list[str], development: list[str], validation: list[str],
-                   production: list[str]) -> list[str]:
-    """Required document policy by lifecycle phase (BRD §40): Development, Validation, then the
-    production set from Implementation onwards. Earlier phases (Initiation) require nothing."""
+def required_types(phase: str, phases: list[str], bands: list[tuple[str, list[str]]]) -> list[str]:
+    """Required document policy by lifecycle phase (BRD §40).
+
+    `bands` is `(from_phase, document types)` in any order. The band with the highest `from_phase`
+    at or below `phase` wins, so a phase below every band requires nothing — which is how Initiation
+    requires nothing without being named. A band whose `from_phase` is not in `phases` is ignored
+    rather than crashing: policy can be edited, and a rule must degrade rather than raise.
+
+    **No lifecycle phase name appears in this module** (review finding CR-21). It used to compare
+    against the literals "Implementation", "Validation" and "Development" while `lifecycle_phases` is
+    an editable T12 list, so renaming a phase made the production band fall through to `[]`:
+    completeness emptied, the Documentation component became not-applicable, and its 25% was
+    rescaled away — *raising* every governance score, silently. That is the same defect as CR-02, one
+    file across, and the direction is what made it High. The phases that bound each band are now the
+    T12 keys `required_docs_development_from_phase`, `required_docs_validation_from_phase` and
+    `required_docs_production_from_phase`, and `policy_values` refuses to drop a phase any setting
+    names.
+    """
     if phase not in phases:
         return []
-    if "Implementation" in phases and phases.index(phase) >= phases.index("Implementation"):
-        return production
-    return {"Validation": validation, "Development": development}.get(phase, [])
+    here = phases.index(phase)
+    best: tuple[int, list[str]] | None = None
+    for from_phase, types in bands:
+        if from_phase not in phases:
+            continue
+        at = phases.index(from_phase)
+        if at <= here and (best is None or at > best[0]):
+            best = (at, types)
+    return list(best[1]) if best else []
 
 
 @dataclass(frozen=True)

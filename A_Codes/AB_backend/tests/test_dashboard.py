@@ -203,6 +203,11 @@ def test_cr_02_renaming_the_monitoring_phase_does_not_break_the_dashboard(loaded
     # state has no "Monitoring" phase at all, which is what made the old unguarded .index() raise.
     assert put("lifecycle_phases", "; ".join([*phases, "In Use"])).status_code == 200
     assert put("monitoring_phase", "In Use").status_code == 200
+    # Every setting naming the old phase has to move, not just this one: the guard now covers all of
+    # them, because CR-21 showed the same rename silently disabling a different rule.
+    assert put("lifecycle_phases", renamed).status_code == 422, "validation_data_required_from_phase still names it"
+    assert put("validation_data_required_from_phase", "In Use").status_code == 200
+    assert put("production_phases", "In Use; Reg/Audit").status_code == 200
     assert put("lifecycle_phases", renamed).status_code == 200
     assert "Monitoring" not in _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"]
 
@@ -224,3 +229,63 @@ def test_cr_02_renaming_the_monitoring_phase_does_not_break_the_dashboard(loaded
 def test_unknown_flag_rejected(loaded_client):
     resp = loaded_client.get("/api/models", headers=login(loaded_client, *EXECUTIVE), params={"flag": "everything"})
     assert resp.status_code == 422 and "Allowed:" in resp.json()["detail"]
+
+
+def test_cr_21_renaming_a_phase_does_not_empty_the_required_document_list(loaded_client):
+    """DOC-20, CFG-01, SCR-02: renaming a lifecycle phase must not silently empty the required
+    document list — and must not raise every governance score as a side effect.
+
+    Regression for CR-21, which is CR-02's failure mode one file across. `required_types` picked the
+    required-document set by comparing against the literal phase names "Implementation",
+    "Validation" and "Development", while `lifecycle_phases` is an editable T12 list. Renaming
+    Implementation made `"Implementation" in phases` false, so the production band was skipped and
+    the dict lookup for "Monitoring" returned `[]`: `missing_documents` emptied, the Documentation
+    component became not-applicable, **its 25% was rescaled away and every score rose**, and the
+    completeness tile and insight stopped firing. Silently — no exception anywhere.
+
+    The failure direction is what makes this High. A governance system may under-report a score by
+    accident; it must not over-report one.
+    """
+    admin = login(loaded_client, *ADMIN)
+
+    def put(key, value):
+        s = next(x for x in _get(loaded_client, admin, "/api/admin/policy") if x["setting_key"] == key)
+        return loaded_client.put(f"/api/admin/policy/{key}", headers=admin,
+                                 json={"value": value, "row_version": s["row_version"]})
+
+    comp = _get(loaded_client, admin, "/api/documents/completeness")
+    target = next(c for c in comp if c["required"] and c["lifecycle_phase"] == "Monitoring")
+    required_before, model_id = target["required"], target["model_id"]
+    before = _get(loaded_client, admin, f"/api/models/{model_id}")["score"]
+    doc_before = next(c for c in before["components"] if c["key"] == "documentation")
+    assert doc_before["score"] is not None, "the fixture must have an applicable Documentation component"
+
+    phases = _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"]
+    assert "Implementation" in phases
+    renamed = "; ".join("Rollout" if p == "Implementation" else p for p in phases)
+
+    # Dropping a phase another setting names is refused from the list side, as CR-02 established for
+    # `monitoring_phase`. Two settings name Implementation, so both have to move first.
+    assert put("lifecycle_phases", renamed).status_code == 422
+    assert put("lifecycle_phases", "; ".join([*phases, "Rollout"])).status_code == 200
+    for key in ("mrc_required_from_phase", "required_docs_production_from_phase"):
+        assert put(key, "Rollout").status_code == 200, key
+    assert put("lifecycle_phases", renamed).status_code == 200
+    assert "Implementation" not in _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"]
+
+    # The regression: the model is still in Monitoring, so its required set is unchanged.
+    after = next(c for c in _get(loaded_client, admin, "/api/documents/completeness")
+                 if c["model_id"] == model_id)
+    assert after["required"] == required_before, after
+    assert after["missing"] == target["missing"], after
+
+    # And the Documentation component is still applicable, so its weight is not rescaled away and
+    # the overall score has not drifted upwards.
+    doc_after = next(c for c in _get(loaded_client, admin, f"/api/models/{model_id}")["score"]["components"]
+                     if c["key"] == "documentation")
+    assert doc_after["score"] == doc_before["score"], doc_after
+    assert doc_after["effective_weight"] == doc_before["effective_weight"], doc_after
+
+    # The portfolio-level symptom: completeness gaps do not vanish.
+    gaps = _get(loaded_client, admin, "/api/documents/completeness?missing_only=true")
+    assert gaps, "renaming a phase must not empty every model's required-document list"

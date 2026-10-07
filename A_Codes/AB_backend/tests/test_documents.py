@@ -50,12 +50,24 @@ def test_model_detection_and_versions():
 
 
 def test_required_types_by_phase():
-    """DOC-20: required documents come from the lifecycle phase and drive the completeness score."""
+    """DOC-20, CFG-01: required documents come from the configured bands, and the band phases are
+    policy values rather than literals (CR-21)."""
     phases = ["Initiation", "Development", "Validation", "Implementation", "Monitoring", "Reg/Audit", "Retirement"]
-    args = (phases, ["ToR"], ["ToR", "MDD"], ["ToR", "MDD", "VR"])
-    assert document_rules.required_types("Initiation", *args) == []
-    assert document_rules.required_types("Validation", *args) == ["ToR", "MDD"]
-    assert document_rules.required_types("Monitoring", *args) == ["ToR", "MDD", "VR"]
+    bands = [("Development", ["ToR"]), ("Validation", ["ToR", "MDD"]), ("Implementation", ["ToR", "MDD", "VR"])]
+    assert document_rules.required_types("Initiation", phases, bands) == [], "below every band"
+    assert document_rules.required_types("Development", phases, bands) == ["ToR"]
+    assert document_rules.required_types("Validation", phases, bands) == ["ToR", "MDD"]
+    assert document_rules.required_types("Implementation", phases, bands) == ["ToR", "MDD", "VR"]
+    assert document_rules.required_types("Monitoring", phases, bands) == ["ToR", "MDD", "VR"], "highest band wins"
+    assert document_rules.required_types("Retirement", phases, bands) == ["ToR", "MDD", "VR"]
+    assert document_rules.required_types("Nonexistent", phases, bands) == []
+
+    # Band order in the list must not matter, and a band naming a phase that no longer exists is
+    # ignored rather than raising — policy is editable, so a rule degrades instead of crashing.
+    assert document_rules.required_types("Monitoring", phases, list(reversed(bands))) == ["ToR", "MDD", "VR"]
+    gone = [("Rollout", ["ToR", "MDD", "VR"]), ("Validation", ["ToR", "MDD"])]
+    assert document_rules.required_types("Monitoring", phases, gone) == ["ToR", "MDD"]
+
     c = document_rules.completeness(["ToR", "MDD", "VR"], {"ToR", "Other"})
     assert (c.missing, c.score) == (["MDD", "VR"], 33.3)
 
