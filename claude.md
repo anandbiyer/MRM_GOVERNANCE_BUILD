@@ -113,11 +113,22 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
 
 ## Two repository conventions that override normal practice
 
-1. **Never delete or silently rewrite code.** Before editing any existing file under `A_Codes/` or
-   `B_Inputs/`, snapshot it first:
+1. **Never delete or silently rewrite code.** Before editing any existing **hand-edited** file under
+   `A_Codes/` or `B_Inputs/`, snapshot it first:
    `bash A_Codes/AZ_tools/snapshot.sh A_Codes AB_backend/app/main.py`
    This copies it to `A_Codes/_OLD/<same relative path>/<name>_v<N>_<YYYYMMDD>.<ext>`. The `_OLD/`
    trees are intentionally committed history; never clean them up.
+
+   **Generated artefacts are out of scope** (decided 2026-10-07, review finding CR-22): the seed
+   workbooks under `B_Inputs/AC_seed` and `B_Inputs/AD_demo_files` are regenerated from
+   `A_Codes/AD_seed/generate_seed.py` and the bootstrap CSVs, so their content is reproducible from
+   files that *are* snapshotted, and snapshotting them per regeneration would restore exactly the
+   churn G0.15 removed. Snapshot the generator and the bootstrap CSVs; not their output.
+
+   A snapshot may also be recovered retrospectively with `git show <commit>^:<path>`, which is how
+   CR-22's three missing versions were restored. A recovered file is named for the date of the edit
+   it precedes, so `_OLD/` is ordered by *when the content was current*, not by when it was written
+   down — `schemas/governance_v2_20261003.py` is therefore older than `governance_v1_20261004.py`.
 2. **Do not create files outside the repository folder** (no desktop shortcuts, no system temp output
    the user is expected to find).
 
