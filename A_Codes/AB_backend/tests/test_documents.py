@@ -9,6 +9,8 @@ import zipfile
 
 import pytest
 
+from app.db import get_session_factory
+from app.models import ImportBatch
 from app.rules import document_rules
 from tests.conftest import ADMIN, AUDITOR, DEVELOPER, EXECUTIVE, VALIDATOR, login, make_docx
 
@@ -376,3 +378,93 @@ def test_document_manifest_templates_are_document_channel(loaded_client):
     t = {x["template_id"]: x for x in loaded_client.get("/api/imports/templates", headers=h).json()}
     assert t["T17"]["available"] and t["T17"]["channel"] == "documents"
     assert loaded_client.get("/api/imports/templates/T17/blank", headers=h).status_code == 200
+
+
+# --- a crashed background job must not leave its batch in limbo (FT-05) ------------------------------
+
+def test_ft_05_a_crashed_background_job_marks_its_batch_failed(loaded_client, loaded_session, make_pdf,
+                                                               monkeypatch):
+    """GEN-05, §42, §64 (FT-05): a background job that raises records the failure on its own batch.
+
+    The runner only logs the exception (`workers/runner.py`), so before this the batch stayed
+    `Validating` with `error_message: null` for ever. For a reset's evidence batch that is not
+    merely untidy: `/api/admin/reset/status` reports a reset in progress that will never end, and
+    `reset_in_progress` refuses every later reset with 409 — with no way out through the product,
+    because `Validating` is not in `EDITABLE` so cancel refused it too. That is how FT-04's crash
+    turned into a permanently unresettable application.
+    """
+    from app.documents import batch as doc_batch
+    from app.services import reset_service
+
+    h = login(loaded_client, *ADMIN)
+    b = _batch(loaded_client, h, [("M-0012/Governance/TOR.pdf", make_pdf(["TOR M-0012"]))]).json()
+    batch_id = b["batch_id"]
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("analysis exploded")
+
+    monkeypatch.setattr(doc_batch, "_items", boom)
+    with pytest.raises(RuntimeError):  # still raised, so the runner logs it and inline callers see it
+        doc_batch.analyse_job(loaded_session, batch_id, None)
+    monkeypatch.undo()  # the read path below uses `_items` too
+
+    failed = loaded_client.get(f"/api/documents/batches/{batch_id}", headers=h).json()
+    assert failed["status"] == "Failed", failed
+    assert "analysis exploded" in (failed["error_message"] or ""), failed
+
+    # Terminal, so it cannot wedge a reset: this is the half that FT-05 actually cost.
+    with loaded_session() as db:
+        assert db.get(ImportBatch, batch_id).status in reset_service.TERMINAL_BATCH_STATUSES
+
+
+def test_ft_05_a_batch_left_non_terminal_can_be_cancelled(loaded_client, loaded_session, make_pdf):
+    """GEN-05 (FT-05): a batch stuck mid-flight has a way out through the API.
+
+    The guard against a half-finished batch being edited is right, but it also refused the one
+    action that could clear it. A batch already wedged by an older crash — there is one in the
+    field — must still be cancellable, or the only repair is editing the database by hand.
+    """
+    h = login(loaded_client, *ADMIN)
+    b = _batch(loaded_client, h, [("M-0012/Governance/TOR.pdf", make_pdf(["TOR M-0012"]))]).json()
+    batch_id = b["batch_id"]
+    with loaded_session() as db:  # the state an unguarded crash used to leave behind
+        db.get(ImportBatch, batch_id).status = "Validating"
+        db.commit()
+
+    cancelled = loaded_client.post(f"/api/documents/batches/{batch_id}/cancel", headers=h)
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "Cancelled"
+
+    # Confirming it afterwards is still refused — cancelling is an exit, not a reopening.
+    assert loaded_client.post(f"/api/documents/batches/{batch_id}/confirm", headers=h).status_code == 409
+
+
+def test_ft_05_a_reset_whose_evidence_staging_fails_leaves_the_batch_failed(client, test_settings,
+                                                                           monkeypatch):
+    """GEN-05 (FT-05): the reset job is a background job too, and its own crash must be recorded.
+
+    Restoring the seed batch's concluding status in a `finally` is right for the common case, but on
+    a crash it reported `Completed` for a reset that never loaded its evidence — a green batch over
+    an empty Document Centre.
+    """
+    from app.services import reset_service
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("staging exploded")
+
+    h = login(client, *ADMIN)
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    # The job is re-run with staging broken. Driven directly rather than through the API because
+    # tests force `MRM_JOB_MODE=inline`, so the job runs inside the request and its exception would
+    # surface as an HTTP 500 instead of as the batch state this criterion is about.
+    monkeypatch.setattr(reset_service, "stage_seed_documents", boom)
+    with pytest.raises(RuntimeError):
+        reset_service._reset_job(client.app.dependency_overrides[get_session_factory](), batch_id, None)
+
+    batch = client.get(f"/api/imports/batches/{batch_id}", headers=login(client, *ADMIN)).json()
+    assert batch["status"] == "Failed", batch
+    assert "staging exploded" in (batch["error_message"] or ""), batch
+    assert client.get("/api/admin/reset/status", headers=login(client, *ADMIN)).json()["in_progress"] is False

@@ -192,13 +192,17 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
         batch = db.get(ImportBatch, batch_id)
         loaded_status, batch.status = batch.status, "Processing"
         db.commit()
-    staged = None
     try:
         staged = stage_seed_documents(session_factory, get_settings().seed_dir / "documents")
-    finally:
-        # Restore the status the seed load concluded with (Completed or Partially Completed) even if
-        # staging raises: leaving the batch stuck in Processing would block every later reset, which
-        # is worse than the failure itself (FT-05).
+    except BaseException as exc:
+        # Not merely "restore the previous status": staging crashed, so the reset did not finish and
+        # must not read as Completed over an empty Document Centre. Recording it Failed is also what
+        # keeps `reset_in_progress` from latching — Failed is terminal, Processing is not (FT-05).
+        import_service.record_job_failure(session_factory, batch_id, "Seed evidence staging", exc)
+        raise
+    else:
+        # Restore the status the seed load concluded with (Completed or Partially Completed). This
+        # write is why the order matters: it must happen before the analysis starts (FT-04).
         with session_factory() as db:
             batch = db.get(ImportBatch, batch_id)
             batch.status = loaded_status

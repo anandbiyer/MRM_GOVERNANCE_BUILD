@@ -33,6 +33,13 @@ from app.workers import runner
 from app.workers.runner import progress
 
 EDITABLE = ("Ready", "Validation Failed", "Failed")
+# Cancelling is the way *out* of a batch, so it accepts the running statuses too. A background job
+# that died without recording itself used to leave a batch in `Validating` for ever, and because
+# that is not in EDITABLE the one action that could clear it was refused as well — for a reset's
+# evidence batch that made the application permanently unresettable through the product (FT-05).
+# The failure recording added with this is the first line of defence; this is the second, and it is
+# what clears a batch already wedged by an older crash.
+CANCELLABLE = EDITABLE + ("Validating", "Processing")
 ACTIONS = ("create", "new_version", "skip")
 
 
@@ -220,6 +227,16 @@ def _resolve(db: Session, item: DocumentUploadItem, principal: Principal | None)
 
 
 def analyse_job(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None) -> None:
+    """Classify a staged batch. A crash is recorded on the batch before it is re-raised (FT-05):
+    `runner.submit` only logs, so otherwise the batch stays non-terminal for ever."""
+    try:
+        _analyse(session_factory, batch_id, principal)
+    except BaseException as exc:
+        import_service.record_job_failure(session_factory, batch_id, "Document analysis", exc)
+        raise
+
+
+def _analyse(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None) -> None:
     with session_factory() as db:
         batch = db.get(ImportBatch, batch_id)
         policy = Policy.load(db)
@@ -263,7 +280,7 @@ def analyse_job(session_factory: Callable[[], Session], batch_id: str, principal
         auto = (batch.options or {}).get("auto_confirm")
     progress.clear(batch_id)
     if auto:
-        confirm_job(session_factory, batch_id, principal, auto_threshold=dp.auto_confirm)
+        _confirm(session_factory, batch_id, principal, auto_threshold=dp.auto_confirm)  # already guarded by analyse_job
 
 
 def _prefixes(parts: list[str]) -> list[str]:
@@ -333,6 +350,16 @@ def start_confirm(db: Session, session_factory: Callable[[], Session], principal
 
 def confirm_job(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None,
                 auto_threshold: float | None = None) -> None:
+    """Store a confirmed batch. A crash is recorded on the batch before it is re-raised (FT-05)."""
+    try:
+        _confirm(session_factory, batch_id, principal, auto_threshold)
+    except BaseException as exc:
+        import_service.record_job_failure(session_factory, batch_id, "Document storage", exc)
+        raise
+
+
+def _confirm(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None,
+             auto_threshold: float | None = None) -> None:
     with session_factory() as db:
         batch = db.get(ImportBatch, batch_id)
         dp = doc_service.DocPolicy.load(Policy.load(db))
@@ -392,7 +419,7 @@ def items(db: Session, batch_id: str) -> list[DocumentUploadItem]:
 def cancel(db: Session, principal: Principal, batch_id: str) -> ImportBatch:
     _require_review(principal)
     batch = get_batch(db, batch_id)
-    if batch.status not in EDITABLE:
+    if batch.status not in CANCELLABLE:
         raise ConflictError(f"Batch {batch_id} is {batch.status} and cannot be cancelled.")
     batch.status = "Cancelled"
     audit.record(db, principal, action="cancel", entity="document_batch", entity_id=batch_id, import_batch_id=batch_id)
