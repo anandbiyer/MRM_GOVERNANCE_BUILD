@@ -22,3 +22,12 @@
    import_batch 2
    batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
    batch ('B-20260930-002', 'documents', 'seed', 'Validating', 1116, 0, None)
+
+== env4/functional4.db (G0.22-G0.24 verification, 2026-10-07, after the fixes)
+   Built fresh: Base.metadata.create_all (alembic's 0003 trigger is PostgreSQL-only, so
+   `alembic upgrade head` cannot build a SQLite database), then `cli bootstrap`, then `cli reset`.
+   model 256
+   document 1116      <- was 0 in env/ and env2/ before G0.22; FT-04 closed
+   import_batch 2
+   batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-002', 'documents', 'seed', 'Completed', 1116, 1116, None)

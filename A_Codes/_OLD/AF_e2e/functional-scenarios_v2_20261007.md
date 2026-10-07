@@ -1,0 +1,83 @@
+Business date: **2026-09-30** (`MRM_TODAY_OVERRIDE=2026-09-30`) — the committed seed's date, same as `mockup-parity.md`
+Expected seed counts: models **256** · users **65** · validations **415** · findings **206** · approvals **383** · documents **1116** · policy settings **67**
+
+# Functional scenario catalogue
+
+Owned by the `functional-tester` agent (review agent 4). Each scenario drives the running application
+through the browser with real input files and checks the result against a BRD acceptance criterion.
+
+The counts above are read from the committed seed, not from a prompt — a reset that does not reproduce
+them means the reset did not take, and the run must stop. The policy count has moved repeatedly (60 →
+62 → 63 → 65 → 67); re-read it rather than trusting any document.
+
+## Conventions
+
+- **Stable IDs.** `FS-nn` never changes meaning. New scenarios take the next free number; gaps are
+  deliberate (FS-26…FS-29 are reserved so the unbuilt-phase block FS-30+ keeps its numbers).
+  FS-25 took the first reserved number for the core Model Risk Report (D12).
+- Scenarios for phases Part 0 lists as unbuilt use `test.fixme` with "Not built (Phase N)" and appear
+  in the report as *Not built*, never as failures.
+- Every expectation is quoted from CLAUDE.md or `decision_log.md`. Where neither says what should
+  happen, the scenario records **Unspecified behaviour** instead of inventing an expectation.
+- A refusal is only proven when the response status, the absence of the record **and** the absence of
+  an audit event are all checked.
+
+## Catalogue
+
+| ID | Journey | Criteria | Role | Inputs | Phase |
+|---|---|---|---|---|---|
+| FS-01 | Sign in as each role; read-only roles see no write actions and the API refuses their writes | SEC-01…SEC-04 | each | — | 1 |
+| FS-02 | Download every enabled template (T01–T05, T12, T17, T18); columns equal the registry; disabled templates (T06–T11, T13–T16) cannot be downloaded or loaded | IMP-02, IMP-03 | Admin | — | 3 |
+| FS-03 | Preview the T02 demo file: loaded and rejected counts, each message names field and row; then load; audit entries appear | IMP-01, IMP-05, IMP-08, INV-03 | Admin | `AD_demo_files` T02 | 3 |
+| FS-04 | Preview and load give the same result for the same file; loading the same file again does not duplicate models | IMP-01, IMP-07 | Admin | sample T02 | 3 |
+| FS-05 | Load T03, T04 and T05; validations, findings and approvals appear on the right models | VAL-01, FND-01, APR-01 | Admin | sample T03–T05 | 3 |
+| FS-06 | A segregation-of-duties breach is refused, both when created in the UI and when imported | INV-03 | Admin | generated T02 | 2 |
+| FS-07 | Create a model in the UI, edit it, and see before and after values in the audit trail. The Command Center, Operations Board and Audit Trail show the change without a page reload — the first runtime proof of G0.5 (CR-06), previously verified by static analysis only | INV-01, INV-02, AUD-01, CC-01 | Model Owner | — | 2 |
+| FS-08 | Answer the tiering questions; the tier follows policy thresholds; an override needs a reason and keeps the calculated tier | TIR-01, TIR-04, TIR-05 | Validator | — | 2 |
+| FS-09 | A lifecycle move without required evidence is refused; with the evidence uploaded it is allowed | LIF-01, INV-05 | Model Owner | seed PDF | 2 |
+| FS-10 | Revalidation status (Scheduled, Due Soon, Overdue) is correct for the fixed business date | VAL-02, VAL-04 | Validator | — | 2 |
+| FS-11 | Raise a finding, move it through its statuses, and see overdue counts change on the Command Center | FND-02, FND-04, CC-01 | Validator | — | 2 |
+| FS-12 | A conditional approval stays visible until all its conditions are closed | APR-03 | MRC Member | — | 2 |
+| FS-13 | The governance score breakdown for three sample models matches an independent calculation | SCR-01, SCR-05 | Validator | — | 2 |
+| FS-14 | Changing a policy setting changes the tier thresholds and keeps the setting's history | CFG-02, CFG-03, TIR-03 | Admin | T12 | 2 |
+| FS-15 | Upload a single document, upload version 2, and upload a duplicate; check classification, versioning and duplicate detection | DOC-01, DOC-08, DOC-17 | Model Owner | seed PDFs | 4 |
+| FS-16 | Batch, folder and ZIP upload with T17/T18 manifests; documents map to models; failures are reported per file | DOC-03…DOC-06, DOC-10, DOC-15 | Admin | generated ZIP | 4 |
+| FS-17 | Document completeness on Model 360 changes after an upload | DOC-20, §40 | Model Owner | seed PDF | 4 |
+| FS-18 | Each Command Center tile drills down to a list whose count equals the tile and the Operations Board filter. "Models with open findings" counts models, and each findings link in its sub-line opens a list of that size. Each severity bar filters by `finding_severity`. Score-band links use the `scored_*` flags (G0.2, G0.4). The tile label differs from the mock-up as an accepted difference | CC-01, CC-02 | Executive | — | 8 |
+| FS-19 | Each insight links to its source record | CC-04 | Executive | — | 8 |
+| FS-20 | Audit trail filters by user, model, entity, action, date, batch and document | AUD-03 | Auditor | — | 8 |
+| FS-21 | Resetting to the seed twice with the same business date gives the same counts, and leaves `B_Inputs` content unchanged (timestamp-only churn is G0.15) | GEN-01 | Admin | — | 2 |
+| FS-22 | A Model Developer and a Data Owner can upload a document batch but cannot remap, confirm or cancel it in review; the API returns 403 and nothing changes. A role with `document:review` can (CR-04, G0.3) | SEC-02, DOC-03 | Model Developer, Data Owner | seed PDFs | 4 |
+| FS-23 | Removing one role from a user by re-importing T01 (there is no role-edit screen or API yet, CR-19) invalidates that role's session at once, in the UI and the API. The user's other roles keep working (TR-04, G0.9) | SEC-05 | Admin | generated T01 | 1 |
+| FS-24 | Refused writes through the UI leave no audit event: an SoD breach, a tier override without a reason, and an action without permission. A permitted write adds exactly one event (TR-01, G0.7) | AUD-01 | Admin | — | 2 |
+| FS-25 | Generate the core Model Risk Report as a Validator; its figures equal the Command Center; generating again gives the same content; an Executive can view and download but not generate; an Auditor can download | REG-15…17 | Validator, Executive, Auditor | — | 2A-core |
+| FS-30 | Monitoring plan, metrics and results load; Pass/Warn/Fail is calculated; a breach is created | MON-01…MON-03 | Monitoring Analyst | T13–T16 | 6 |
+| FS-31 | Inventory classes, vendor models, challenges, overlays and dependencies. When Phase 2A resumes, split into one scenario per REG criterion as FS-40 onwards. The report itself is FS-25, built ahead of this (D12) | REG-01…REG-14 | various | T19–T21 | 2A (deferred, D12) |
+| FS-32 | CDE and DQ results load and appear on Data Audit | §76B (D8, undecided) | Data Owner | T06, T10 | 7 |
+| FS-33 | AI extraction proposals are confirmed or dropped, and nothing is saved before confirmation | DOC-16 | Validator | seed PDF | 5 |
+| FS-34 | Copilot answers cite records from the app | §76C (D11, undecided) | Executive | — | 9 |
+
+## Criterion IDs corrected from the starting catalogue
+
+The starting catalogue cited criterion *families* (`IMP`, `DOC`, `SEC`) where CLAUDE.md numbers
+individual criteria. Families cannot be traced, so each row now names the criteria it actually
+exercises. Specific corrections:
+
+| ID | Was | Now | Why |
+|---|---|---|---|
+| FS-01 | `SEC-01…04` | `SEC-01…SEC-04` | Range written out; all four exist in §76A.9 |
+| FS-02 | `IMP` | `IMP-02, IMP-03` | IMP-02 is the registry/template contract; IMP-03 is isolation of an unloadable file |
+| FS-03 | `IMP, INV` | `IMP-01, IMP-05, IMP-08, INV-03` | The demo file's rejected row *is* the SoD case, so INV-03 is exercised too |
+| FS-05 | `VAL, FND, APR` | `VAL-01, FND-01, APR-01` | The loaded records' validation rules |
+| FS-09 | `LIF` | `LIF-01, INV-05` | Required-evidence refusal is INV-05; the transition record is LIF-01 |
+| FS-13 | `SCR` | `SCR-01, SCR-05` | SCR-01 is the calculation, SCR-05 the explainability |
+| FS-14 | `CFG` | `CFG-02, CFG-03, TIR-03` | Tier thresholds moving is TIR-03 |
+| FS-18 | `CC-01` | `CC-01, CC-02` | The severity bars are a distribution (CC-02) |
+| FS-19 | `CC` | `CC-04` | Insights are CC-04 |
+| FS-22 | `SEC, DOC` | `SEC-02, DOC-03` | — |
+| FS-32 | `DQ (§76B)` | `§76B (D8, undecided)` | §76B does not exist yet; D8 is unrecorded, so there is no criterion to cite |
+| FS-34 | `COP (§76C)` | `§76C (D11, undecided)` | Same — D11 is unrecorded |
+
+No scenarios were renumbered and none removed. No scenarios were added: the starting catalogue
+already covers every §76A family with at least one scenario, and the four Gate 0 runtime-proof
+scenarios (FS-07, FS-18, FS-22, FS-23, FS-24) were already present.

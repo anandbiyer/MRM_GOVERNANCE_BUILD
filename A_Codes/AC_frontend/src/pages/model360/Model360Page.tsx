@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, Loading } from "../../components/States";
 import {
   ApprovalForm, FindingForm, FindingUpdateForm, MarkConditionMet, OverrideForm, Reveal, TransitionForm, ValidationForm,
 } from "./actions";
+import { formatDate, formatDateTime } from "../../format";
 
 const TABS = ["Overview", "Validation", "Findings", "Approvals", "Score", "Documents", "Monitoring", "CDE / DQ", "History"] as const;
 type Tab = (typeof TABS)[number];
@@ -21,7 +22,7 @@ const LATER: Partial<Record<Tab, string>> = {
 };
 
 function fmt(d: string | null | undefined) {
-  return d ? new Date(d).toLocaleDateString() : "—";
+  return formatDate(d);
 }
 
 function KV({ rows }: { rows: [string, React.ReactNode][] }) {
@@ -127,7 +128,7 @@ function DocumentsTab({ modelId }: { modelId: string }) {
                   <td className="mono"><Link to={`/documents/${x.document_id}`}>{x.document_id}</Link></td>
                   <td>{x.title}</td><td>{x.document_type}</td><td className="mono">{x.current_version}</td>
                   <td className="mono">{x.file_name}</td><td className="mono" style={{ color: "var(--muted)" }}>{x.folder_path ?? "—"}</td>
-                  <td className="mono">{new Date(x.uploaded_at).toLocaleDateString()}</td>
+                  <td className="mono">{formatDateTime(x.uploaded_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -144,7 +145,7 @@ function ScorePanel({ d }: { d: Model360 }) {
   }
   return (
     <section className="panel">
-      <h4>Governance score <small>calculated {new Date(d.score.calculated_at).toLocaleString()}</small></h4>
+      <h4>Governance score <small>calculated {formatDateTime(d.score.calculated_at)}</small></h4>
       <p style={{ fontSize: 28, margin: "0 0 12px" }}><ScoreValue value={d.score.overall} /></p>
       <div className="tablewrap">
         <table>
@@ -193,7 +194,7 @@ function HistoryPanel({ modelId, d }: { modelId: string; d: Model360 }) {
                 <tbody>
                   {(events.data ?? []).map((e) => (
                     <tr key={e.event_id}>
-                      <td className="mono">{new Date(e.occurred_at).toLocaleString()}</td>
+                      <td className="mono">{formatDateTime(e.occurred_at)}</td>
                       <td className="mono">{e.user_id ?? "system"} <span style={{ color: "var(--faint)" }}>{e.role}</span></td>
                       <td><Pill value={e.action} tone="p-info" /></td>
                       <td className="mono">{e.entity}</td>
@@ -279,7 +280,7 @@ export function Model360Page() {
                   {d.validations.map((v) => (
                     <tr key={v.validation_id}>
                       <td className="mono">{v.validation_id}</td><td>{v.validation_type}</td><td>{name(v.validator_id)}</td>
-                      <td className="mono">{v.start_date}</td><td className="mono">{v.completion_date ?? "—"}</td>
+                      <td className="mono">{formatDate(v.start_date)}</td><td className="mono">{formatDate(v.completion_date)}</td>
                       <td><Pill value={v.outcome} /></td><td>{v.summary}</td>
                     </tr>
                   ))}
@@ -307,7 +308,7 @@ export function Model360Page() {
                         <td>{f.category}</td>
                         <td><Pill value={f.status} /></td>
                         <td>{name(f.owner_id)}</td>
-                        <td className="mono">{f.due_date}{f.is_overdue && <div style={{ color: "var(--bad)" }}>{f.days_overdue}d overdue</div>}</td>
+                        <td className="mono">{formatDate(f.due_date)}{f.is_overdue && <div style={{ color: "var(--bad)" }}>{f.days_overdue}d overdue</div>}</td>
                         <td className="mono">{f.days_open}d</td>
                         <td>{can("finding:edit") && <button className="btn sm" onClick={() => setEditingFinding(editingFinding === f.finding_id ? null : f.finding_id)}>Update</button>}</td>
                       </tr>
@@ -333,9 +334,9 @@ export function Model360Page() {
                 <tbody>
                   {d.approvals.map((a) => (
                     <tr key={a.approval_id}>
-                      <td className="mono">{a.approval_id}</td><td className="mono">{a.decision_date}</td><td>{a.forum}</td>
+                      <td className="mono">{a.approval_id}</td><td className="mono">{formatDate(a.decision_date)}</td><td>{a.forum}</td>
                       <td>{a.decision_type}</td><td><Pill value={a.decision} /></td><td>{a.conditions}</td>
-                      <td className="mono">{a.condition_due_date ?? "—"}</td><td><Pill value={a.condition_status} /></td>
+                      <td className="mono">{formatDate(a.condition_due_date)}</td><td><Pill value={a.condition_status} /></td>
                       <td>{can("approval:record") && a.condition_status === "Open" && <MarkConditionMet approval={a} />}</td>
                     </tr>
                   ))}
