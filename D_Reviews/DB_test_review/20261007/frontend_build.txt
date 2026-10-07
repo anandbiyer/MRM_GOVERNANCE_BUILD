@@ -1,0 +1,3 @@
+Node v24.16.0
+npm run build (tsc -b + vite build)
+exit 0; 93 modules; dist/assets/index-D9aK-4-n.js 406.63 kB; built in 121ms
