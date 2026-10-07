@@ -32,6 +32,7 @@ from app.models import (
     Model,
     ModelPhaseHistory,
     ModelRelationship,
+    ModelRiskReport,
     ModelVersion,
     PolicySetting,
     TieringAnswer,
@@ -44,9 +45,12 @@ from app.services.errors import ConflictError, ForbiddenError, ValidationFailedE
 from app.services.policy_access import Policy
 from app.workers import runner
 
-# Children before parents.
-DELETE_ORDER = (Finding, Approval, Validation, DocumentLink, DocumentVersion, Document, DocumentFolder, ModelRelationship,
-                ModelVersion, ModelPhaseHistory, TierOverride, TieringAnswer, Model, UserRole, AppUser, PolicySetting)
+# Children before parents. `ModelRiskReport` is first: it references itself through
+# `previous_report_id`, and a reset must leave the report history as reproducible as everything else
+# (GEN-01) — otherwise the next reset's seeded predecessor depends on what a demo did in between.
+DELETE_ORDER = (ModelRiskReport, Finding, Approval, Validation, DocumentLink, DocumentVersion, Document,
+                DocumentFolder, ModelRelationship, ModelVersion, ModelPhaseHistory, TierOverride,
+                TieringAnswer, Model, UserRole, AppUser, PolicySetting)
 
 # The §42 batch statuses that mean a batch has finished, one way or another. The rest — Uploaded,
 # Validating, Ready, Processing — mean work is still expected.

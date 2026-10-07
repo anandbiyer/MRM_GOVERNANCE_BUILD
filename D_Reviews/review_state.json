@@ -20,10 +20,10 @@
     "G1.18:risk": {
       "kind": "risk",
       "date": "2026-10-07",
-      "report": "D_Reviews/DB_test_review/20261007_G1.18_risk.md",
-      "tree": "ad94bdd92e918cd09725b555170fe9b715cdc85a",
-      "open_critical_high": 3,
-      "note": "TR-01, TR-02, TR-03 High. Run by the real test-outcome-reviewer agent. G1.18 stays open."
+      "report": "D_Reviews/DB_test_review/20261007_G1.18_risk_rerun.md",
+      "tree": "7114ef417befce253798ca62fa8da45207c60104",
+      "open_critical_high": 0,
+      "note": "Re-run after the five fixes. REG-15 and REG-16 Proven; REG-17 Proven once TR-06 was closed in-row. Six remaining Medium/Low triaged to BL.7 and BL.8."
     }
   },
   "gates": {}

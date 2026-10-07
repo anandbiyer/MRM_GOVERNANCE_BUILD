@@ -375,6 +375,7 @@ SEED_REPORT_AGE_DAYS = 30
 SEED_REPORT_MODELS_ADDED = 4      # models hidden from the baseline, so they read as added since
 SEED_REPORT_PHASE_CHANGES = 3     # models whose baseline phase differs from today's
 SEED_REPORT_FINDINGS_CLOSED = 5   # findings the baseline shows as open and are now closed
+SEED_REPORT_EARLIER_PHASE = "Development"  # the phase those models are shown as having been in
 
 
 def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
@@ -390,8 +391,6 @@ def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
     reconstructed (REQ-REG-10A). Only the baseline, which exists to be diffed, is shaped.
     """
     with session_factory() as db:
-        if db.scalars(select(ModelRiskReport).limit(1)).first() is not None:
-            return None  # never add a second one
         policy = Policy.load(db)
         content = sections(db, None)
         baseline = content["baseline"]
@@ -402,8 +401,15 @@ def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
 
         for mid in model_ids[-SEED_REPORT_MODELS_ADDED:]:
             del baseline["models"][mid]                       # -> "models added"
-        for mid in model_ids[:SEED_REPORT_PHASE_CHANGES]:
-            baseline["models"][mid]["phase"] = "Development"  # -> "phase changes" where it differs
+        # Only models that are not already in the earlier phase, so the count is exactly N rather
+        # than "N minus however many happened to be there already" — a figure no test could assert.
+        # Retired models are left alone: showing one as having been in Development would make it read
+        # as newly retired as well, so the same model would appear under two different changes.
+        retired = policy.retirement_phase
+        movable = [mid for mid in model_ids[:-SEED_REPORT_MODELS_ADDED]
+                   if baseline["models"][mid]["phase"] not in (SEED_REPORT_EARLIER_PHASE, retired)]
+        for mid in movable[:SEED_REPORT_PHASE_CHANGES]:
+            baseline["models"][mid]["phase"] = SEED_REPORT_EARLIER_PHASE   # -> "phase changes"
         open_statuses = policy.list("finding_open_statuses")
         closed = sorted(fid for fid, st in baseline["findings"].items() if st not in open_statuses)
         for fid in closed[:SEED_REPORT_FINDINGS_CLOSED]:

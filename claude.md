@@ -3364,7 +3364,7 @@ above still says 69 proven because it is the 2026-10-02 measurement, and only th
 | SCR-05 | `score`, `missing` and `explanation` on the API response | `weight`, `effective_weight`, `inputs` and `calculated_at` are never asserted on a response. |
 | SEC-05 | Deactivation invalidates an issued token | Role removal — the criterion's other half, and a different check — is untested. |
 | AUD-01 | Seven writes are shown to produce the right audit event | The transactional coupling: no test shows a refused write leaves no audit event, or that a failed audit rolls the business change back. |
-| GEN-01 | One reset matches the documented portfolio figures; the committed seed's policy covers the baseline and leaves the dashboard working (added 2026-10-03) | Determinism itself: no second reset at the same business date is compared with the first. |
+| GEN-01 | One reset matches the documented portfolio figures; the committed seed's policy covers the baseline and leaves the dashboard working (added 2026-10-03). From 2026-10-07 a **second** reset at the same business date is compared with the first (`test_gen_01_a_reset_clears_the_report_history_and_reseeds_it`) | Still partly proven: the comparison is a model risk report's content hash, which covers the inventory, validation, findings, approvals, score, documentation and the report baseline — but says nothing about documents, document versions, tiering answers, phase history, users or policy settings. |
 | DOC-09 | A batch ID is issued in the documented format | Uniqueness across two batches. |
 
 ### Correctly open — the capability does not exist yet

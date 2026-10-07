@@ -393,6 +393,151 @@ def test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content(cl
 
     changes = _generate(client, h)["sections"]["changes_since"]
     assert changes["previous_report_id"] == seeded[0]["report_id"]
-    assert changes["models_added"], "the seeded baseline must leave something to report as added"
-    assert changes["phase_changes"], "and a phase change"
-    assert changes["findings_closed"], "and a finding closed since"
+
+    # Exact counts, not truthiness: REG-17 says the section lists *exactly* the differences, and
+    # truthiness passed even when the seed shaped 120 models instead of 4 (TR-05). The numbers are
+    # written out rather than imported from the service, so changing the service cannot quietly
+    # change what this test demands.
+    assert len(changes["models_added"]) == 4
+    assert len(changes["phase_changes"]) == 3
+    assert len(changes["findings_closed"]) == 5
+    assert changes["models_retired"] == [], "the seed shapes no retirements"
+    assert all(c["to_phase"] != "Development" for c in changes["phase_changes"]),         "each listed change moved a model *out* of the phase the baseline showed"
+
+
+# --- Gaps the R2 checkpoint found by mutating the code (D_Reviews/DB_test_review/20261007_G1.18_risk.md)
+#
+# Each of these passed against a deliberately broken implementation until now. They are written as the
+# checkpoint described the mutation, so each one fails against that exact defect.
+
+
+def test_reg_16_a_refused_generation_writes_no_audit_event(db_session):
+    """REG-16: "nothing is stored and no audit event is written" — the audit half, at the service.
+
+    TR-01. The route's `require()` refuses an Executive before the service runs, so an API test
+    proves nothing about the service, which is the path the CLI and the seed loader take. The earlier
+    service test checked only that no *report* was stored; a service that audited the refusal and
+    committed it passed every test.
+
+    The count is over one entity and is taken from the database, so neither a page cap nor a wider
+    filter can make "unchanged" true by accident (the trap recorded for G0.7).
+    """
+    import pytest
+    from sqlalchemy import func, select
+
+    from app.auth.security import Principal
+    from app.models import AuditEvent, ModelRiskReport
+    from app.services import report_service
+    from app.services.errors import ForbiddenError
+
+    def report_events(db) -> int:
+        return db.scalar(select(func.count()).select_from(AuditEvent)
+                         .where(AuditEvent.entity == "model_risk_report"))
+
+    with db_session() as db:
+        before = report_events(db)
+        with pytest.raises(ForbiddenError):
+            report_service.generate(db, Principal(user_id="U-042", role="Executive",
+                                                  full_name="James Whitfield"))
+        db.rollback()
+        assert report_events(db) == before, "a refused generation writes no audit event"
+        assert db.scalar(select(func.count()).select_from(ModelRiskReport)) == 0, "and stores nothing"
+
+        # The control: a permitted generation writes exactly one, so the negative means something.
+        report_service.generate(db, Principal(user_id="U-014", role="Validator",
+                                              full_name="Sarah Patel"))
+        assert report_events(db) == before + 1
+
+
+def test_reg_16_report_generate_is_held_by_exactly_the_specified_roles():
+    """REG-16 / REQ-REG-10A: "`REPORT_GENERATE` (Admin, MRC Member and Validator by default)".
+
+    TR-02. Nothing asserted *who* holds the permission, so granting it to Model Owner and Monitoring
+    Analyst passed all 195 tests. The roles are written out rather than derived from the matrix: a
+    test that reads the thing it checks cannot fail when that thing is wrong.
+    """
+    from app.auth.roles import Permission, ROLE_PERMISSIONS
+
+    holders = {role.value for role, perms in ROLE_PERMISSIONS.items()
+               if Permission.REPORT_GENERATE in perms}
+    assert holders == {"Admin", "MRC Member", "Validator"}
+
+
+def test_reg_15_the_business_date_is_the_business_date_not_the_calendar_date(loaded_client, test_settings):
+    """REG-15: the report is for `app.clock.today()`, which `MRM_TODAY_OVERRIDE` fixes.
+
+    TR-03. Nothing asserted this, so a service reading `date.today()` passed all 195 tests even
+    though the suite's business date is years from the real one. Part 0 makes `app.clock.today()` an
+    invariant precisely so seeded overdue and revalidation states are reproducible.
+    """
+    from datetime import date
+
+    from app.clock import today
+
+    assert today() != date.today(), "the fixture must fix a business date that is not today"
+    report = _generate(loaded_client, login(loaded_client, *ADMIN))
+    assert report["business_date"] == today().isoformat()
+    assert report["business_date"] != date.today().isoformat()
+
+
+def test_gen_01_a_reset_clears_the_report_history_and_reseeds_it(client, test_settings):
+    """GEN-01: two resets at the same business date give the same report history.
+
+    The seeded predecessor only ever appeared on a database that had never held a report, so a demo
+    that generated a few reports and then reset was left with the old ones and no fresh comparison —
+    and the second reset's history depended on what had happened in between, which is exactly what
+    determinism forbids.
+    """
+    h = login(client, *ADMIN)
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+    seeded = _get(client, h, "/api/reports/model-risk")
+    assert len(seeded) == 1
+
+    _generate(client, h)
+    _generate(client, h)
+    assert len(_get(client, h, "/api/reports/model-risk")) == 3, "the demo generated two of its own"
+
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+    after = _get(client, h, "/api/reports/model-risk")
+    assert len(after) == 1, "a reset clears the report history and leaves one seeded predecessor"
+    assert after[0]["report_id"] == seeded[0]["report_id"]
+    assert after[0]["content_hash"] == seeded[0]["content_hash"], \
+        "GEN-01: the same business date reproduces the same report"
+
+
+def test_reg_17_the_pdf_is_this_report_and_carries_its_content(loaded_client):
+    """REG-17: "downloaded as a PDF" — of *this* report, with its figures in it.
+
+    TR-06. The earlier assertions were `%PDF-` and a size floor, which a renderer returning magic
+    bytes plus two thousand junk bytes satisfied. Three things a stub cannot fake: the document
+    metadata names this report's business date and framework, the file is structurally complete, and
+    the rendered size tracks the content — a report with sixty overdue models is materially longer
+    than one with none. The page text itself is inside encoded content streams, so grepping for a
+    figure is not available without a PDF parser.
+    """
+    from app.reports import pdf
+
+    h = login(loaded_client, *VALIDATOR)
+    report = _generate(loaded_client, h)
+    resp = loaded_client.get(f"/api/reports/model-risk/{report['report_id']}/pdf", headers=h)
+    assert resp.status_code == 200
+    data = resp.content
+
+    assert data.startswith(b"%PDF-") and data.rstrip().endswith(b"%%EOF"), "a complete document"
+    assert f"Model Risk Report {report['business_date']}".encode() in data, \
+        "the title names this report's business date, so it is not a generic or stale file"
+    assert report["framework_label"].encode() in data, "and the framework it was generated under"
+
+    # The size tracks the content: the same renderer over a report with sixty overdue models must
+    # produce a materially longer document than one with none.
+    stored = report["sections"]
+    sparse = {**stored, "validation": {**stored["validation"], "overdue": []}}
+    dense = {**stored, "validation": {**stored["validation"], "overdue": [
+        {"model_id": f"M-{i:04d}", "model_name": f"Probe {i}", "tier": "High", "owner_id": "U-003",
+         "days_overdue": i} for i in range(60)]}}
+    header = {k: v for k, v in report.items() if k != "sections"}
+    grew = len(pdf.render(header, dense)) - len(pdf.render(header, sparse))
+    assert grew > 2000, (
+        f"sixty extra table rows added only {grew} bytes, so the renderer is not putting the sections "
+        f"on the page. A ratio was the wrong measure: a real report already carries content, so it is "
+        f"the difference that shows whether the rows were rendered")
