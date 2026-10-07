@@ -18,6 +18,9 @@ Checkpoint: $ARGUMENTS
 4. Run one agent: `requirements-reviewer` for schema, `test-outcome-reviewer` for risk. Name the report `<YYYYMMDD>_<ID>_<schema|risk>.md`.
 5. Report the findings for this activity in one table: `ID | Severity | Criterion / table | Problem | Suggested fix`. Findings outside the scope are listed under it, but are not this activity's to fix.
 6. With no open Critical or High finding, add the report path to the row's Evidence column. Otherwise list what must be fixed first, and leave the plan unchanged.
-7. Record the checkpoint in `D_Reviews/review_state.json`. Do not fix anything.
+7. Record the checkpoint in `D_Reviews/review_state.json`, keyed `<ID>` for a schema checkpoint and
+   `<ID>:risk` for a risk one. A row can need both — G1.16 did — so a single key per plan ID would let
+   the second checkpoint overwrite the first and make the skip rule cite the wrong report. Do not fix
+   anything.
 8. If the checkpoint found anything, finish by running `/triage-review` on its report. A finding is not
    added to the plan from here — triage places it, and only after the user approves.

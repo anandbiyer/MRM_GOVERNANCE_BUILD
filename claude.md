@@ -244,9 +244,14 @@ Rules for the agents:
 - When the BRD and the mock-up disagree, the BRD wins; the difference is recorded, not fixed.
 - Capabilities not yet built are reported as "Not built (Phase N)", never as failures.
 - Where the BRD contradicts itself, the agent reports a spec issue for a decision instead of guessing.
-- Claude Code picks up a new or edited agent file within a few seconds. A restart is needed only when
-  the **first** file is created in a new `.claude/agents/` folder, which is what happened in GR.4;
-  editing these four, or adding a fifth, needs no restart.
+- **Restart after adding or editing an agent, before relying on it.** Observed 2026-10-07: in the
+  session that had created and edited these files, the Agent tool offered only its built-in types and
+  `requirements-reviewer` was "not found" — so neither the parity tester's first run (GR.4) nor
+  G1.16's two checkpoints could be run by the agents, and both were done by hand instead. An earlier
+  version of this note claimed an edit is picked up within seconds; that was asserted from general
+  knowledge, not from observation here, and the observation contradicts it. What is *not* established
+  is whether a restart is enough or something else is wrong, so a checkpoint or review that reports
+  "performed by hand" should be re-run by the agent at the next gate exit (plan BL.5).
 
 ### When reviews run — and when they do not
 
@@ -263,7 +268,10 @@ Reviews run only at four points. Ordinary activities finish with the normal test
 - **R3 Gate exit.** When the last activity of a gate is `Done`, run `/review-build gate <N>` and record
   the verdict in the gate's exit row. The gate closes only on **Ready**.
 - **R4 Merge to main or customer demo.** Needs a Ready gate review of the same commit. The hook in
-  `.claude/settings.json` enforces this; if it blocks you, run the review it names.
+  `.claude/settings.json` enforces this; if it blocks you, run the review it names. The matcher reads
+  the Bash **command text**, so a command that merely mentions `git push` is evaluated too — a shell
+  one-liner that echoes the phrase can be refused. That is deliberate: a false "needs review" is a
+  prompt, where a false "fine" is an unreviewed merge.
 
 Do not run review agents at any other time unless I ask. A checkpoint whose scope has not changed since
 its last review is skipped, and the earlier report is cited.
@@ -920,6 +928,14 @@ asking for an earlier date would mean threading a date through `dashboard_servic
 `governance_view` and would still not reconstruct what the portfolio looked like then — the stored
 report is the record of that. **Do not add date parameters to `dashboard_service` or
 `governance_view`.**
+
+The stored copy carries one block beyond the sections above: a `baseline` of which models existed in
+which phase, every finding's status and every approval id. That is what the *next* report's "changes
+since" compares against, so the comparison is between two stored reports rather than a time window —
+`created_at` and `generated_at` have one-second granularity, which cannot see a change made in the
+same second as the previous report. The baseline is part of the content hash (it is derived from the
+portfolio); the predecessor's *identity* is not, so two generations from the same data still match
+(REG-16).
 
 Every figure equals the Command Center on the same business date, which is why the inventory summary
 uses the displayed stage rather than the raw `lifecycle_phase`: a model in Monitoring whose next due
