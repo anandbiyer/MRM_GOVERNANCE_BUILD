@@ -175,6 +175,28 @@ score and document completeness are all already computed on read by `governance_
   extraction) can be built until D1–D7 are recorded. That risk is recorded in the plan's §11.
 - `model_risk_report` is added to §48 now; the rest of §12A's tables stay deferred.
 
+**Amendments, 2026-10-06** (before G1.16 was built; both tighten REQ-REG-10A and REG-15).
+
+1. **The report is always for the current business date.** "For a chosen business date" is removed.
+   `app.clock.today()`, which `MRM_TODAY_OVERRIDE` fixes, is the only date; history is the stored
+   copies, which are listed and reopened. *Why:* derived governance state is recomputed on read
+   (Part 0, `governance_view`), so a past date would have to be threaded through `dashboard_service`
+   and `governance_view` — and even then it would reconstruct today's records as they would have been
+   judged on that date, not the portfolio as it actually stood. That is a different and much larger
+   thing than a report. The stored report is the record of the past; **no date parameters are added to
+   `dashboard_service` or `governance_view`**.
+2. **"Models by lifecycle phase" becomes "models by stage, the column the Command Center displays"
+   (LIF-02).** *Why:* REQ-REG-10A also requires every figure to equal the Command Center, and the
+   Command Center's distribution is the *displayed* column — a model in Monitoring whose next due date
+   falls inside the lead time appears in Revalidation. The two requirements could not both hold as
+   written; this was raised as an ambiguity when the core report was specified and is now settled in
+   favour of agreeing with the screen.
+
+Also decided with these: `reportlab` is added to `requirements.txt` and `requirements-lock.txt` as part
+of **G1.16**. It was checked beforehand — it installs as a pure-Python wheel and renders a styled PDF on
+Python 3.14.5 under Windows — so REQ-REG-10A's "stop and ask if no PDF library installs cleanly" branch
+does not apply.
+
 ---
 
 ## Template
