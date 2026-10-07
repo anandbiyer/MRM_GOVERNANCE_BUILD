@@ -16,6 +16,14 @@
       "tree": "35e7e8f51bba178979ed14e286051fa8e57c385b",
       "open_critical_high": 0,
       "note": "R2-01 (service permission guard untested) found and fixed in-row."
+    },
+    "G1.18:risk": {
+      "kind": "risk",
+      "date": "2026-10-07",
+      "report": "D_Reviews/DB_test_review/20261007_G1.18_risk.md",
+      "tree": "ad94bdd92e918cd09725b555170fe9b715cdc85a",
+      "open_critical_high": 3,
+      "note": "TR-01, TR-02, TR-03 High. Run by the real test-outcome-reviewer agent. G1.18 stays open."
     }
   },
   "gates": {}

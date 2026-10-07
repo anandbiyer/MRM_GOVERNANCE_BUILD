@@ -47,7 +47,7 @@ because the harness signs in with them. The personas map as:
 ## Phase numbers
 
 The Phase column follows the §81 phase identifiers, which are **not** the build order (Part 0).
-Built today: 1, 2, 3, 4 and the core of 8. Items on any other phase are reported
+Built today: 1, 2, 3, 4, the core of 8, and 2A-core (the core Model Risk Report). Items on any other phase are reported
 "Not built (Phase N)", never as failures.
 
 ## Checklist

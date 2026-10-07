@@ -67,3 +67,4 @@ max_zip_compression_ratio,100,integer,Files,Reject ZIP members compressed more t
 production_phases,Monitoring; Reg/Audit,list,Dashboard,Lifecycle phases counted as 'in production' on the Command Center
 insights_display_limit,10,integer,Dashboard,Number of governance insights shown on the Command Center (all are available on request)
 regulatory_framework,SR 26-2 / OCC Bulletin 2026-13,text,Governance score,Framework label shown on the model risk report header (REQ-REG-10A)
+report_lowest_scoring_limit,10,integer,Dashboard,Number of lowest-scoring models listed in the model risk report (REQ-REG-10A)

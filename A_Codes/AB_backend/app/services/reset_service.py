@@ -39,7 +39,7 @@ from app.models import (
     UserRole,
     Validation,
 )
-from app.services import bootstrap_service
+from app.services import bootstrap_service, report_service
 from app.services.errors import ConflictError, ForbiddenError, ValidationFailedError
 from app.services.policy_access import Policy
 from app.workers import runner
@@ -185,6 +185,9 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
         db.commit()
     try:
         load_seed_documents(session_factory, get_settings().seed_dir / "documents")
+        # One earlier model risk report, so a demo's first "changes since" section is not empty
+        # (REQ-REG-10A, plan G1.18). Last, because it reports on everything loaded above.
+        report_service.seed_previous_report(session_factory)
     finally:
         # Restore the status the seed load concluded with (Completed or Partially Completed) even if
         # the evidence load raises: leaving the batch stuck in Processing would block every later

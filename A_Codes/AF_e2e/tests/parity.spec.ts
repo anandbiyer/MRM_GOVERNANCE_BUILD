@@ -14,8 +14,8 @@ import {
 } from "../helpers";
 
 /** Phases Part 0 lists as implemented: 1-4 and the core of 8. */
-const BUILT = new Set(["1", "2", "3", "4", "8"]);
-// "2A-core" is the core Model Risk Report (D12, plan G1.16–G1.18): add it to BUILT when G1.17 lands.
+const BUILT = new Set(["1", "2", "3", "4", "8", "2A-core"]);
+// "2A-core" is the core Model Risk Report (D12, plan G1.16-G1.18), built as of G1.17.
 // Plain "2A" is the rest of Phase 2A, deferred by D12 — those items stay Not built, never failures.
 
 interface Ctx {
@@ -419,7 +419,10 @@ item("MUP-29", "Governance report generated and downloadable", "2A-core", async 
     return;
   }
   await signInAs(page, "Executive");
-  await expect(page.getByRole("link", { name: /Report/i })).toBeVisible();
+  await openAppScreen(page, "Model Risk Report");
+  // An Executive may read and download but not generate (REQ-REG-10A).
+  await expect(page.getByRole("button", { name: "Generate report" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "PDF" }).first()).toBeVisible();
 });
 
 item("MUP-30", "MRC report pack (model risk report, REQ-REG-10; partial after the core report)", "2A", async ({ page, isMockup }) => {

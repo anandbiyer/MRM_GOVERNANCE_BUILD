@@ -347,3 +347,52 @@ def test_reg_15_score_bands_are_labelled_for_a_reader(loaded_client):
     reopened = _get(loaded_client, h, f"/api/reports/model-risk/{before['report_id']}")
     assert reopened["sections"]["score"]["by_band"] == before["sections"]["score"]["by_band"], \
         "the stored report keeps the labels it was generated with"
+
+
+def test_reg_15_the_lowest_scoring_count_comes_from_policy(loaded_client):
+    """REG-15 / Part 0 "no business number in code" (plan BL.6, taken into G1.18).
+
+    How many models the score section lists was a constant in the service. `dashboard_service` reads
+    exactly this kind of limit from policy (`insights_display_limit`), so the precedent in this
+    repository is that it belongs in T12 — and a reviewer would rightly flag the constant.
+    """
+    h = login(loaded_client, *ADMIN)
+    settings = {s["setting_key"]: s for s in _get(loaded_client, h, "/api/admin/policy")}
+    assert "report_lowest_scoring_limit" in settings, "T12 must define the limit"
+
+    default = int(settings["report_lowest_scoring_limit"]["value"])
+    assert len(_generate(loaded_client, h)["sections"]["score"]["lowest"]) == default
+
+    resp = loaded_client.put("/api/admin/policy/report_lowest_scoring_limit", headers=h, json={
+        "value": "3", "row_version": settings["report_lowest_scoring_limit"]["row_version"],
+        "reason": "BL.6 test"})
+    assert resp.status_code == 200, resp.text
+    assert len(_generate(loaded_client, h)["sections"]["score"]["lowest"]) == 3, \
+        "the limit is read from policy on each generation, not baked in"
+
+
+def test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content(client, test_settings):
+    """REG-17: "changes since" lists exactly the differences from the previous *stored* report.
+
+    G1.16 could only ever compare two reports generated seconds apart, so the section was always
+    empty in a demo. The reset now seeds one earlier report, dated a month back, whose baseline
+    differs from the loaded portfolio — so the first report a user generates actually shows changes.
+    """
+    from datetime import date
+
+    from app.clock import today
+
+    h = login(client, *ADMIN)
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+
+    seeded = _get(client, h, "/api/reports/model-risk")
+    assert len(seeded) == 1, "a reset leaves exactly one earlier report to compare against"
+    business = date.fromisoformat(seeded[0]["business_date"])
+    gap = (today() - business).days
+    assert 27 <= gap <= 32, f"dated about a month before the business date, not {gap} days"
+
+    changes = _generate(client, h)["sections"]["changes_since"]
+    assert changes["previous_report_id"] == seeded[0]["report_id"]
+    assert changes["models_added"], "the seeded baseline must leave something to report as added"
+    assert changes["phase_changes"], "and a phase change"
+    assert changes["findings_closed"], "and a finding closed since"

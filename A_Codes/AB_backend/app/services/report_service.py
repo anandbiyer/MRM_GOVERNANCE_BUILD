@@ -12,7 +12,8 @@ The stored reports are the history.
 """
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -29,10 +30,6 @@ from app.services import dashboard_service, governance_view
 from app.services.errors import ForbiddenError, NotFoundError
 from app.services.policy_access import Policy
 from app.storage import get_store
-
-#: How many of the weakest-scoring models the score section lists. Presentation, not a business rule:
-#: it changes what a page shows, never what a figure means, so it is not a policy setting.
-LOWEST_SCORING_LISTED = 10
 
 TIER_ORDER = ("High", "Medium", "Low")
 
@@ -168,6 +165,9 @@ def _score(summary: dict, rows: list[tuple[Model, Any]], policy: Policy) -> dict
     a policy change must still show the label that applied when it was generated (Principle 5).
     """
     labels = policy.score_bands.labels()
+    # How many to list is configuration, not code: `dashboard_service` reads `insights_display_limit`
+    # the same way, and Part 0 forbids the constant this used to be (plan BL.6).
+    limit = policy.int("report_lowest_scoring_limit")
     scored = []
     for m, s in rows:
         if s.score is None or s.score.overall is None:
@@ -184,7 +184,7 @@ def _score(summary: dict, rows: list[tuple[Model, Any]], policy: Policy) -> dict
                     for r in _dist(summary["distributions"]["score_band"])],
         "portfolio_score": summary["tiles"]["portfolio_score"],
         "scored_models": summary["tiles"]["scored_models"],
-        "lowest": scored[:LOWEST_SCORING_LISTED],
+        "lowest": scored[:limit],
     }
 
 
@@ -365,3 +365,62 @@ def generate(db: Session, principal: Principal | None) -> tuple[ModelRiskReport,
     db.commit()
     db.refresh(report)
     return report, content
+
+# --- Demo seed -----------------------------------------------------------------------------------
+#
+# Shaping numbers for the seeded earlier report, not business rules: they decide what a demo shows,
+# never what a figure means, so they stay here rather than in T12. They are fixed rather than random
+# so a reset is reproducible (GEN-01).
+SEED_REPORT_AGE_DAYS = 30
+SEED_REPORT_MODELS_ADDED = 4      # models hidden from the baseline, so they read as added since
+SEED_REPORT_PHASE_CHANGES = 3     # models whose baseline phase differs from today's
+SEED_REPORT_FINDINGS_CLOSED = 5   # findings the baseline shows as open and are now closed
+
+
+def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
+    """Store one earlier report so a demo's first "changes since" section has content.
+
+    Without it the section is always empty: the earliest report a user can generate has no
+    predecessor, and two reports generated minutes apart differ in nothing. This writes a report as
+    it would have looked a month ago, by taking today's figures and removing a deterministic slice
+    of the baseline — the models, phases and findings that the next report then reports as changed.
+
+    The *figures* in the seeded report are today's. That is honest for demo data and is the only
+    thing available: derived state is recomputed on read, so last month's portfolio cannot be
+    reconstructed (REQ-REG-10A). Only the baseline, which exists to be diffed, is shaped.
+    """
+    with session_factory() as db:
+        if db.scalars(select(ModelRiskReport).limit(1)).first() is not None:
+            return None  # never add a second one
+        policy = Policy.load(db)
+        content = sections(db, None)
+        baseline = content["baseline"]
+
+        model_ids = sorted(baseline["models"])
+        if len(model_ids) <= SEED_REPORT_MODELS_ADDED + SEED_REPORT_PHASE_CHANGES:
+            return None  # too small a portfolio to shape; a demo would show nothing anyway
+
+        for mid in model_ids[-SEED_REPORT_MODELS_ADDED:]:
+            del baseline["models"][mid]                       # -> "models added"
+        for mid in model_ids[:SEED_REPORT_PHASE_CHANGES]:
+            baseline["models"][mid]["phase"] = "Development"  # -> "phase changes" where it differs
+        open_statuses = policy.list("finding_open_statuses")
+        closed = sorted(fid for fid, st in baseline["findings"].items() if st not in open_statuses)
+        for fid in closed[:SEED_REPORT_FINDINGS_CLOSED]:
+            baseline["findings"][fid] = open_statuses[0]      # -> "findings closed"
+
+        on = today() - timedelta(days=SEED_REPORT_AGE_DAYS)
+        report_id = f"MRR-{on:%Y%m%d}-001"
+        path = f"reports/model-risk/{on:%Y}/{report_id}.json"
+        get_store().put(path, json.dumps(_plain(content), sort_keys=True, ensure_ascii=False)
+                        .encode("utf-8"), content_type="application/json")
+        db.add(ModelRiskReport(
+            report_id=report_id, business_date=on, generated_by=None,
+            generated_at=datetime.combine(on, time(9, 0)),
+            framework_label=policy.text("regulatory_framework"),
+            content_hash=content_hash(content), storage_path=path, previous_report_id=None))
+        audit.record(db, None, action="generate", entity="model_risk_report", entity_id=report_id,
+                     after={"business_date": on.isoformat(), "seeded": True},
+                     reason="Seeded earlier report so the demo has a comparison")
+        db.commit()
+        return report_id

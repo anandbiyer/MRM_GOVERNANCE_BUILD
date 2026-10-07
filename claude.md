@@ -3335,6 +3335,11 @@ The §76D total is 17 from 2026-10-05: REG-15, REG-16 and REG-17 were added for 
 Report, which **D12** builds in Gate 1. REG-01 to REG-14 are deferred with the rest of Phase 2A, so
 they are reported as *Not built (Phase 2A, deferred D12)* and never counted as failures.
 
+**REG-15, REG-16 and REG-17 are built as of 2026-10-07** (plan G1.16–G1.18) and covered by
+`tests/test_reports.py` and functional scenario FS-25. They are no longer "not built"; the figure
+above still says 69 proven because it is the 2026-10-02 measurement, and only the
+`test-outcome-reviewer` recalculates it.
+
 ### Not proven — no test
 
 | Criterion | Gap | Reason |
@@ -3369,7 +3374,6 @@ they are reported as *Not built (Phase 2A, deferred D12)* and never counted as f
 | DOC-16 | AI extraction cannot persist without confirmation — Phase 5; not yet built. |
 | MON-01…MON-12 | All monitoring criteria — Phase 6; not yet built. |
 | REG-01…REG-14 | All regulatory alignment criteria — Phase 2A, **deferred (D12)**; report as "Not built (Phase 2A, deferred D12)". |
-| REG-15…REG-17 | Core Model Risk Report — Gate 1 (G1.16–G1.18); specified and next to build, not yet built. |
 
 ### Tagging and spec gaps
 
