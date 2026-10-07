@@ -3,7 +3,7 @@
 This is the only enforced review point. Commits are never blocked, so ordinary development is never
 slowed down by reviews — see CLAUDE.md Part 0, "When reviews run — and when they do not".
 
-Usage:  python review_gate.py merge|push
+Usage:  python review_gate.py auto   (or merge|push to force one)
 Reads the tool call as JSON on stdin (Claude Code's PreToolUse payload) and prints a
 `hookSpecificOutput` decision. Always exits 0: a non-zero exit would be a hook failure rather than a
 decision, and a failure here must still deny (a broken gate that silently allows is worse than a
@@ -19,6 +19,13 @@ from pathlib import Path
 
 STATE = Path(__file__).resolve().parents[2] / "D_Reviews" / "review_state.json"
 
+# The hook is registered on the Bash tool as a whole, so it sees every command, not only git ones:
+# the `if` field in settings.json does not filter. It must therefore decide for itself whether the
+# command is a push or a merge at all. Matching the bare word "main" anywhere was not enough --
+# `uvicorn app.main:app` contains it, so starting the backend was refused as a merge to main.
+GIT_PUSH = re.compile(r"(?:^|[;&|]\s*|&&\s*)git\s+(?:-\S+\s+)*push\b")
+GIT_MERGE = re.compile(r"(?:^|[;&|]\s*|&&\s*)git\s+(?:-\S+\s+)*merge\b")
+
 
 def decide(decision: str, reason: str) -> None:
     """Emit the decision and exit. 'allow' with no reason stays silent."""
@@ -33,12 +40,24 @@ def decide(decision: str, reason: str) -> None:
 
 
 def targets_main(action: str, command: str) -> bool:
-    """Whether this git command would move `main`.
+    """Whether this command would move `main`.
 
-    Deliberately generous: anything that mentions main/master as the target counts, because a false
-    "needs review" is a prompt, while a false "fine" is an unreviewed merge.
+    Two conditions, in order: it has to be a git push or merge at all, and it has to be aimed at
+    main or master. The first check is what keeps every other command out of the gate.
+
+    Within a real push or merge the matching stays generous, because a false "needs review" is a
+    prompt while a false "fine" is an unreviewed merge.
     """
-    if action == "merge":
+    is_push = bool(GIT_PUSH.search(command))
+    is_merge = bool(GIT_MERGE.search(command))
+    if action == "merge" and not is_merge:
+        return False
+    if action == "push" and not is_push:
+        return False
+    if action == "auto" and not (is_push or is_merge):
+        return False
+
+    if is_merge and not is_push:
         # `git merge X` run while main is checked out merges X *into* main.
         return current_branch() in ("main", "master")
     # push: `git push origin main`, `git push origin HEAD:main`, `git push --all`.
@@ -47,8 +66,7 @@ def targets_main(action: str, command: str) -> bool:
     if re.search(r"--all\b|--mirror\b", command):
         return True
     # `git push` with no refspec pushes the current branch.
-    return bool(re.fullmatch(r"\s*git\s+push\s*(-{1,2}[\w-]+\s*)*", command)) and \
-        current_branch() in ("main", "master")
+    return current_branch() in ("main", "master")
 
 
 def current_branch() -> str:
@@ -78,7 +96,7 @@ def latest_gate(state: dict) -> tuple[str, dict] | tuple[None, None]:
 
 
 def main() -> None:
-    action = sys.argv[1] if len(sys.argv) > 1 else "merge"
+    action = sys.argv[1] if len(sys.argv) > 1 else "auto"
     try:
         payload = json.load(sys.stdin)
     except Exception:

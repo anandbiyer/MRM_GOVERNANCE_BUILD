@@ -6,13 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git merge *)",
-            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/review_gate.py\" merge"
-          },
-          {
-            "type": "command",
-            "if": "Bash(git push *)",
-            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/review_gate.py\" push"
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/review_gate.py\" auto"
           }
         ]
       }
