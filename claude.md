@@ -244,14 +244,11 @@ Rules for the agents:
 - When the BRD and the mock-up disagree, the BRD wins; the difference is recorded, not fixed.
 - Capabilities not yet built are reported as "Not built (Phase N)", never as failures.
 - Where the BRD contradicts itself, the agent reports a spec issue for a decision instead of guessing.
-- **Restart after adding or editing an agent, before relying on it.** Observed 2026-10-07: in the
-  session that had created and edited these files, the Agent tool offered only its built-in types and
-  `requirements-reviewer` was "not found" — so neither the parity tester's first run (GR.4) nor
-  G1.16's two checkpoints could be run by the agents, and both were done by hand instead. An earlier
-  version of this note claimed an edit is picked up within seconds; that was asserted from general
-  knowledge, not from observation here, and the observation contradicts it. What is *not* established
-  is whether a restart is enough or something else is wrong, so a checkpoint or review that reports
-  "performed by hand" should be re-run by the agent at the next gate exit (plan BL.5).
+- **Restart after adding or editing an agent, before relying on it.** Agent files created or edited
+  during a session may not be callable in that session. After a restart (`claude --continue` keeps the
+  conversation) they were available. Check the Agent tool's list before relying on them. Observed
+  2026-10-07, which is why the parity tester's first run (GR.4) and G1.16's two checkpoints were
+  performed by hand; those are re-run by the real agents at the next gate exit (plan BL.5).
 
 ### When reviews run — and when they do not
 
