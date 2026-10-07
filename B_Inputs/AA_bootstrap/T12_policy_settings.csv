@@ -1,4 +1,4 @@
-setting_key,value,value_type,category,description
+﻿setting_key,value,value_type,category,description
 tier_high_min,10,integer,Tiering,Tier score at or above this is High (R1)
 tier_medium_min,7,integer,Tiering,Tier score at or above this (and below High) is Medium (R1)
 reval_lead_days,60,integer,Revalidation,Days before due date a Monitoring model shows in Revalidation (R3)
@@ -66,3 +66,4 @@ max_zip_uncompressed_mb,500,integer,Files,Maximum total size of files inside a Z
 max_zip_compression_ratio,100,integer,Files,Reject ZIP members compressed more than this ratio (zip-bomb guard)
 production_phases,Monitoring; Reg/Audit,list,Dashboard,Lifecycle phases counted as 'in production' on the Command Center
 insights_display_limit,10,integer,Dashboard,Number of governance insights shown on the Command Center (all are available on request)
+regulatory_framework,SR 26-2 / OCC Bulletin 2026-13,text,Governance score,Framework label shown on the model risk report header (REQ-REG-10A)

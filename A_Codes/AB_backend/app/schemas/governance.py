@@ -377,3 +377,19 @@ class ModelMetaOut(BaseModel):
     score_band_good_min: int
     score_band_labels: dict[str, str]
     users: list[dict[str, Any]]
+
+
+class ModelRiskReportOut(ORMModel):
+    """A stored report's header (BRD §48 `model_risk_report`)."""
+    report_id: str
+    business_date: date
+    generated_by: str | None
+    generated_at: datetime
+    framework_label: str
+    content_hash: str
+    previous_report_id: str | None
+
+
+class ModelRiskReportDetail(ModelRiskReportOut):
+    """The header plus the stored content, so a report reopens as what it said."""
+    sections: dict

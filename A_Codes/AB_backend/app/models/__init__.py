@@ -14,10 +14,11 @@ from app.models.governance import (
 )
 from app.models.ingestion import ImportBatch, ImportFile, ImportIssue
 from app.models.policy import PolicySetting
+from app.models.reports import ModelRiskReport
 from app.models.user import AppUser, UserRole
 
 __all__ = [
     "AppUser", "Approval", "AuditEvent", "Base", "Document", "DocumentFolder", "DocumentLink",
-    "DocumentUploadItem", "DocumentVersion", "Finding", "ImportBatch", "ImportFile", "ImportIssue", "Model", "ModelPhaseHistory", "ModelRelationship",
+    "DocumentUploadItem", "DocumentVersion", "Finding", "ImportBatch", "ImportFile", "ImportIssue", "Model", "ModelPhaseHistory", "ModelRiskReport", "ModelRelationship",
     "ModelVersion", "PolicySetting", "TierOverride", "TieringAnswer", "UserRole", "Validation",
 ]

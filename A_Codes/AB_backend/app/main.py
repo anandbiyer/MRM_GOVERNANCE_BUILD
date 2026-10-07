@@ -2,7 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import admin, audit, auth, dashboard, documents, health, imports, models, records, users
+from app.api import (admin, audit, auth, dashboard, documents, health, imports, models, records,
+                     reports, users)
 from app.config import get_settings
 from app.services.errors import ServiceError
 
@@ -23,7 +24,8 @@ def create_app() -> FastAPI:
     async def service_error_handler(_: Request, exc: ServiceError):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.message, "errors": exc.details})
 
-    for module in (health, auth, users, admin, audit, models, imports, documents, dashboard):
+    for module in (health, auth, users, admin, audit, models, imports, documents, dashboard,
+                   reports):
         app.include_router(module.router)
     for router in (records.validations, records.findings, records.approvals):
         app.include_router(router)

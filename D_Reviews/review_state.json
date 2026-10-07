@@ -1,5 +1,22 @@
 {
   "_comment": "Written by /review-checkpoint and /review-build. The skip rule reads it: a checkpoint whose scope has the same git write-tree, or a gate whose Ready review has the same head, is not re-run. The merge hook (.claude/hooks/review_gate.py) reads gates only.",
-  "checkpoints": {},
+  "checkpoints": {
+    "G1.16": {
+      "kind": "schema",
+      "date": "2026-10-07",
+      "report": "D_Reviews/DA_code_review/20261007_G1.16_schema.md",
+      "tree": "4ac2165fc3679a7d0eb6de329bc6c40af4dde4b2",
+      "open_critical_high": 0,
+      "note": "Performed by hand: the requirements-reviewer agent type was unavailable in-session."
+    },
+    "G1.16:risk": {
+      "kind": "risk",
+      "date": "2026-10-07",
+      "report": "D_Reviews/DB_test_review/20261007_G1.16_risk.md",
+      "tree": "35e7e8f51bba178979ed14e286051fa8e57c385b",
+      "open_critical_high": 0,
+      "note": "R2-01 (service permission guard untested) found and fixed in-row."
+    }
+  },
   "gates": {}
 }
