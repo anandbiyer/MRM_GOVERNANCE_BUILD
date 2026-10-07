@@ -45,7 +45,8 @@ def _table(rows: list[list], widths: list[float] | None = None) -> Table:
 
 
 def _distribution(title: str, rows: list[dict], styles) -> list:
-    body = [["", "Models"]] + [[r["key"], str(r["count"])] for r in rows]
+    # Prefer the stored label: score bands carry one, and a board report cannot say "below_warn".
+    body = [["", "Models"]] + [[str(r.get("label") or r["key"]), str(r["count"])] for r in rows]
     body[0][0] = title
     return [_table(body, [70 * mm, 25 * mm]), Spacer(1, 6)]
 

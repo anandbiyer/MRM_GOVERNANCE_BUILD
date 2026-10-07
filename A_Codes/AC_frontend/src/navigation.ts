@@ -25,6 +25,9 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Control",
     items: [
+      // No permission gate: any read role may view and download a report; only generating
+      // needs report:generate, which the screen and the API both enforce (REQ-REG-10A).
+      { path: "/reports/model-risk", label: "Model Risk Report" },
       { path: "/audit", label: "Audit Trail", permission: "audit:read" },
       { path: "/admin", label: "Admin" },
     ],

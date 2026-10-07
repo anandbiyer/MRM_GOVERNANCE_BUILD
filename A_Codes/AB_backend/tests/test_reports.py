@@ -282,3 +282,68 @@ def test_reg_16_the_service_refuses_an_unpermitted_principal_too(db_session):
         report, _ = report_service.generate(db, validator)
         assert report.generated_by == "U-014"
         assert db.query(ModelRiskReport).count() == 1
+
+
+def test_reg_17_earlier_reports_are_listed_newest_first(loaded_client):
+    """REG-17: the screen's "earlier reports" list, which only means anything in a defined order.
+
+    Ordering was unasserted after G1.16 — the same gap §76A.14 records for APR-04, where a list test
+    checked the contents and not the order, and the order then turned out to be right only by
+    coincidence of insertion. Asserted here against `generated_at`, not against insertion.
+    """
+    h = login(loaded_client, *VALIDATOR)
+    made = [_generate(loaded_client, h)["report_id"] for _ in range(3)]
+
+    listed = _get(loaded_client, h, "/api/reports/model-risk")
+    assert [r["report_id"] for r in listed] == list(reversed(made)), "newest first"
+    stamps = [r["generated_at"] for r in listed]
+    assert stamps == sorted(stamps, reverse=True), "ordered by when they were generated"
+
+
+def test_reg_17_an_auditor_can_download_the_pdf(loaded_client):
+    """REG-17 names the Auditor explicitly; G1.16 only exercised the Executive.
+
+    SEC-02 gives the Auditor no write permission, so this is also the check that reading a report is
+    a read and not an incidental write.
+    """
+    report = _generate(loaded_client, login(loaded_client, *VALIDATOR))
+    h = login(loaded_client, *AUDITOR)
+
+    resp = loaded_client.get(f"/api/reports/model-risk/{report['report_id']}/pdf", headers=h)
+    assert resp.status_code == 200, resp.text
+    assert resp.content.startswith(b"%PDF-")
+    assert report["report_id"] in resp.headers.get("content-disposition", ""), \
+        "the download is named after the report, so a user can tell two apart on disk"
+    assert audit_count(loaded_client, login(loaded_client, *ADMIN),
+                       entity="model_risk_report", action="download") == 0, \
+        "downloading is a read: it writes nothing"
+
+
+def test_reg_15_score_bands_are_labelled_for_a_reader(loaded_client):
+    """REG-15: the report reads like the Command Center, which labels bands from the boundaries.
+
+    The label is *stored* with the count rather than resolved on read, so a report reopened after a
+    policy change still shows the boundaries that applied when it was generated (§86 Principle 5).
+    Without this the board report said "below_warn".
+    """
+    h = login(loaded_client, *ADMIN)
+    meta = _get(loaded_client, h, "/api/models/meta")
+    bands = _generate(loaded_client, h)["sections"]["score"]["by_band"]
+
+    assert bands, "the sample portfolio has scored models"
+    for row in bands:
+        assert row["label"] == meta["score_band_labels"][row["key"]]
+        assert not row["label"].startswith(row["key"]), "a label, not the key"
+
+    # Move the boundary: a report generated now carries the new label, the stored one keeps the old.
+    before = _generate(loaded_client, h)
+    setting = next(s for s in _get(loaded_client, h, "/api/admin/policy")
+                   if s["setting_key"] == "score_band_warn_min")
+    assert loaded_client.put("/api/admin/policy/score_band_warn_min", headers=h, json={
+        "value": "55", "row_version": setting["row_version"], "reason": "REG-15 label test"}).status_code == 200
+
+    after = _generate(loaded_client, h)["sections"]["score"]["by_band"]
+    assert any("55" in r["label"] for r in after), "a new report uses the new boundary"
+    reopened = _get(loaded_client, h, f"/api/reports/model-risk/{before['report_id']}")
+    assert reopened["sections"]["score"]["by_band"] == before["sections"]["score"]["by_band"], \
+        "the stored report keeps the labels it was generated with"

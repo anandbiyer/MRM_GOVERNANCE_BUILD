@@ -1,6 +1,6 @@
 import { useQuery, type QueryClient, type QueryKey } from "@tanstack/react-query";
 import { api } from "./client";
-import type { Model360, ModelMeta } from "./types";
+import type { Model360, ModelMeta, ModelRiskReport, ModelRiskReportDetail } from "./types";
 
 /**
  * Reads that are *derived* from governance records rather than owned by one screen: the server
@@ -44,4 +44,25 @@ export function userLabel(meta: ModelMeta | undefined, id: string | null | undef
   if (!id) return "—";
   const u = meta?.users.find((x) => x.user_id === id);
   return u ? `${u.full_name} (${id})` : id;
+}
+
+/**
+ * Stored model risk reports (REQ-REG-10A). Not in `DERIVED_FROM_GOVERNANCE`: a stored report is a
+ * record of what the portfolio looked like when it was generated, so a later governance write must
+ * *not* make it stale. Only generating a new one invalidates the list.
+ */
+export function useModelRiskReports() {
+  return useQuery({
+    queryKey: ["model-risk-reports"],
+    queryFn: () => api<ModelRiskReport[]>("/api/reports/model-risk"),
+  });
+}
+
+export function useModelRiskReport(reportId: string | undefined) {
+  return useQuery({
+    queryKey: ["model-risk-report", reportId],
+    queryFn: () => api<ModelRiskReportDetail>(`/api/reports/model-risk/${reportId}`),
+    enabled: !!reportId,
+    staleTime: Infinity,  // a stored report never changes
+  });
 }

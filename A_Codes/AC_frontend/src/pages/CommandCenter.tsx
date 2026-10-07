@@ -110,6 +110,10 @@ export function CommandCenter() {
     <div className="stack">
       <PageHeader eyebrow="Portfolio" title="Command Center"
                   lede={`Model risk across the portfolio as of ${new Date(d.as_of).toLocaleDateString()}. Every figure is calculated from the governance records and opens the matching models.`} />
+      <p className="note">
+        These figures are what the <Link to="/reports/model-risk">Model Risk Report</Link> states for
+        the same business date.
+      </p>
 
       <div className="tiles">
         <Tile label="Total models" value={t.total_models} sub={`${t.active_models} active`} to="/operations" />

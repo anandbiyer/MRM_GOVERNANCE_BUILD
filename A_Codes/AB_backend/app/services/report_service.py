@@ -160,8 +160,14 @@ def _approvals(db: Session, rows: list[tuple[Model, Any]], seen_before: set[str]
     return {"conditional_open": conditional, "decisions_since_previous": decisions}
 
 
-def _score(summary: dict, rows: list[tuple[Model, Any]]) -> dict:
-    """Band distribution, and the weakest models with the component dragging each one down."""
+def _score(summary: dict, rows: list[tuple[Model, Any]], policy: Policy) -> dict:
+    """Band distribution, and the weakest models with the component dragging each one down.
+
+    The band *label* is stored alongside the key, not resolved when the report is read. A board
+    report cannot say "below_warn", and the boundaries come from policy — so a report reopened after
+    a policy change must still show the label that applied when it was generated (Principle 5).
+    """
+    labels = policy.score_bands.labels()
     scored = []
     for m, s in rows:
         if s.score is None or s.score.overall is None:
@@ -174,7 +180,8 @@ def _score(summary: dict, rows: list[tuple[Model, Any]]) -> dict:
                        "weakest_component_score": weakest.score if weakest else None})
     scored.sort(key=lambda r: (r["score"], r["model_id"]))
     return {
-        "by_band": _dist(summary["distributions"]["score_band"]),
+        "by_band": [{**r, "label": labels.get(r["key"], r["key"])}
+                    for r in _dist(summary["distributions"]["score_band"])],
         "portfolio_score": summary["tiles"]["portfolio_score"],
         "scored_models": summary["tiles"]["scored_models"],
         "lowest": scored[:LOWEST_SCORING_LISTED],
@@ -299,7 +306,7 @@ def sections(db: Session, previous: ModelRiskReport | None) -> dict:
         "validation": _validation(summary, rows),
         "findings": _findings(db, summary, policy),
         "approvals": _approvals(db, rows, seen_before),
-        "score": _score(summary, rows),
+        "score": _score(summary, rows, policy),
         "documentation": _documentation(summary, rows),
         "changes_since": _changes_since(previous_content, previous, baseline, policy),
         "baseline": baseline,

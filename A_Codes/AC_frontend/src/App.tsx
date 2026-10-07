@@ -12,6 +12,7 @@ import { BatchDetail } from "./pages/imports/BatchDetail";
 import { ImportCentre } from "./pages/imports/ImportCentre";
 import { Model360Page } from "./pages/model360/Model360Page";
 import { ModelForm } from "./pages/ModelForm";
+import { ModelRiskReportPage } from "./pages/ModelRiskReportPage";
 import { OperationsBoard } from "./pages/OperationsBoard";
 import { PlannedPage } from "./pages/PlannedPage";
 import { PLANNED } from "./pages/plannedScreens";
@@ -38,6 +39,7 @@ export function App() {
         <Route path="documents/:documentId" element={<DocumentDetailPage />} />
         <Route path="imports" element={<ImportCentre />} />
         <Route path="imports/:batchId" element={<BatchDetail />} />
+        <Route path="reports/model-risk" element={<ModelRiskReportPage />} />
         <Route path="audit" element={<AuditTrailPage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
