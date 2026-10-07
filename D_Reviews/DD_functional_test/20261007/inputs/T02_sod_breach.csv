@@ -1,0 +1,2 @@
+model_id,model_name,model_type,model_subtype,purpose,business_line,model_family,owner_id,developer_id,validator_id,lifecycle_phase,version,go_live_date,revalidation_frequency,last_validation_date,q_materiality,q_complexity,q_reliance,q_regulatory_use,successor_model_id,legacy_sod_exception
+M-0902,FS-06 SoD breach,Credit Risk,PD,Validator equals owner; must be rejected.,Business Banking,,U-003,U-021,U-003,Validation,v1.0,,,,2,2,2,2,,

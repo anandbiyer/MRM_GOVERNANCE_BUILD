@@ -8,7 +8,12 @@ async function fillNewModel(page: import("@playwright/test").Page, values: Recor
   await page.goto("/models/new");
   await expect(page.getByLabel("Model name")).toBeVisible();
   for (const [label, value] of Object.entries(values)) {
-    const control = page.getByLabel(label, { exact: true });
+    // Not `{ exact: true }`: these labels *wrap* their control, so a <select>'s label text is the
+    // field name followed by every option's text ("Model type" + "Credit Risk" + ...). Exact
+    // matching therefore worked for text inputs and could never work for a select, which is why
+    // FS-06 and FS-07 timed out on "Model type" (harness defect H-01). Anchored to the start of
+    // the label so one field name cannot match another's.
+    const control = page.getByLabel(new RegExp(`^\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     const tag = await control.evaluate((el) => el.tagName.toLowerCase());
     if (tag === "select") await control.selectOption(value);
     else await control.fill(value);

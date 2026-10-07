@@ -125,16 +125,41 @@ test("FS-21 GEN-01 two resets at the same business date give the same counts", a
     models: dbCount("model"), users: dbCount("app_user"), validations: dbCount("validation"),
     findings: dbCount("finding"), approvals: dbCount("approval"), policy: dbCount("policy_setting"),
   });
-  const token = await page.evaluate(() => localStorage.getItem("mrm.token"));
+  // A reset deletes and reloads `app_user`, so the acting token stops working part way through and
+  // even signing in again fails for a moment. The token is therefore re-read when it is refused
+  // rather than captured once (part of harness defect H-10; the product side is plan BL.1).
+  const asAdmin = async (): Promise<Record<string, string>> => {
+    const resp = await page.request.post("/api/auth/login", { data: { user_id: "U-001", role: "Admin" } });
+    if (!resp.ok()) return {};
+    return { Authorization: `Bearer ${(await resp.json()).access_token}` };
+  };
+
   const reset = async () => {
-    const resp = await page.request.post("/api/admin/reset", { headers: { Authorization: `Bearer ${token}` } });
+    const resp = await page.request.post("/api/admin/reset", { headers: await asAdmin() });
     expect(resp.status(), await resp.text()).toBe(202);
-    const batchId = (await resp.json()).batch_id;
-    await expect.poll(async () => {
-      const b = await page.request.get(`/api/imports/batches/${batchId}`,
-        { headers: { Authorization: `Bearer ${token}` } });
-      return (await b.json()).status;
-    }, { timeout: 180_000, intervals: [2000] }).toMatch(/Completed|Failed/);
+
+    // Wait for the *reset*, not for the batch the caller is handed. A reset creates two batches —
+    // the seed import and then one for the 1116 evidence files — so the id in the response reports
+    // Completed while the reset is still writing. Polling it was harness defect H-10: the next
+    // reset collided with the one still running. `/api/admin/reset/status` covers the whole
+    // operation, which is why G0.18 added it.
+    await expect
+      .poll(async () => {
+        const status = await page.request.get("/api/admin/reset/status", { headers: await asAdmin() });
+        if (!status.ok()) return "unavailable";   // mid-reset there is briefly no one to authenticate as
+        return (await status.json()).in_progress ? "running" : "idle";
+      }, { timeout: 300_000, intervals: [2000], message: "the reset never finished" })
+      .toBe("idle");
+
+    // And it finished rather than failed: a reset that ends in Failed must not be read as a
+    // successful one, which the old `/Completed|Failed/` poll allowed before asserting counts.
+    const batches = await page.request.get("/api/imports/batches", { headers: await asAdmin() });
+    const seedBatches = ((await batches.json()) as { source: string; status: string }[])
+      .filter((b) => b.source === "reset" || b.source === "seed");
+    expect(seedBatches.length, "the reset produced its batches").toBeGreaterThan(0);
+    for (const b of seedBatches) {
+      expect(b.status, `reset batch ${JSON.stringify(b)}`).not.toBe("Failed");
+    }
   };
 
   await reset();

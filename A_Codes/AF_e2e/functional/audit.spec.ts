@@ -2,6 +2,9 @@
 import { expect, test } from "@playwright/test";
 import { apiAs, checkpoint, dbCount, highlight, openScreen, signInAs } from "./helpers";
 
+/** The hard limit `/api/audit` applies to `limit`. A result of exactly this size may be truncated. */
+const CAP = 1000;
+
 test("FS-20 AUD-03 the audit trail filters by each documented dimension", async ({ page }) => {
   await signInAs(page, "Auditor");
   const all = (await apiAs(page, "/api/audit?limit=1000")).body as {
@@ -13,10 +16,25 @@ test("FS-20 AUD-03 the audit trail filters by each documented dimension", async 
   const check = async (query: string, predicate: (e: typeof all[number]) => boolean, label: string) => {
     const got = (await apiAs(page, `/api/audit?limit=1000&${query}`)).body as typeof all;
     expect(got.length, `${label} returns nothing`).toBeGreaterThan(0);
+    // Including: everything returned matches.
     expect(got.every(predicate), `${label} returned a non-matching event`).toBe(true);
-    // AUD-03 is about the filter *excluding* as well as including.
-    const expected = all.filter(predicate).length;
-    expect(got.length, `${label} count`).toBe(Math.min(expected, 1000));
+
+    // Excluding — the other half of AUD-03, and the half that needs no totals. An event that does
+    // not match the filter must not come back.
+    const outsider = all.find((e) => !predicate(e));
+    if (outsider) {
+      expect(got.some((e) => e.event_id === outsider.event_id),
+        `${label} returned an event it should have excluded`).toBe(false);
+    }
+
+    // A count comparison is only meaningful when neither side is truncated. The endpoint caps
+    // `limit` at 1000 and returns no total, so with 2500+ seeded events the baseline is capped and
+    // `all.filter(...).length` is not the real total — comparing the two was harness defect H-05
+    // ("expected 999, received 1000", where both numbers were artefacts of the cap). Asserting a
+    // count at all needs the endpoint to report a total, which is plan BL.4.
+    if (got.length < CAP && all.length < CAP) {
+      expect(got.length, `${label} count`).toBe(all.filter(predicate).length);
+    }
   };
 
   const sample = all.find((e) => e.model_id) ?? all[0];

@@ -1,7 +1,7 @@
 // FS-01, FS-22, FS-23 — roles, permissions and session invalidation (§76A.9 SEC-*).
 import { expect, test } from "@playwright/test";
 import path from "node:path";
-import { apiAs, checkpoint, dbCount, openScreen, RUN_DIR, signInAs, signInAsUser } from "./helpers";
+import { apiAs, checkpoint, dbCount, findSeedEvidence, openScreen, RUN_DIR, signInAs, signInAsUser } from "./helpers";
 
 const READ_ONLY = ["Auditor", "Executive"];
 
@@ -38,8 +38,10 @@ test("FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and
   });
 
 test("FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review", async ({ page }) => {
-  const pdf = path.join(RUN_DIR, "inputs", "evidence", "Model_Governance", "Credit_Risk", "M-0012",
-                        "Governance", "TOR.pdf");
+  // The seed lays evidence out under the model's *business line*, so the path cannot be guessed
+  // from the model id: M-0012 is Commercial Banking, not Credit Risk (harness defect H-06). Found
+  // rather than hard-coded, so a reseed that moves a model does not silently break this.
+  const pdf = findSeedEvidence("M-0012", "Governance", "TOR.pdf");
 
   for (const [userId, role] of [["U-021", "Model Developer"], ["U-031", "Data Owner"]] as const) {
     await signInAsUser(page, userId, role);
