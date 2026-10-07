@@ -3230,6 +3230,11 @@ Deactivating a user, or removing their role, invalidates an already-issued token
 ### SEC-06
 A missing or malformed token is refused as unauthenticated.
 
+### SEC-07
+Signing in, or switching role, takes effect without a page reload: the next authorization decision,
+the displayed navigation and every governance figure on screen are those of the new identity, and no
+value fetched under the previous identity is presented under the new one.
+
 ## 76A.10 Audit trail (AUD)
 
 ### AUD-01
@@ -3270,6 +3275,20 @@ Reset is refused for a role without the required permission.
 
 ### GEN-03
 The demo files with deliberate errors produce the documented valid/rejected split.
+
+### GEN-04
+A reset started while another is still running is refused with a conflict that names the batch in
+flight. Nothing is deleted and no second job is submitted. The refusal comes after the permission
+check, so an unauthorised caller is still refused for lacking the permission (GEN-02) rather than
+for the reset in progress.
+
+### GEN-05
+A reset exposes a progress signal that spans the whole operation — from the first delete to the last
+evidence file stored — and reports the reset finished only when a further reset would be accepted.
+The batch identifier returned when the reset starts is not that signal: a reset creates two batches
+and the first reaches a terminal status while the second is still loading evidence. A background job
+that fails marks its own batch Failed with the reason, so the signal cannot report a reset in
+progress for ever; a batch left non-terminal by a failed job can be cancelled through the API.
 
 ## 76A.13 Traceability to the superseded conditions
 
@@ -3315,10 +3334,16 @@ current exception is the range `GEN-01..GEN-03` in the `test_imports.py` module 
 test. What matters is whether the test asserts the criterion's expected result, which is a different
 and smaller number.
 
-Coverage at 2026-10-02 (`test-outcome-reviewer`): **69 of 115** criteria (§76A, §76D, §77, §78, §79)
-are *proven* — 69 of 85 once the 12 unbuilt monitoring criteria (§77), the 17 unbuilt regulatory
-criteria (§76D) and DOC-16 (Phase 5) are excluded. A further 13 have a test that passes without
-asserting the whole expected result, and 3 have no test at all.
+Coverage at the Gate 0 exit, 2026-10-07 (`test-outcome-reviewer`): **70 of 118** criteria (§76A,
+§76D, §77, §78, §79) are *proven* — 70 of 88 once the 12 unbuilt monitoring criteria (§77), the 17
+unbuilt regulatory criteria (§76D) and DOC-16 (Phase 5) are excluded. A further 12 have a test that
+passes without asserting the whole expected result, and 4 have no test at all.
+
+The 2026-10-02 figure quoted here was **68, not 69** — that report's own sub-count was off by one
+against its table. Gate 0's net movement is therefore **+2** (APR-04, SEC-05), not +1. The totals go
+115 → 118 with SEC-07, GEN-04 and GEN-05 (spec issue S7, below); the three are *not* counted as
+proven here, because the two reset criteria are only tagged from G0.23 and SEC-07 has no CI-gated
+test at all. These counts are superseded by the Gate 0 re-run.
 
 The §76D total is 17 from 2026-10-05: REG-15, REG-16 and REG-17 were added for the core Model Risk
 Report, which **D12** builds in Gate 1. REG-01 to REG-14 are deferred with the rest of Phase 2A, so
@@ -3331,6 +3356,16 @@ they are reported as *Not built (Phase 2A, deferred D12)* and never counted as f
 | INV-07 | Model version tracked independently of model ID | `model_version` rows are created and asserted incidentally (`versions[0]`), but no test drives two versions of one model ID. |
 | AUD-03 | Audit trail filters by user, model, entity, action, date, batch, document | Individual filters are used throughout the suite to *find* events; none asserts the filter contract itself, and the date range is never exercised. |
 | DOC-11 | A user can see batch progress | The progress store (`app/workers/runner.ProgressStore`) has no test. |
+| SEC-07 | A sign-in or role switch takes effect without a reload | Added 2026-10-07 for spec issue S7. There is no frontend test harness (plan G7.5), so the only guard is Playwright `FS-23`, which is outside CI. |
+
+**SEC-07, GEN-04 and GEN-05 were added on 2026-10-07** for spec issue **S7** (review finding CR-26):
+the concurrent-reset refusal, the reset progress signal and the role-switch identity refresh were all
+built and tested in Gate 0, but no criterion existed, so this table — which is driven by
+`grep -rn "<ID>" tests` — could not see them. GEN-04 is proven by the six tests G0.18 added
+(`tests/test_imports.py`); they carry the ID from G0.23 onwards. GEN-05's progress-signal half is
+proven there too; its **failed-job** half is what FT-05 found missing and G0.23 builds, which is why
+the criterion states it: a criterion that stopped at the happy path is exactly the gap that let the
+defect ship.
 
 ### Partly proven — a test exists but misses part of the expected result
 
