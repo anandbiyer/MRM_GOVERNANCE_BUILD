@@ -43,6 +43,11 @@ npm run build        # typecheck + build — the only lint/type gate in the repo
 npx playwright test
 npx playwright test --project=functional   # functional suite; the agent runs it against a separate test database
 
+# Build (inside Claude Code, from the repository root)
+/build-row G1.16                # build one plan activity end to end: failing test first, then the
+                                # code, both CI gates, any R1/R2 checkpoint, row updated, one commit
+/build-row G3.2-G3.4            # a range — still one row at a time, one commit per row
+
 # Review agents (inside Claude Code, from the repository root) — reports go to D_Reviews\
 # They run at four points only; see "When reviews run" below. Not per commit, not per activity.
 /review-build gate 1            # gate exit review (R3): the agents that gate's row names
@@ -281,6 +286,13 @@ Gate 2 is decisions only, so it has no review. At each exit the two static revie
 gate's own criteria, while the CI gates and the functional suite run in full — that catches regressions
 elsewhere without re-reviewing finished work line by line. The two testers start the app and reset the
 data, so they run one after the other, never together.
+
+### Branches
+
+Each gate is built on its own branch, `gate-<N>-<short-name>` (for example `gate-1-core-report`,
+`gate-3-monitoring`), created from `main`. It is merged to `main` only after a Ready
+`/review-build gate <N>`, which the hook enforces. `review-agents` is the Gate 0 branch, and it merges
+once G0.20 is Ready.
 
 ### Fixing review findings
 
