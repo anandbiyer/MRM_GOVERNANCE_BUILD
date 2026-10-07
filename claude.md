@@ -294,6 +294,10 @@ Each gate is built on its own branch, `gate-<N>-<short-name>` (for example `gate
 `/review-build gate <N>`, which the hook enforces. `review-agents` is the Gate 0 branch, and it merges
 once G0.20 is Ready.
 
+Exception (2026-10-06): `gate-1-core-report` was branched from `review-agents`, before Gate 0 merged,
+so new development could start. When `review-agents` merges to `main`, merge `main` into
+`gate-1-core-report` before its own gate review.
+
 ### Fixing review findings
 
 - A finding is fixed through its plan row, like any other activity.
