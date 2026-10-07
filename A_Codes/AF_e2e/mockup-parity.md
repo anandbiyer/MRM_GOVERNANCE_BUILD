@@ -89,6 +89,14 @@ Built today: 1, 2, 3, 4 and the core of 8. Items on any other phase are reported
 | MUP-33 | All | Theme colours, no drop shadows, no horizontal scroll at 1440×900 | any | 8 |
 | MUP-34 | All | Counts agree across Command Center, Operations Board and Model 360 | any | 8 |
 | MUP-35 | All | Actions not permitted for the role are hidden and refused by the API | Executive | 1 |
+| MUP-36 | Admin | Policy settings listed by category, editable by Admin, change audited | Admin | 1 |
+| MUP-37 | Audit Trail | Event list with filters: user, model, entity, action, batch, document, date range | Admin | 1 |
+| MUP-38 | Document Centre | Document register with search / filter, and a document's version history | Validator | 4 |
+
+MUP-36 to MUP-38 were added on 2026-10-07 (Gate 0 exit review): Admin and the Audit Trail are built
+screens (BRD §55.8, §55.9) that had no checklist item, and the Document Centre had an item for upload
+and completeness (MUP-25) but none for the register, search or version history (§55.6). IDs continue
+after MUP-35 and nothing is renumbered.
 
 ### Accepted differences from the mock-up
 
@@ -98,6 +106,8 @@ fixed in the app.
 | ID | Mock-up shows | App shows | BRD basis |
 |---|---|---|---|
 | MUP-01 | A KPI tile labelled "Open findings", valued as a count of findings | "**Models with open findings**", valued in models, with the findings total in the sub-line | §76A CC-01 — a tile must equal the count returned by its own drill-down, and this tile opens a list of models. Review finding CR-05 |
+| MUP-33 | A light theme under `prefers-color-scheme: light` as well as the dark one | Dark only; the `[data-theme="light"]` tokens exist in `app.css` but nothing sets the attribute | §52 — "Dark-first theme" is the requirement; an automatic light theme is not. The **dark** palettes are token-for-token identical, so the parity captures use `colorScheme: "dark"` on both sides |
+| MUP-37 | No Audit Trail screen — the mock-up shows `audit_event` only as a row count in its database panel | A full Audit Trail screen with filters and before/after values | §55.9 and §76A AUD-03 require the screen; the mock-up never had one |
 
 ### Phase numbers corrected from the original list
 

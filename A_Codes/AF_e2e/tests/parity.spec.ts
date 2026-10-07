@@ -510,6 +510,78 @@ item("MUP-35", "Actions not permitted are hidden and refused by the API", "1", a
   await expect(page.locator("body")).toContainText(/not permitted|forbidden|403/i);
 });
 
+// --- Screens added at the Gate 0 exit review (2026-10-07) -----------------------------------
+// Admin and the Audit Trail are built screens (BRD §55.8, §55.9) that had no checklist item, and
+// MUP-25 covered only the Document Centre's upload and completeness tabs.
+
+item("MUP-36", "Admin policy settings listed and editable", "1", async ({ page, isMockup }) => {
+  if (isMockup) {
+    // Mock-up rail step 1 "Configure policy" is the T12 policy settings screen.
+    await openMockupScreen(page, "policy");
+    await expect(page.locator("#stage")).toContainText(/polic/i);
+    return;
+  }
+  await signInAs(page, "Admin");
+  await openAppScreen(page, "Admin");
+  const policy = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: /Policy settings/ }) });
+  await expect(policy).toBeVisible();
+  await expect(policy.getByRole("columnheader", { name: "Key" })).toBeVisible();
+  await expect(policy.getByRole("columnheader", { name: "Value" })).toBeVisible();
+  // Admin holds policy:edit, so the panel announces that changes are audited rather than read-only.
+  await expect(policy).toContainText(/versioned and audited/i);
+  await expect(policy.locator("tbody tr").first()).toBeVisible();
+});
+
+item("MUP-37", "Audit Trail filters by user, model, entity, action, batch, document and date", "1",
+     async ({ page, isMockup }) => {
+  if (isMockup) {
+    // The mock-up has no Audit Trail screen; it reports audit_event as a governance table only.
+    // Recorded as an accepted difference in mockup-parity.md (§55.9, AUD-03).
+    await openMockupScreen(page, "overview");
+    await expect(page.locator("body")).toContainText(/audit/i);
+    return;
+  }
+  await signInAs(page, "Admin");
+  await openAppScreen(page, "Audit Trail");
+  for (const label of ["User", "Model", "Entity", "Action", "Batch", "Document", "From date", "To date"]) {
+    await expect(page.getByLabel(label, { exact: true }), `audit filter "${label}"`).toBeVisible();
+  }
+  const rows = page.locator("div.tablewrap tbody tr");
+  await expect(rows.first()).toBeVisible();
+  const before = await rows.count();
+  // A filter must actually narrow the list, not just exist.
+  await page.getByLabel("Action", { exact: true }).fill("reset");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect.poll(() => rows.count()).toBeLessThan(before);
+  await expect(page.locator("div.tablewrap tbody")).toContainText(/reset/i);
+});
+
+item("MUP-38", "Document register with search / filter and version history", "4", async ({ page, isMockup }) => {
+  if (isMockup) {
+    await openMockupScreen(page, "documents");
+    await expect(page.locator("#stage")).toContainText(/document/i);
+    return;
+  }
+  await signInAs(page, "Validator");
+  await openAppScreen(page, "Document Centre");
+  await page.getByRole("tab", { name: /^Register/ }).click();
+  const rows = page.locator("div.tablewrap tbody tr");
+  await expect(rows.first(), "the seeded evidence must be listed").toBeVisible();
+  const before = await rows.count();
+  expect(before, "the Register tab must list documents").toBeGreaterThan(0);
+  // Folder tree (§55.6): the folder hierarchy of the uploaded evidence is navigable.
+  await expect(page.locator(".doc-layout")).toBeVisible();
+  // Filtering must narrow the list, not merely exist.
+  await page.getByPlaceholder("Model (M-0012)").fill("M-0012");
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect.poll(() => rows.count()).toBeLessThan(before);
+  // Opening a document shows its immutable version history (§36, DOC-17). The row is clickable;
+  // its only <a> is the model link, which would navigate to Model 360 instead.
+  await rows.first().locator("td").first().click();
+  await expect(page.getByRole("heading", { name: /^Versions/ })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Version" })).toBeVisible();
+});
+
 /** Sign in as Validator and open a model page. */
 async function openAppModelAsValidator(page: Page, modelId = "M-0012"): Promise<void> {
   await signInAs(page, "Validator");

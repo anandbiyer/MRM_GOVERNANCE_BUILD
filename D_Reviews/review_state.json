@@ -1,5 +1,13 @@
 {
   "_comment": "Written by /review-checkpoint and /review-build. The skip rule reads it: a checkpoint whose scope has the same git write-tree, or a gate whose Ready review has the same head, is not re-run. The merge hook (.claude/hooks/review_gate.py) reads gates only.",
   "checkpoints": {},
-  "gates": {}
+  "gates": {
+    "0": {
+      "date": "2026-10-07",
+      "verdict": "Not ready",
+      "summary": "D_Reviews/20261007_summary.md",
+      "head": "f89ef6ada28ae7596f6c180ed35547c0a4d1344c",
+      "note": "1 Critical (FT-04, data loss on Reset to seed) and 6 High. All four agents ran; CI gates green. Gate 0's rows are complete and none claims an absent fix."
+    }
+  }
 }

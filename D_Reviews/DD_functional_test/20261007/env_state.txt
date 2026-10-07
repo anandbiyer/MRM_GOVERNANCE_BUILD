@@ -1,0 +1,24 @@
+== env/functional.db (main run, after FS-21)
+   model 257
+   document 2
+   document_version 2
+   import_batch 12
+   batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-002', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   batch ('B-20260930-003', 'documents', 'zip', 'Ready', 3, 0, None)
+   batch ('B-20260930-004', 'documents', 'zip', 'Ready', 3, 0, None)
+   batch ('B-20260930-005', 'structured', 'upload', 'Partially Completed', 1, 1, None)
+   batch ('B-20260930-006', 'structured', 'upload', 'Partially Completed', 1, 1, None)
+   batch ('B-20260930-007', 'structured', 'upload', 'Partially Completed', 1, 1, None)
+   batch ('B-20260930-008', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-009', 'documents', 'seed', 'Validating', 1116, 0, None)
+   batch ('B-20260930-010', 'documents', 'batch', 'Ready', 1, 0, None)
+   batch ('B-20260930-011', 'structured', 'upload', 'Completed', 1, 1, None)
+   batch ('B-20260930-012', 'documents', 'zip', 'Partially Completed', 3, 2, None)
+== env2/functional2.db (clean db, one API reset)
+   model 256
+   document 0
+   document_version 0
+   import_batch 2
+   batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-002', 'documents', 'seed', 'Validating', 1116, 0, None)
