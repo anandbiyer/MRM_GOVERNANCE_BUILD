@@ -1,0 +1,39 @@
+{
+  "clientWidth": 538,
+  "scrollWidth": 698,
+  "pageScrolls": false,
+  "headers": [
+    {
+      "text": "Model",
+      "right": 944
+    },
+    {
+      "text": "Tier",
+      "right": 1023
+    },
+    {
+      "text": "Owner",
+      "right": 1084
+    },
+    {
+      "text": "Last validation",
+      "right": 1203
+    },
+    {
+      "text": "Due",
+      "right": 1295
+    },
+    {
+      "text": "Days",
+      "right": 1367
+    },
+    {
+      "text": "Outcome",
+      "right": 1463
+    },
+    {
+      "text": "Status",
+      "right": 1554
+    }
+  ]
+}

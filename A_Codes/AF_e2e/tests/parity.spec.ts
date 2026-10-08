@@ -5,6 +5,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   barListPanel,
+  cellByHeader,
+  columnIndex,
   hasHorizontalScroll,
   openAppScreen,
   openMockupDashTab,
@@ -100,7 +102,30 @@ item("MUP-04", "Revalidation timeline by category", "8", async ({ page, isMockup
     return;
   }
   await signInAs(page, "Executive");
-  await expect(page.getByText(/Revalidation/i).first()).toBeVisible();
+  const timeline = page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: /Revalidation timeline/ }) });
+  await expect(timeline).toBeVisible();
+  // BRD §10's list, which BL.24 completed (review finding MP-17): Owner, Last validation and
+  // Latest outcome were on no revalidation view at all before 2026-10-08, so "whose overdue
+  // models are these?" could not be answered from any list. Asserted by header so the next
+  // inserted column cannot slide a positional locator one place along and still pass.
+  for (const header of ["Model", "Tier", "Owner", "Last validation", "Due", "Days", "Outcome",
+                        "Status"]) {
+    await expect(timeline.locator("thead th", { hasText: new RegExp(`^${header}$`) }),
+      `revalidation timeline should carry §10's "${header}" column`).toHaveCount(1);
+  }
+  // The three new cells must hold that row's own values, not an em-dash fallback that would let a
+  // column exist while saying nothing. Row 0 of the seed (M-0188) has all three.
+  const first = timeline.locator("tbody tr").first();
+  const owner = await cellByHeader(timeline, 0, "Owner");
+  expect(owner, "Owner must be a user ID, not a placeholder").toMatch(/^U-\d{3}$/);
+  expect(await cellByHeader(timeline, 0, "Last validation"),
+    "Last validation must be a formatted date, never raw ISO or a placeholder")
+    .toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+  expect((await cellByHeader(timeline, 0, "Outcome")).length,
+    "Latest outcome must be populated").toBeGreaterThan(1);
+  await expect(first.locator("td").first()).toContainText(/M-\d{4}/);
+  // The frequency column and the days-to-due dot plot remain accepted differences (mockup-parity.md).
 });
 
 item("MUP-05", "Regulatory / audit models and issues chart", "8", async ({ page, isMockup }) => {
@@ -436,19 +461,42 @@ item("MUP-29", "Governance report generated and downloadable", "2A-core", async 
   }
   await signInAs(page, "Executive");
   await openAppScreen(page, "Model Risk Report");
-  // An Executive may read and download but not generate (REQ-REG-10A).
+  // An Executive may read and download but not generate (REQ-REG-10A permissions).
   await expect(page.getByRole("button", { name: "Generate report" })).toHaveCount(0);
+  await expect(page.getByText(/needs the report:generate permission/)).toBeVisible();
   await expect(page.getByRole("button", { name: "PDF" }).first()).toBeVisible();
+  // Downloadable: the mock-up offers "Download report (.html)"; REQ-REG-10A requires a PDF, so
+  // the format is an accepted difference and what is checked here is that bytes actually arrive.
+  const download = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "PDF" }).first().click(),
+  ]).then(([d]) => d);
+  expect(await download.suggestedFilename(), "a report PDF should be offered by report ID")
+    .toMatch(/^MRR-\d{8}-\d{3}\.pdf$/);
 });
 
-item("MUP-30", "MRC report pack (model risk report, REQ-REG-10; partial after the core report)", "2A", async ({ page, isMockup }) => {
+item("MUP-30", "MRC report pack (model risk report, REQ-REG-10; partial after the core report)",
+     "2A-core", async ({ page, isMockup }) => {
   if (isMockup) {
     await openMockupScreen(page, "report");
     await expect(page.locator("#repDoc")).toContainText(/MRC|governance|model risk/i);
     return;
   }
+  // Partial by decision, not by defect: D12 defers the §12A sections (inventory class, vendor
+  // models, overlays and use exceptions, dependency concentration, effective challenges), Phase 7
+  // owns the data-quality section and Phase 9 the commentary. What the core report (REQ-REG-10A)
+  // does deliver is asserted here, so the pack cannot quietly lose a section.
   await signInAs(page, "Executive");
-  await expect(page.getByRole("link", { name: /Report/i })).toBeVisible();
+  await openAppScreen(page, "Model Risk Report");
+  await page.getByRole("button", { name: "Open" }).first().click();
+  for (const heading of [/^Inventory —/, /^Validation$/, /^Findings$/, /^Approvals$/,
+                         /^Governance score —/, /^Documentation —/,
+                         /^Changes since the previous report$/]) {
+    await expect(page.getByRole("heading", { name: heading }),
+      `core report section ${heading}`).toHaveCount(1);
+  }
+  // The framework label is a policy value (REQ-REG-10A header), never a literal in code.
+  await expect(page.getByRole("heading", { name: /SR 26-2|Bulletin/ })).toBeVisible();
 });
 
 // --- Copilot --------------------------------------------------------------------------------
@@ -477,18 +525,35 @@ item("MUP-32", "Suggested questions", "9", async ({ page, isMockup }) => {
 // --- Cross-cutting --------------------------------------------------------------------------
 
 item("MUP-33", "Theme, no drop shadows, no horizontal scroll at 1440x900", "8", async ({ page, isMockup }) => {
+  const noShadows = async (where: string) => {
+    const shadows = await page.evaluate(() =>
+      [...document.querySelectorAll("*")]
+        .map((el) => getComputedStyle(el).boxShadow)
+        .filter((s) => s && s !== "none").length,
+    );
+    expect(shadows, `the visual language forbids drop shadows (${where})`).toBe(0);
+    expect(await hasHorizontalScroll(page),
+      `page must not scroll horizontally at 1440x900 (${where})`).toBe(false);
+  };
   if (isMockup) {
     await openMockupDashTab(page, "cc");
-  } else {
-    await signInAs(page, "Executive");
+    await noShadows("mock-up Command Center");
+    await openMockupScreen(page, "report");
+    await noShadows("mock-up report pack");
+    return;
   }
-  expect(await hasHorizontalScroll(page), "page must not scroll horizontally at 1440x900").toBe(false);
-  const shadows = await page.evaluate(() =>
-    [...document.querySelectorAll("*")]
-      .map((el) => getComputedStyle(el).boxShadow)
-      .filter((s) => s && s !== "none").length,
-  );
-  expect(shadows, "the visual language forbids drop shadows").toBe(0);
+  // Swept over every built screen an Executive can reach, not only the Command Center. A wide
+  // table inside `.tablewrap` (overflow-x: auto) scrolls within its own panel by design and is
+  // not page overflow — see the Gate 1 report's adjudication of FT-11.
+  await signInAs(page, "Executive");
+  await noShadows("Command Center");
+  for (const screen of ["Operations Board", "Document Centre", "Model Risk Report"]) {
+    await openAppScreen(page, screen);
+    await noShadows(screen);
+  }
+  await page.goto("/models/M-0012");
+  await expect(page.getByText("M-0012").first()).toBeVisible();
+  await noShadows("Model 360");
 });
 
 item("MUP-34", "Counts agree across Command Center, Operations Board and Model 360", "8", async ({ page, isMockup }) => {
@@ -530,7 +595,11 @@ item("MUP-34", "Counts agree across Command Center, Operations Board and Model 3
   const row = timeline.locator("tbody tr").first();
   const modelId = (await row.locator("td").first().innerText()).match(/M-\d{4}/)?.[0];
   expect(modelId, "the revalidation timeline must list a model").toMatch(/^M-\d{4}$/);
-  const dueOnCommandCenter = (await row.locator("td").nth(2).innerText()).trim();
+  // Found by header, not counted: this read `.nth(2)` until BL.24 inserted Owner and Last
+  // validation ahead of Due, at which point it compared a user ID against a due date. The same
+  // trap caught FS-26. `columnIndex` asks the DOM.
+  const dueOnCommandCenter = (await row.locator("td")
+    .nth(await columnIndex(timeline, "Due")).innerText()).trim();
   // Not a raw ISO string any more, and not a different day from Model 360's own answer.
   expect(dueOnCommandCenter, "the timeline must format the due date, not print raw ISO")
     .not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -633,3 +702,60 @@ async function openAppModelAsValidator(page: Page, modelId = "M-0012"): Promise<
   await signInAs(page, "Validator");
   await openAppModel(page, modelId);
 }
+
+// --- Screens added at the Gate 1 exit review (2026-10-08) -----------------------------------
+// The Model Risk Report (/reports/model-risk, BRD §55.10) arrived with G1.17. MUP-29 covered
+// "generated and downloadable" and MUP-30 the pack's sections, but two behaviours the screen
+// offers had no item: the stored history, and generation itself by a role that may.
+
+item("MUP-39", "Earlier reports listed, and a stored report reopens as it was", "2A-core",
+     async ({ page, isMockup }) => {
+  if (isMockup) {
+    // The mock-up regenerates its pack each time and keeps no history — recorded as the accepted
+    // difference, since REQ-REG-10A requires stored reports (REG-17) and the mock-up has none.
+    await openMockupScreen(page, "report");
+    await expect(page.locator("#repDoc")).toBeVisible();
+    return;
+  }
+  await signInAs(page, "Executive");
+  await openAppScreen(page, "Model Risk Report");
+  const list = page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: "Earlier reports" }) });
+  await expect(list, "the screen must list the stored reports (REG-17)").toBeVisible();
+  for (const header of ["Report", "Business date", "Generated", "By"]) {
+    await expect(list.locator("thead th", { hasText: new RegExp(`^${header}$`) })).toHaveCount(1);
+  }
+  const rows = list.locator("tbody tr");
+  expect(await rows.count(), "the seed stores a previous report").toBeGreaterThan(0);
+  await rows.first().getByRole("button", { name: "Open" }).click();
+  // Reopening renders the stored content, so the report ID on screen is the one that was opened.
+  const reportId = (await cellByHeader(list, 0, "Report")).trim();
+  await expect(page.getByText(reportId).nth(1)).toBeVisible();
+  await expect(rows.first().getByRole("button", { name: "Showing" })).toBeVisible();
+});
+
+item("MUP-40", "A permitted role generates a report, and it joins the stored history", "2A-core",
+     async ({ page, isMockup }) => {
+  if (isMockup) {
+    await openMockupScreen(page, "report");
+    // The mock-up's generation is a five-step progress list (`#gs`) which it then *removes*, so
+    // the evidence that generation ran is the finished pack and its provenance line.
+    await expect(page.locator("#gs")).toHaveCount(0);
+    await expect(page.locator("#repDoc")).toContainText(/Generated from the governance database/i);
+    return;
+  }
+  // REPORT_GENERATE is Admin, MRC Member and Validator (REQ-REG-10A).
+  await signInAs(page, "Validator");
+  await openAppScreen(page, "Model Risk Report");
+  const list = page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: "Earlier reports" }) });
+  const before = await list.locator("tbody tr").count();
+  await page.getByRole("button", { name: "Generate report" }).click();
+  // The generated report is shown without a second fetch, and the stored list grows by one.
+  await expect(page.getByRole("heading", { name: /^Inventory —/ })).toBeVisible();
+  await expect.poll(() => list.locator("tbody tr").count(),
+    { message: "a generated report must join the stored history" })
+    .toBe(before + 1);
+  // Header fields REQ-REG-10A names: business date, generated by, generated at, framework label.
+  await expect(page.getByText(/generated by U-\d{3} at /)).toBeVisible();
+});
