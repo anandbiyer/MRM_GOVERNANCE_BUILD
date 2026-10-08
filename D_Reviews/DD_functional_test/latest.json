@@ -6,7 +6,7 @@
       "test",
       "--project=functional",
       "-g",
-      "FS-23|FS-26|FS-27"
+      "FS-18|FS-19|FS-26|FS-27|FS-28|FS-29"
     ],
     "configFile": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\playwright.config.ts",
     "rootDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
@@ -111,7 +111,128 @@
       "file": "../functional/dashboards.spec.ts",
       "column": 0,
       "line": 0,
-      "specs": [],
+      "specs": [
+        {
+          "title": "FS-18 CC-01 CC-02 every tile and bar drills to a list of its own size",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4266,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T10:15:24.336Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\dashboards-FS-18-CC-01-CC--5bca2-s-to-a-list-of-its-own-size-functional\\test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "86a5e4e303644cf814e4-3e42f742743880e10da0",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 6,
+          "column": 5
+        },
+        {
+          "title": "FS-19 CC-04 every insight links to its source record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1717,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T10:15:29.598Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\dashboards-FS-19-CC-04-eve-b5dd4--links-to-its-source-record-functional\\test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "86a5e4e303644cf814e4-248aa04e46afb4047de2",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 61,
+          "column": 5
+        },
+        {
+          "title": "FS-28 CC-03 the revalidation timeline shows §10's full list, owner included",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1719,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T10:15:33.281Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\dashboards-FS-28-CC-03-the-05d8f--s-full-list-owner-included-functional\\test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "86a5e4e303644cf814e4-d1a5fd000ec4a85881ac",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 163,
+          "column": 5
+        }
+      ],
       "suites": [
         {
           "title": "FS-26 date-only rendering",
@@ -135,12 +256,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3804,
+                      "duration": 1954,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-08T02:17:24.136Z",
+                      "startTime": "2026-10-08T10:15:31.321Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -160,6 +281,54 @@
               "column": 7
             }
           ]
+        },
+        {
+          "title": "FS-29 one date per event",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 226,
+          "column": 6,
+          "specs": [
+            {
+              "title": "§67 a timestamp renders the day of the instant the API sent",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "functional",
+                  "projectName": "functional",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1956,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-08T10:15:35.006Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\dashboards-FS-29-one-date--97c4d-of-the-instant-the-API-sent-functional\\test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "86a5e4e303644cf814e4-4a3702740c4e00e6d693",
+              "file": "../functional/dashboards.spec.ts",
+              "line": 229,
+              "column": 7
+            }
+          ]
         }
       ]
     },
@@ -169,46 +338,6 @@
       "column": 0,
       "line": 0,
       "specs": [
-        {
-          "title": "FS-23 SEC-05 re-importing T01 without a role invalidates that role's session",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 2804,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-08T02:17:28.932Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\security-FS-23-SEC-05-re-i-8c482-lidates-that-role-s-session-functional\\test-finished-1.png"
-                    }
-                  ]
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "a7e9410bcc1ef00e9656-59f091435a73327d1dd2",
-          "file": "../functional/security.spec.ts",
-          "line": 96,
-          "column": 5
-        },
         {
           "title": "FS-27 SEC-07 a role switch takes effect without a page reload",
           "ok": true,
@@ -225,12 +354,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1641,
+                  "duration": 1750,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T02:17:31.743Z",
+                  "startTime": "2026-10-08T10:15:36.970Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -254,9 +383,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-08T02:17:23.387Z",
-    "duration": 10081.397,
-    "expected": 3,
+    "startTime": "2026-10-08T10:15:23.599Z",
+    "duration": 15216.669,
+    "expected": 6,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
