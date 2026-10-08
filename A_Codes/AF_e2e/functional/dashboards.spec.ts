@@ -160,7 +160,8 @@ test.describe("FS-26 date-only rendering", () => {
 });
 
 
-test("FS-28 CC-03 the revalidation timeline shows §10's full list, owner included", async ({ page }) => {
+test("FS-28 CC-03 §10 the revalidation timeline is the Revalidation column, with §10's full list",
+     async ({ page }) => {
   // BRD §10 requires the revalidation view to display next due date, days remaining, days overdue,
   // risk tier, **owner**, **last validation** and **latest outcome**. Three of those seven were on
   // no revalidation view at all — not here, not behind the Operations Board's revalidation filter —
@@ -179,6 +180,19 @@ test("FS-28 CC-03 the revalidation timeline shows §10's full list, owner includ
   };
   const rows = summary.revalidation_timeline;
   expect(rows.length, "the seed must have models in the Revalidation column").toBeGreaterThan(0);
+
+  // CC-03 itself: "the revalidation timeline contains exactly the models in the Revalidation
+  // column". The scenario carried the CC-03 tag while asserting only §10's columns, so `grep CC-03`
+  // reported coverage it did not provide (review finding TR-41's neighbour, TR-42). Set equality
+  // against the displayed stage — which is LIF-02's computed column, not the raw lifecycle phase —
+  // is what the criterion says, so it is asserted here rather than only in the backend tests.
+  const all = (await apiAs(page, "/api/models")).body as {
+    model_id: string; state: { displayed_column: string | null };
+  }[];
+  const inColumn = new Set(all.filter((m) => m.state.displayed_column === "Revalidation")
+                              .map((m) => m.model_id));
+  expect(new Set(rows.map((r) => r.model_id)),
+         "CC-03: the timeline is exactly the Revalidation column").toEqual(inColumn);
 
   await openScreen(page, "Command Center");
   const panel = page.locator("section.panel", {
@@ -258,32 +272,50 @@ test.describe("FS-29 one date per event", () => {
 
     // Both panels live behind their own tab, so each is opened before it is read.
     await page.getByRole("tab", { name: "Score" }).click();
-    await expect(page.getByRole("heading", { name: /Governance score/ })).toBeVisible();
-    expect(await page.locator("main").innerText(),
-           "the Score tab must show the day of its own calculated_at")
+    const scoreHeading = page.getByRole("heading", { name: /Governance score/ });
+    await expect(scoreHeading).toBeVisible();
+    // Scoped to the heading that renders `calculated_at`, for the reason given below (TR-41).
+    const calculated = await scoreHeading.innerText();
+    expect(calculated, "the Score tab must show the day of its own calculated_at")
       .toContain(await localDay(model.score.calculated_at));
+    expect(calculated, "and a time, since calculated_at is an instant").toMatch(HAS_TIME);
 
     // The phase history is on Overview (the lifecycle list), not on the History tab — which is the
     // *audit* trail. MP-15 compared the two, so the scenario reads the one that carries changed_at.
+    //
+    // Both time-of-day assertions below are scoped to the panel that renders the field, not to
+    // `main`. Scoped to `main` they could be satisfied by a *neighbour's* timestamp and so could
+    // pass while the field under test went through the date-only formatter (review finding TR-41):
+    // the Overview tab also renders tier overrides with `formatDateTime`
+    // (`Model360Page.tsx:85`) — which FS-08 creates on this very model, M-0012 — and the History
+    // tab always renders the Versions list the same way (`:187`), so the audit half of the check
+    // was vacuous on every run, not only after FS-08.
     await page.getByRole("tab", { name: "Overview" }).click();
-    await expect(page.getByText("→").first()).toBeVisible();
-    const overview = await page.locator("main").innerText();
-    expect(overview, "the lifecycle history must show the day of its own changed_at")
+    const lifecycle = page.locator("section.panel", {
+      has: page.getByRole("heading", { name: "Lifecycle" }),
+    });
+    const lifecycleEntries = lifecycle.locator("ul.checklist > li");
+    await expect(lifecycleEntries.first()).toBeVisible();
+    const lifecycleText = await lifecycleEntries.first().innerText();
+    expect(lifecycleText, "the lifecycle history must show the day of its own changed_at")
       .toContain(await localDay(model.phase_history[0].changed_at));
     // `changed_at` is an instant, so it must come through `formatDateTime` and carry a time.
     // Passing it to `formatDate` — which is what MP-15 found — drops the time silently.
-    expect(overview, "a lifecycle entry must show a time, not just a date").toMatch(HAS_TIME);
+    expect(lifecycleText, "a lifecycle entry must show a time, not just a date").toMatch(HAS_TIME);
 
     // And the audit trail on the History tab, which is the other half of the disagreement.
     const audit = (await apiAs(page, "/api/audit?model_id=M-0012")).body as { occurred_at: string }[];
     expect(audit.length, "M-0012 must have audit events").toBeGreaterThan(0);
     expect(audit[0].occurred_at, "audit occurred_at").toMatch(/(Z|[+-]\d\d:\d\d)$/);
     await page.getByRole("tab", { name: "History" }).click();
-    await expect(page.getByRole("heading", { name: /History|Audit/ }).first()).toBeVisible();
-    const historyTab = await page.locator("main").innerText();
-    expect(historyTab, "the History tab must show the day of its own occurred_at")
+    const auditPanel = page.locator("section.panel", {
+      has: page.getByRole("heading", { name: "Audit history" }),
+    });
+    await expect(auditPanel.locator("tbody tr").first()).toBeVisible();
+    const whenCell = await auditPanel.locator("tbody tr").first().locator("td").first().innerText();
+    expect(whenCell, "the audit table must show the day of its own occurred_at")
       .toContain(await localDay(audit[0].occurred_at));
-    expect(historyTab, "an audit entry must show a time, not just a date").toMatch(HAS_TIME);
+    expect(whenCell, "an audit entry must show a time, not just a date").toMatch(HAS_TIME);
 
     await checkpoint(page, "FS-29_one_date_per_event");
   });

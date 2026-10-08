@@ -225,7 +225,11 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
   await checkpoint(page, "FS-21_after_two_resets");
   expect(second, "GEN-01: a reset at the same business date is deterministic").toEqual(first);
   expect(first.models).toBe(256);
-  expect(first.policy).toBe(70);
+  // Pinned on purpose: GEN-01's claim is the *documented* distribution, so this number has to be
+  // edited deliberately when the bootstrap gains a setting rather than read from the database it is
+  // checking. Gate 1 added `regulatory_framework` and its companion, taking it from 70 to 72
+  // (harness defect H-20; `functional-scenarios.md` line 2 carries the same figure).
+  expect(first.policy).toBe(72);
   expect(first.documents, "FT-04: a reset must reload the evidence, not just delete it")
     .toBeGreaterThan(1000);
 });
