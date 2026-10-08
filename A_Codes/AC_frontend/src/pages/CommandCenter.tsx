@@ -14,7 +14,9 @@ interface Summary {
   calculated_at: string;
   tiles: Record<string, number | null>;
   distributions: Record<string, DistItem[]>;
-  revalidation_timeline: { model_id: string; model_name: string; tier: string; next_due: string | null; days_to_due: number | null; status: string | null; latest_decision: string | null }[];
+  revalidation_timeline: { model_id: string; model_name: string; tier: string; owner_id: string | null;
+    next_due: string | null; days_to_due: number | null; status: string | null;
+    last_validation_date: string | null; latest_decision: string | null }[];
   insights: Insight[];
   insight_count: number;
   pending: Record<string, string>;
@@ -173,14 +175,23 @@ export function CommandCenter() {
           {d.revalidation_timeline.length === 0 ? <p className="note">No models are due for revalidation.</p> : (
             <div className="tablewrap scroll">
               <table>
-                <thead><tr><th>Model</th><th>Tier</th><th>Due</th><th>Days</th><th>Status</th></tr></thead>
+                {/* BRD §10's full list: next due, days, tier, owner, last validation, latest
+                    outcome. Owner, Last validation and Outcome were on no revalidation view at all
+                    until 2026-10-08 — only on Model 360, one model at a time — so "show me this
+                    owner's models due for revalidation" could not be answered from any list
+                    (MP-17, BL.24). The API had returned all three on every row all along. */}
+                <thead><tr><th>Model</th><th>Tier</th><th>Owner</th><th>Last validation</th>
+                  <th>Due</th><th>Days</th><th>Outcome</th><th>Status</th></tr></thead>
                 <tbody>
                   {d.revalidation_timeline.map((r) => (
                     <tr key={r.model_id}>
                       <td><Link className="mono" to={`/models/${r.model_id}`}>{r.model_id}</Link> {r.model_name}</td>
                       <td><Pill value={r.tier} /></td>
+                      <td className="mono">{r.owner_id ?? "—"}</td>
+                      <td className="mono">{formatDate(r.last_validation_date)}</td>
                       <td className="mono">{formatDate(r.next_due)}</td>
                       <td><DaysToDue days={r.days_to_due} /></td>
+                      <td>{r.latest_decision ? <Pill value={r.latest_decision} /> : "—"}</td>
                       <td><Pill value={r.status} /></td>
                     </tr>
                   ))}

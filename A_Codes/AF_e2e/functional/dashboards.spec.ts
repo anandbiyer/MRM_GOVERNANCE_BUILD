@@ -123,9 +123,17 @@ test.describe("FS-26 date-only rendering", () => {
     // so this compares what a user sees, not what the API returns twice.
     const row = summary.revalidation_timeline.find((r) => r.next_due);
     expect(row, "the seed must have at least one model with a due date").toBeTruthy();
-    const timelineCell = page.locator("section.panel", { has: page.getByRole("heading", { name: /Revalidation timeline/ }) })
+    // The column is found by its header, not by index. This read `.nth(2)` until BL.24 inserted
+    // Owner and Last validation ahead of Due, and a positional locator then silently compared the
+    // wrong cell — it failed loudly here, but only by luck of the values differing.
+    const timeline = page.locator("section.panel",
+      { has: page.getByRole("heading", { name: /Revalidation timeline/ }) });
+    const dueHeader = timeline.getByRole("columnheader", { name: "Due", exact: true });
+    await expect(dueHeader, "the timeline must have a Due column").toHaveCount(1);
+    const dueColumn = await dueHeader.evaluate((el) => (el as HTMLTableCellElement).cellIndex);
+    const timelineCell = timeline
       .locator("tbody tr", { has: page.getByRole("link", { name: row!.model_id, exact: true }) })
-      .locator("td").nth(2);
+      .locator("td").nth(dueColumn);
     const onTimeline = (await timelineCell.innerText()).trim();
     expect(parts(onTimeline), `timeline due "${onTimeline}" must be ${row!.next_due}`)
       .toEqual(isoParts(row!.next_due!));
@@ -149,4 +157,55 @@ test.describe("FS-26 date-only rendering", () => {
     expect(parts(lastVal), `last validation "${lastVal}" must be ${detail.model.last_validation_date}`)
       .toEqual(isoParts(detail.model.last_validation_date!));
   });
+});
+
+
+test("FS-28 CC-03 the revalidation timeline shows §10's full list, owner included", async ({ page }) => {
+  // BRD §10 requires the revalidation view to display next due date, days remaining, days overdue,
+  // risk tier, **owner**, **last validation** and **latest outcome**. Three of those seven were on
+  // no revalidation view at all — not here, not behind the Operations Board's revalidation filter —
+  // only on Model 360, one model at a time, so "show me A. Williams' models due for revalidation"
+  // could not be answered from any list (review finding MP-17, plan BL.24).
+  //
+  // `GET /api/dashboard/summary` has returned `owner_id`, `last_validation_date` and
+  // `latest_decision` on every timeline row all along; the screen discarded them.
+  await signInAs(page, "Executive");
+  const summary = (await apiAs(page, "/api/dashboard/summary")).body as {
+    revalidation_timeline: {
+      model_id: string; tier: string; owner_id: string | null;
+      next_due: string | null; days_to_due: number | null; status: string | null;
+      last_validation_date: string | null; latest_decision: string | null;
+    }[];
+  };
+  const rows = summary.revalidation_timeline;
+  expect(rows.length, "the seed must have models in the Revalidation column").toBeGreaterThan(0);
+
+  await openScreen(page, "Command Center");
+  const panel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: /Revalidation timeline/ }),
+  });
+
+  // Every column §10 names is present as a header.
+  for (const header of ["Model", "Tier", "Owner", "Last validation", "Due", "Days", "Outcome", "Status"]) {
+    await expect(panel.getByRole("columnheader", { name: new RegExp(`^${header}$`, "i") }),
+                 `§10 column "${header}"`).toHaveCount(1);
+  }
+
+  // And the values are that model's own, not a neighbour's. Checked on a row with all three present,
+  // so an empty-cell fallback cannot pass for a value.
+  const row = rows.find((r) => r.owner_id && r.last_validation_date && r.latest_decision);
+  expect(row, "the seed must have a timeline row with owner, last validation and outcome").toBeTruthy();
+  const cells = panel.locator("tbody tr", {
+    has: page.getByRole("link", { name: row!.model_id, exact: true }),
+  });
+  await expect(cells).toHaveCount(1);
+  const text = await cells.innerText();
+  expect(text, `owner of ${row!.model_id}`).toContain(row!.owner_id!);
+  expect(text, `latest outcome of ${row!.model_id}`).toContain(row!.latest_decision!);
+  // Date-only, so it must go through the formatter rather than printing ISO (G0.24).
+  const [y, m, d] = row!.last_validation_date!.split("-").map(Number);
+  const shown = new Date(y, m - 1, d).toLocaleDateString();
+  expect(text, `last validation of ${row!.model_id} as ${shown}`).toContain(shown);
+
+  await checkpoint(page, "FS-28_revalidation_timeline");
 });
