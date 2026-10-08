@@ -4,8 +4,8 @@
       "C:\\Program Files\\nodejs\\node.exe",
       "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\node_modules\\@playwright\\test\\cli.js",
       "test",
-      "--project=functional",
-      "--list"
+      "--project=mockup",
+      "--project=app"
     ],
     "configFile": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\playwright.config.ts",
     "rootDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
@@ -18,14 +18,18 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "projects": [
       {
         "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "mockup",
         "name": "mockup",
         "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
@@ -39,7 +43,9 @@
         "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "app",
         "name": "app",
         "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
@@ -53,7 +59,9 @@
         "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
         "repeatEach": 1,
         "retries": 1,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "functional",
         "name": "functional",
         "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/functional",
@@ -98,13 +106,13 @@
   },
   "suites": [
     {
-      "title": "..\\functional\\audit.spec.ts",
-      "file": "../functional/audit.spec.ts",
+      "title": "parity.spec.ts",
+      "file": "parity.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "FS-20 AUD-03 the audit trail filters by each documented dimension",
+          "title": "MUP-01 Command Center KPI tiles",
           "ok": true,
           "tags": [],
           "tests": [
@@ -112,19 +120,33 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3276,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:00.628Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "45efdff6a4d2e1f7e786-2b151945cbba8b5374e2",
-          "file": "../functional/audit.spec.ts",
-          "line": 5,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-75defd93619111abad42",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-24 AUD-01 refused writes leave no audit event; a permitted write adds exactly one",
+          "title": "MUP-02 Command Center donuts by tier and lifecycle phase",
           "ok": true,
           "tags": [],
           "tests": [
@@ -132,47 +154,33 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1300,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:04.862Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "45efdff6a4d2e1f7e786-c1e6e9bd97377d878a64",
-          "file": "../functional/audit.spec.ts",
-          "line": 51,
-          "column": 5
-        }
-      ]
-    },
-    {
-      "title": "..\\functional\\dashboards.spec.ts",
-      "file": "../functional/dashboards.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [
-        {
-          "title": "FS-18 CC-01 CC-02 every tile and bar drills to a list of its own size",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "86a5e4e303644cf814e4-3e42f742743880e10da0",
-          "file": "../functional/dashboards.spec.ts",
-          "line": 6,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-d271e7627aed65231588",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-19 CC-04 every insight links to its source record",
+          "title": "MUP-03 Lifecycle pipeline strip with click-through",
           "ok": true,
           "tags": [],
           "tests": [
@@ -180,19 +188,1801 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1310,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:06.173Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "86a5e4e303644cf814e4-248aa04e46afb4047de2",
-          "file": "../functional/dashboards.spec.ts",
-          "line": 61,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-ca86f9ca179a5bc7c418",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-34 Copilot answers cite records from the app",
+          "title": "MUP-04 Revalidation timeline by category",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1289,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:07.488Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-de6e37ee35692f4eaffe",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-05 Regulatory / audit models and issues chart",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1298,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:08.788Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-b4267b3dd84605992adf",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-06 Insights panel generated from rules",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1307,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:10.092Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-fdc8fe15d860e6ededad",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-07 Operations Board filters update counts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1348,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:11.405Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-3ff0e73affb8ce6bc9d2",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-08 Board columns per lifecycle phase with model cards",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1330,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:12.758Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-3ad1e27e8e3d99ac2f5d",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-09 Table view sortable, row click opens Model 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1423,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:14.095Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-c04925fec3c75e2c3e37",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-10 Model 360 header fields",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1443,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:15.523Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-5937a84a2b7e4a792ff0",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-11 Status chips and overdue badge",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1411,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:16.972Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-a9a2825c11a16fbd0318",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-12 Segregation-of-duties banner",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1478,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:18.389Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-7346246be81751af7f6f",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-13 Lifecycle stepper with current phase",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1446,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:19.873Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-12223898a09f35645293",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-14 Approval history and MRC decisions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1409,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:21.324Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-a6195526b35670045cf7",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-15 Validation history with notes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1416,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:22.738Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-fa22da92afd036a3fdad",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-16 Findings list with severity, status, due date",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1542,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:24.159Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-763b4b6aebad62abf6b6",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-17 Score breakdown by component",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1459,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:25.708Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-b109fcf7932dacc158c2",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-18 Backtesting grid and ROC / performance chart",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1291,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:27.175Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-a49a0bb7065048584094",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-19 Monitoring KPIs with thresholds and Pass/Warn/Fail",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1240,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:28.472Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-d0a48fd643054e34cc74",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-20 Linked CDEs on Model 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1265,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:29.717Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-2b0eed763571794b8422",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-21 Empty state for a model with no history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1463,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:30.988Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-35893c048c2057ffd9f6",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-22 Template download for T01-T18",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1254,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:32.457Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-b0ae9d9e7062d290f2be",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-23 T02 demo preview: 4 loaded, 1 rejected, message names field and row",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1469,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:33.718Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-6ec82c5121d55d7059ba",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-24 Load uses the same path as preview; audit entry visible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1342,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:35.192Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-afd3361a18e8efe99ba3",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-25 Upload and required-document checklist per phase",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1275,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:36.540Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-364fbc2087e909f76a7f",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-26 AI extraction: proposed fields with confirm / drop",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1394,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:37.822Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-a670606bb148c7ca6517",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-27 CDE list with DQ scores by source",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1263,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:39.221Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-e1cfba1fbdcc877c97af",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-28 DQ issue list and drill-down",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1271,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:40.490Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-27aaecbd236b4ba03e77",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-29 Governance report generated and downloadable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1294,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:41.767Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-3ebef395ad1c0018151a",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-30 MRC report pack (model risk report, REQ-REG-10; partial after the core report)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1277,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:43.067Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-e8328c2311085e6f46f6",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-31 Ask a question, answer cites models from the app",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1242,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:44.351Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-674801d930e1556c285f",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-32 Suggested questions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1228,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:45.598Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-281fbd7917bebb080767",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-33 Theme, no drop shadows, no horizontal scroll at 1440x900",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1283,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:46.832Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-c44330f5bf0bd12b1291",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-34 Counts agree across Command Center, Operations Board and Model 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1314,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:48.120Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-0f6a8ffa9ee1f72eb0c7",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-35 Actions not permitted are hidden and refused by the API",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1237,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:49.441Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-f937fad24750743d696e",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-36 Admin policy settings listed and editable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1428,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:50.682Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-1339da7dfc0d18cb2129",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-37 Audit Trail filters by user, model, entity, action, batch, document and date",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1261,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:52.116Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-2c3ed5584e7922c5e8eb",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-38 Document register with search / filter and version history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:53.383Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-4e1b46b4c210f12333e1",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-01 Command Center KPI tiles",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3154,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:55.509Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-b9e1a946d0ae91856b58",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-02 Command Center donuts by tier and lifecycle phase",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1348,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:09:59.619Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-87711ca3c734d286ac84",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-03 Lifecycle pipeline strip with click-through",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1455,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:00.973Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-dee5de715dfe2ef24caf",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-04 Revalidation timeline by category",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1346,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:02.433Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-dd635c0e2134d1b71418",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-05 Regulatory / audit models and issues chart",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1443,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:03.786Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-5033108eb4f320b15be0",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-06 Insights panel generated from rules",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1361,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:05.236Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-9ea408315d75e9985a36",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-07 Operations Board filters update counts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1473,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:06.603Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-c2a594062d074db6d646",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-08 Board columns per lifecycle phase with model cards",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1324,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:08.082Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-0fa89051a46d7dc14b8e",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-09 Table view sortable, row click opens Model 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1563,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:09.412Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-a910e9fd40cee84bed6e",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-10 Model 360 header fields",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1597,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:10.980Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-761536b1084fa2134102",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-11 Status chips and overdue badge",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1481,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:12.583Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-9488731b611ee2e6b1ef",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-12 Segregation-of-duties banner",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1490,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:14.069Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-66be19a07bcb4a7f9057",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-13 Lifecycle stepper with current phase",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1700,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:15.564Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-bd0babd487eba4f42e34",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-14 Approval history and MRC decisions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1587,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:17.271Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-7260a01785050f32640a",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-15 Validation history with notes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1528,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:18.863Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-3ca7bb5b546f4168bf8e",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-16 Findings list with severity, status, due date",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1492,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:20.397Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-1ea628e7557dfc4d37ac",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-17 Score breakdown by component",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1548,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:21.895Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-b184dbda6bbd0a14f94c",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-18 Backtesting grid and ROC / performance chart",
           "ok": true,
           "tags": [],
           "tests": [
@@ -201,95 +1991,52 @@
               "annotations": [
                 {
                   "type": "fixme",
+                  "description": "Not built (Phase 6)",
                   "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\dashboards.spec.ts",
-                    "line": 87,
-                    "column": 6
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
                   }
                 }
               ],
               "expectedStatus": "skipped",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 971,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:23.448Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 6)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "86a5e4e303644cf814e4-304d8536b5cb2fb0ddb5",
-          "file": "../functional/dashboards.spec.ts",
-          "line": 87,
-          "column": 6
-        }
-      ]
-    },
-    {
-      "title": "..\\functional\\documents.spec.ts",
-      "file": "../functional/documents.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [
-        {
-          "title": "FS-15 DOC-01 DOC-08 DOC-17 single upload, a new version, and a refused duplicate",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "9111b41e0f82b685c9ea-14dfcbfeabf8bb068aa7",
-          "file": "../functional/documents.spec.ts",
-          "line": 9,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-7e5597a0cd5789a442c1",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "9111b41e0f82b685c9ea-a8d7568050c677493329",
-          "file": "../functional/documents.spec.ts",
-          "line": 55,
-          "column": 5
-        },
-        {
-          "title": "FS-17 DOC-20 completeness on Model 360 changes after an upload",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "9111b41e0f82b685c9ea-7cc89c55d5ae15edbe10",
-          "file": "../functional/documents.spec.ts",
-          "line": 96,
-          "column": 5
-        },
-        {
-          "title": "FS-33 DOC-16 AI extraction proposals are confirmed or dropped",
+          "title": "MUP-19 Monitoring KPIs with thresholds and Pass/Warn/Fail",
           "ok": true,
           "tags": [],
           "tests": [
@@ -298,135 +2045,52 @@
               "annotations": [
                 {
                   "type": "fixme",
+                  "description": "Not built (Phase 6)",
                   "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\documents.spec.ts",
-                    "line": 134,
-                    "column": 6
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
                   }
                 }
               ],
               "expectedStatus": "skipped",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 993,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:24.425Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 6)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "9111b41e0f82b685c9ea-ff583adc554316908b89",
-          "file": "../functional/documents.spec.ts",
-          "line": 134,
-          "column": 6
-        }
-      ]
-    },
-    {
-      "title": "..\\functional\\import.spec.ts",
-      "file": "../functional/import.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [
-        {
-          "title": "FS-02 IMP-02 IMP-03 enabled templates download with registry columns; disabled ones do not",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "776bafb40ff21b6b6a7d-96da5aff22a3ea94725b",
-          "file": "../functional/import.spec.ts",
-          "line": 15,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-a58c16e8020a524ae996",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-03 IMP-01 IMP-05 IMP-08 INV-03 T02 demo preview names field and row, then loads",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "776bafb40ff21b6b6a7d-28f8a59ec7f5d5135b75",
-          "file": "../functional/import.spec.ts",
-          "line": 49,
-          "column": 5
-        },
-        {
-          "title": "FS-04 IMP-01 IMP-07 re-loading the same file does not duplicate models",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "776bafb40ff21b6b6a7d-5d89af616f72a99d496e",
-          "file": "../functional/import.spec.ts",
-          "line": 81,
-          "column": 5
-        },
-        {
-          "title": "FS-05 VAL-01 FND-01 APR-01 T03–T05 load onto the right models",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "776bafb40ff21b6b6a7d-d8429d49b2cddd014737",
-          "file": "../functional/import.spec.ts",
-          "line": 102,
-          "column": 5
-        },
-        {
-          "title": "FS-21 GEN-01 two resets at the same business date give the same counts",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "776bafb40ff21b6b6a7d-2a925041509dac97f7eb",
-          "file": "../functional/import.spec.ts",
-          "line": 122,
-          "column": 5
-        },
-        {
-          "title": "FS-30 MON-01 MON-02 MON-03 monitoring plan, metrics, results and breach",
+          "title": "MUP-20 Linked CDEs on Model 360",
           "ok": true,
           "tags": [],
           "tests": [
@@ -435,27 +2099,222 @@
               "annotations": [
                 {
                   "type": "fixme",
+                  "description": "Not built (Phase 7)",
                   "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                    "line": 150,
-                    "column": 6
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
                   }
                 }
               ],
               "expectedStatus": "skipped",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 960,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:25.424Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 7)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "776bafb40ff21b6b6a7d-c0fb3551158b812a7645",
-          "file": "../functional/import.spec.ts",
-          "line": 150,
-          "column": 6
+          "id": "ff3b57e4e431ee533ad9-fb49ffafb478d040f964",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-31 REG-01 REG-14 inventory classes, vendor models, challenges, dependencies, report",
+          "title": "MUP-21 Empty state for a model with no history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2264,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:26.391Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-bf57b99d08a7ea7507f6",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-22 Template download for T01-T18",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1536,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:28.660Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-c06595445708f819c338",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-23 T02 demo preview: 4 loaded, 1 rejected, message names field and row",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1403,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:30.203Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-d98e15d921eed634e477",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-24 Load uses the same path as preview; audit entry visible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1420,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:31.612Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-ffa2cbf7e2e076569312",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-25 Upload and required-document checklist per phase",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1420,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:33.037Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-a96c8a3aba44a307e6cc",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-26 AI extraction: proposed fields with confirm / drop",
           "ok": true,
           "tags": [],
           "tests": [
@@ -464,27 +2323,52 @@
               "annotations": [
                 {
                   "type": "fixme",
+                  "description": "Not built (Phase 5)",
                   "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                    "line": 154,
-                    "column": 6
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
                   }
                 }
               ],
               "expectedStatus": "skipped",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 959,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:34.462Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 5)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "776bafb40ff21b6b6a7d-7741f4d87748c6f0d9d5",
-          "file": "../functional/import.spec.ts",
-          "line": 154,
-          "column": 6
+          "id": "ff3b57e4e431ee533ad9-f26b33d0130486d94c73",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-32 CDE and DQ results load and appear on Data Audit",
+          "title": "MUP-27 CDE list with DQ scores by source",
           "ok": true,
           "tags": [],
           "tests": [
@@ -493,155 +2377,322 @@
               "annotations": [
                 {
                   "type": "fixme",
+                  "description": "Not built (Phase 7)",
                   "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                    "line": 159,
-                    "column": 6
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
                   }
                 }
               ],
               "expectedStatus": "skipped",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 956,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:35.426Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 7)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "776bafb40ff21b6b6a7d-a977794fd0301a3f3646",
-          "file": "../functional/import.spec.ts",
-          "line": 159,
-          "column": 6
-        }
-      ]
-    },
-    {
-      "title": "..\\functional\\inventory.spec.ts",
-      "file": "../functional/inventory.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [
-        {
-          "title": "FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "491382254a121adeeb47-126136a492fcb1ac1d9f",
-          "file": "../functional/inventory.spec.ts",
-          "line": 21,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-89b93aab73e9ee498fe2",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail",
+          "title": "MUP-28 DQ issue list and drill-down",
           "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "description": "Not built (Phase 7)",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 961,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:36.387Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 7)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "491382254a121adeeb47-3828d1be4948833c86d2",
-          "file": "../functional/inventory.spec.ts",
-          "line": 54,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-8eda81c3e6fd4abca597",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-08 TIR-01 TIR-04 TIR-05 tiering follows policy; an override needs a reason",
+          "title": "MUP-29 Governance report generated and downloadable",
           "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "description": "Not built (Phase 2A-core)",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 945,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:37.355Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 2A-core)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "491382254a121adeeb47-0dd390edb3425c6b6e91",
-          "file": "../functional/inventory.spec.ts",
-          "line": 103,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-d34eba01bfa89c0188f2",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-09 LIF-01 INV-05 a phase move without required data is refused",
+          "title": "MUP-30 MRC report pack (model risk report, REQ-REG-10; partial after the core report)",
           "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "description": "Not built (Phase 2A)",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 945,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:38.305Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 2A)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "491382254a121adeeb47-78aedc9d31092d112cba",
-          "file": "../functional/inventory.spec.ts",
-          "line": 139,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-47a41c55869c43be2290",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-10 VAL-02 VAL-04 revalidation status is correct for the fixed business date",
+          "title": "MUP-31 Ask a question, answer cites models from the app",
           "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "description": "Not built (Phase 9)",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 967,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:39.255Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 9)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "491382254a121adeeb47-40010357510041d3a5d3",
-          "file": "../functional/inventory.spec.ts",
-          "line": 156,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-7feeba2e7e3316bfd25f",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move",
+          "title": "MUP-32 Suggested questions",
           "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
+              "annotations": [
+                {
+                  "type": "fixme",
+                  "description": "Not built (Phase 9)",
+                  "location": {
+                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                    "line": 32,
+                    "column": 25
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 925,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:40.228Z",
+                  "annotations": [
+                    {
+                      "type": "fixme",
+                      "description": "Not built (Phase 9)",
+                      "location": {
+                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
+                        "line": 32,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
               "status": "skipped"
             }
           ],
-          "id": "491382254a121adeeb47-48f1a26f9daff5fa6410",
-          "file": "../functional/inventory.spec.ts",
-          "line": 174,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-dec6713b089700489ee8",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-12 APR-03 a conditional approval stays outstanding until its conditions close",
+          "title": "MUP-33 Theme, no drop shadows, no horizontal scroll at 1440x900",
           "ok": true,
           "tags": [],
           "tests": [
@@ -649,19 +2700,33 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1355,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:41.158Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "491382254a121adeeb47-5e8d1691e1d3ca6de08f",
-          "file": "../functional/inventory.spec.ts",
-          "line": 194,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-fbe63e261310fa612b1a",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-13 SCR-01 SCR-05 the score breakdown matches an independent calculation",
+          "title": "MUP-34 Counts agree across Command Center, Operations Board and Model 360",
           "ok": true,
           "tags": [],
           "tests": [
@@ -669,19 +2734,33 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1887,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:42.520Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "491382254a121adeeb47-6132c18164fd6ebafd2f",
-          "file": "../functional/inventory.spec.ts",
-          "line": 221,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-263961a1247a5fd533ce",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-14 CFG-02 CFG-03 TIR-03 a policy change moves tiers and is audited",
+          "title": "MUP-35 Actions not permitted are hidden and refused by the API",
           "ok": true,
           "tags": [],
           "tests": [
@@ -689,47 +2768,33 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1419,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:44.414Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "491382254a121adeeb47-b04339e8efad9b462c1c",
-          "file": "../functional/inventory.spec.ts",
-          "line": 248,
-          "column": 5
-        }
-      ]
-    },
-    {
-      "title": "..\\functional\\security.spec.ts",
-      "file": "../functional/security.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [
-        {
-          "title": "FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and the API refuses their writes",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 30000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
-            }
-          ],
-          "id": "a7e9410bcc1ef00e9656-7d864ba1063a8bd91ba3",
-          "file": "../functional/security.spec.ts",
-          "line": 8,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-e1e913c407000e12f101",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review",
+          "title": "MUP-36 Admin policy settings listed and editable",
           "ok": true,
           "tags": [],
           "tests": [
@@ -737,19 +2802,33 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1438,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:45.840Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "a7e9410bcc1ef00e9656-f7ae8e8ee2d51b1a55fe",
-          "file": "../functional/security.spec.ts",
-          "line": 40,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-f32c633d5a60c1f28c7e",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         },
         {
-          "title": "FS-23 SEC-05 re-importing T01 without a role invalidates that role's session",
+          "title": "MUP-37 Audit Trail filters by user, model, entity, action, batch, document and date",
           "ok": true,
           "tags": [],
           "tests": [
@@ -757,26 +2836,74 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "functional",
-              "projectName": "functional",
-              "results": [],
-              "status": "skipped"
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1570,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:47.283Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "a7e9410bcc1ef00e9656-59f091435a73327d1dd2",
-          "file": "../functional/security.spec.ts",
-          "line": 94,
-          "column": 5
+          "id": "ff3b57e4e431ee533ad9-4677017dabb15369ef5e",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
+        },
+        {
+          "title": "MUP-38 Document register with search / filter and version history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1914,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T01:10:48.859Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-4544b3b20376a638ac1d",
+          "file": "parity.spec.ts",
+          "line": 29,
+          "column": 7
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-05T13:37:53.611Z",
-    "duration": 149.02499999999998,
-    "expected": 0,
-    "skipped": 29,
+    "startTime": "2026-10-08T01:08:59.895Z",
+    "duration": 111035.33,
+    "expected": 66,
+    "skipped": 10,
     "unexpected": 0,
     "flaky": 0
   }

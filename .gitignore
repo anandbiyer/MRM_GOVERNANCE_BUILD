@@ -24,6 +24,11 @@ desktop.ini
 
 # Functional test runs: the test database and object store are disposable.
 # Screenshots and issue files under D_Reviews/DD_functional_test/ are committed.
-D_Reviews/DD_functional_test/*/env/
+# `env/` was the only run folder when this was written; a run that needs a second environment
+# makes env2, env3, … and those were not covered, so a 1,116-file object store and a SQLite
+# database were one `git add` away from the history (noticed building G0.24).
+D_Reviews/DD_functional_test/*/env*/*.db
+D_Reviews/DD_functional_test/*/env*/*.db-*
+D_Reviews/DD_functional_test/*/env*/store/
 D_Reviews/DD_functional_test/*/env/
 D_Reviews/DD_functional_test/*/inputs/evidence/

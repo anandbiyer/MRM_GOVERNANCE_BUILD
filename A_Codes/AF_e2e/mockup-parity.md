@@ -60,7 +60,7 @@ Built today: 1, 2, 3, 4, the core of 8, and 2A-core (the core Model Risk Report)
 | MUP-04 | Command Center | Revalidation timeline by category (annual / bi-annual / quarterly / monthly) | Executive | 8 |
 | MUP-05 | Command Center | Regulatory / audit models and issues chart | Executive | 8 |
 | MUP-06 | Command Center | Insights panel (generated from rules, not hard-coded) | Executive | 8 |
-| MUP-07 | Operations Board | Filters: phase, tier, family, owner — counts update | Validator | 8 |
+| MUP-07 | Operations Board | Filters per §55.2 — type, tier, phase, stage, revalidation, open finding, business line, search — counts update | Validator | 8 |
 | MUP-08 | Operations Board | Board columns per lifecycle phase with model cards | Validator | 8 |
 | MUP-09 | Operations Board | Table view with sortable columns and row click to Model 360 | Validator | 8 |
 | MUP-10 | Model 360 | Header: ID, name, tier, owner, phase, next validation date | Validator | 8 |
@@ -89,6 +89,14 @@ Built today: 1, 2, 3, 4, the core of 8, and 2A-core (the core Model Risk Report)
 | MUP-33 | All | Theme colours, no drop shadows, no horizontal scroll at 1440×900 | any | 8 |
 | MUP-34 | All | Counts agree across Command Center, Operations Board and Model 360 | any | 8 |
 | MUP-35 | All | Actions not permitted for the role are hidden and refused by the API | Executive | 1 |
+| MUP-36 | Admin | Policy settings listed by category, editable by Admin, change audited | Admin | 1 |
+| MUP-37 | Audit Trail | Event list with filters: user, model, entity, action, batch, document, date range | Admin | 1 |
+| MUP-38 | Document Centre | Document register with search / filter, and a document's version history | Validator | 4 |
+
+MUP-36 to MUP-38 were added on 2026-10-07 (Gate 0 exit review): Admin and the Audit Trail are built
+screens (BRD §55.8, §55.9) that had no checklist item, and the Document Centre had an item for upload
+and completeness (MUP-25) but none for the register, search or version history (§55.6). IDs continue
+after MUP-35 and nothing is renumbered.
 
 ### Accepted differences from the mock-up
 
@@ -98,6 +106,11 @@ fixed in the app.
 | ID | Mock-up shows | App shows | BRD basis |
 |---|---|---|---|
 | MUP-01 | A KPI tile labelled "Open findings", valued as a count of findings | "**Models with open findings**", valued in models, with the findings total in the sub-line | §76A CC-01 — a tile must equal the count returned by its own drill-down, and this tile opens a list of models. Review finding CR-05 |
+| MUP-33 | A light theme under `prefers-color-scheme: light` as well as the dark one | Dark only; the `[data-theme="light"]` tokens exist in `app.css` but nothing sets the attribute | §52 — "Dark-first theme" is the requirement; an automatic light theme is not. The **dark** palettes are token-for-token identical, so the parity captures use `colorScheme: "dark"` on both sides |
+| MUP-37 | No Audit Trail screen — the mock-up shows `audit_event` only as a row count in its database panel | A full Audit Trail screen with filters and before/after values | §55.9 and §76A AUD-03 require the screen; the mock-up never had one |
+| MUP-05 | A "Models in regulatory and audit review" panel: each Reg/Audit-stage model against its open findings by severity, as a stacked bar with a Critical / Medium / Low legend | A "Reg/Audit" row (14) in the Command Center's lifecycle stage list, which drills to those models on the Operations Board, and a separate portfolio-wide "Open findings by severity" chart (21 / 94 / 33) — the two ingredients, but nothing that crosses them | **No BRD requirement.** §55.1 lists the Command Center's tiles and this panel is not among them. Its natural home is REQ-REG-09's aggregate model risk view, which **D12 defers** with the rest of Phase 2A — so the panel waits for that requirement rather than being built against the mock-up. Review finding **MP-07**, triaged 2026-10-07 |
+| MUP-04 | A dot plot of the models due for revalidation by days to due date, with a shaded Overdue region and a Lead-time window, over a table whose columns are Overdue / Model / Tier / **Frequency** / Days | The same 31 Revalidation-column models as a list — columns Model / Tier / Due / Days / Status — without the revalidation frequency and without the days-to-due distribution | **No BRD requirement for the frequency column or the distribution chart**: they are the mock-up's presentation. CC-03 (the timeline contains exactly the Revalidation-column models) is **Match**. Review finding **MP-08**, triaged 2026-10-07. *Corrected 2026-10-07 (parity re-run):* the triaged wording claimed the app "shows all of" §10's list. It does not — **Owner, Last validation and Latest outcome are on no revalidation view**, only on Model 360, although `GET /api/dashboard/summary` already returns `owner_id`, `last_validation_date` and `latest_decision` on every timeline row. That part of §10 is a live requirement and is carried as finding **MP-17**, not accepted here |
+| MUP-08 | The Operations Board as a kanban: eight columns of model cards, each card carrying the model ID, name, an "N open" findings badge and an "Nd over" overdue badge, with a "+N more" footer | A clickable per-stage count strip above a dense sortable table, each stage filtering the table | **No BRD requirement.** §55.2 specifies the board's *filters* and says nothing about a card layout; §52 asks for "dense data tables" and "strong filtering and drill-down", which the strip-plus-table is. The per-stage counts sum to 256 and agree with the Command Center (MUP-34). A presentation choice, recorded rather than fixed. Review finding **MP-09**, triaged 2026-10-07 |
 
 ### Phase numbers corrected from the original list
 
@@ -113,3 +126,24 @@ Never renumber an ID; the Phase column is corrected against §81 where the origi
 | MUP-30 | — | Partial, then 2A | §81A D9 is **decided**: the MRC report pack is in scope as the model risk report (REQ-REG-10, REG-13). **D12** defers the §12A sections, so this is *partial* once the core report lands and full only when Phase 2A resumes |
 
 MUP-35's role was "Viewer", which does not exist in §5; it now reads Executive.
+
+### Date rendering is part of MUP-10 and MUP-34 (added 2026-10-07, parity re-run)
+
+Counts were never the only thing that had to agree across screens. Review finding **MP-10** was a
+date-only value rendering one calendar day early in any timezone behind UTC, with the Command
+Center and Model 360 printing two different due dates for the same model; **G0.24** fixed it with
+`AC_frontend/src/format.ts`. The harness now asserts both halves, so a regression fails rather than
+waiting to be noticed:
+
+- **MUP-10** checks M-0012's Last validation, Next due and Go-live against an independent local-time
+  calculation (`localeDateOnly` in `helpers/`, which never goes through `Date`'s parser either).
+- **MUP-34** checks the Command Center lede states the business date, that the revalidation timeline
+  formats its Due column instead of printing raw ISO, and that the first row's due date reads the
+  same on the Command Center and on that model's Model 360.
+
+**These assertions only mean anything on a host behind UTC.** In UTC the defect is invisible, which
+is exactly why CI and three earlier parity runs missed it. A run from a UTC machine should say so.
+
+MUP-07 read "Filters: phase, tier, family, owner" (the mock-up's two chip rows). Neither "family" nor
+"owner" is a filter in §55.2, and the app's eight filters are a superset of the mock-up's — so the
+checklist, not the app, was wrong. Corrected to the §55.2 list on 2026-10-07; review finding **MP-11**.

@@ -1,0 +1,284 @@
+INFO:     Started server process [39928]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61035 - "GET /api/health/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "POST /api/auth/login HTTP/1.1" 200 OK
+  AC_seed/T12_policy_settings.xlsx: 67 rows, unchanged
+  AC_seed/T01_users.xlsx: 65 rows, unchanged
+  AC_seed/T02_model_inventory.xlsx: 256 rows, unchanged
+  AC_seed/T03_validation_history.xlsx: 415 rows, unchanged
+  AC_seed/T04_findings.xlsx: 206 rows, unchanged
+  AC_seed/T05_approvals.xlsx: 383 rows, unchanged
+  AC_seed/documents: 1116 synthetic evidence files (0 written, 1116 unchanged, 0 removed)
+  AD_demo_files/T02_new_models_demo.xlsx: 5 rows, unchanged
+  AD_demo_files/T04_findings_demo_errors.csv: 5 rows, unchanged
+INFO:     127.0.0.1:61038 - "POST /api/admin/reset HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:61045 - "GET /api/admin/reset/status HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:61046 - "POST /api/auth/login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61047 - "POST /api/auth/login HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61048 - "POST /api/auth/login HTTP/1.1" 200 OK
+Background job analyse_job failed
+Traceback (most recent call last):
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1943, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 1180, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\app\workers\runner.py", line 25, in _run
+    fn(*args)
+    ~~^^^^^^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\app\documents\batch.py", line 243, in analyse_job
+    db.flush()
+    ~~~~~~~~^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4536, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "<sqlalchemy generated warned() wrapper for sqlalchemy.orm.session.Session._flush>", line 2, in _flush
+    return target(fn, self, objects=objects)
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\util\deprecations.py", line 281, in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4679, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 166, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4640, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 467, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 643, in execute
+    util.preloaded.orm_persistence._save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        uow.states_for_mapper_hierarchy(self.mapper, False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 84, in _save_obj
+    _emit_update_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        update,
+        ^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 916, in _emit_update_statements
+    c = connection.execute(
+        statement, multiparams, execution_options=execution_options
+    )
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1448, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 533, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1668, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<9 lines>...
+        param_dict=param_dict,
+    )
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1822, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1962, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2332, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1943, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 1180, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE document_upload_item SET model_id=?, model_source=?, document_type=?, type_source=?, type_confidence=?, type_reason=?, title=?, status=? WHERE document_upload_item.item_id = ?]
+[parameters: ('M-0007', 'folder', 'Model Approval/MRC Paper', 'filename', 0.85, "File name contains 'mrc'.", 'MRC Paper 2025', 'Ready', 1)]
+(Background on this error at: https://sqlalche.me/e/21/e3q8)
+INFO:     127.0.0.1:61049 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61050 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61051 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61052 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61053 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61054 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61055 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61056 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61057 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61058 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61059 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61060 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61062 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61064 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61066 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61067 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61068 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61070 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61081 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61082 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61084 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61085 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61088 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61089 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65003 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65004 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65005 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65006 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65008 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65009 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65010 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65011 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65012 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65013 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51728 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62083 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62085 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62086 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62088 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62089 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62090 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62093 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62095 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62099 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62100 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62103 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62106 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62109 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62112 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62114 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62115 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62116 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62117 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62122 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62123 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62124 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62125 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62126 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62127 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62128 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62129 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62130 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62133 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62134 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62136 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62138 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62140 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62142 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62145 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58455 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58457 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58460 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58462 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58468 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58470 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58471 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58474 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58475 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58476 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58477 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58478 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58479 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58480 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58481 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58482 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58484 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58485 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58486 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58487 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58488 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58489 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58490 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58491 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58496 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58497 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58498 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64754 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57645 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57646 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57647 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59471 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59473 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59475 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59476 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59478 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59479 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59482 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59483 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58960 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58961 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58962 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58963 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58964 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58965 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58966 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58967 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58968 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58969 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58970 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58971 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58972 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59430 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59431 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59432 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59433 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59435 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59436 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59440 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59441 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59442 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59443 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59444 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59445 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59446 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59465 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59467 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59471 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59474 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59475 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59476 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59477 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59478 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59479 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59483 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59484 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59485 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59486 - "GET /api/admin/reset/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59487 - "GET /api/admin/reset/status HTTP/1.1" 200 OK

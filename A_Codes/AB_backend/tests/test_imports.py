@@ -381,7 +381,7 @@ def test_reset_disabled(client, test_settings):
 
 
 def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test_settings):
-    """GEN-02 (FT-02): a reset clears every governance table and reloads it, so two overlapping runs
+    """GEN-04, GEN-02 (FT-02): a reset clears every governance table and reloads it, so two overlapping runs
     would interleave one run's deletes with the other's inserts.
 
     The batch the caller is handed is not a sufficient signal on its own: a reset creates the seed
@@ -404,7 +404,7 @@ def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test
 
 
 def test_a_finished_reset_does_not_block_the_next_one(client, db_session, test_settings):
-    """GEN-02: the guard must not latch. Every terminal status leaves a reset startable.
+    """GEN-04, GEN-05: the guard must not latch. Every terminal status leaves a reset startable.
 
     The statuses are written out rather than read from `reset_service.TERMINAL_BATCH_STATUSES`: a
     test that iterates the constant it is checking cannot fail when that constant is wrong. This
@@ -424,7 +424,7 @@ def test_a_finished_reset_does_not_block_the_next_one(client, db_session, test_s
 
 
 def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, test_settings):
-    """A batch waiting for a user's review is not a reset, and must not stand in the way of one."""
+    """GEN-04: a batch waiting for a user's review is not a reset, and must not stand in the way of one."""
     with db_session() as db:
         db.add(ImportBatch(batch_id="B-TEST-upload", batch_type="documents", source="upload",
                            status="Ready", options={}))
@@ -435,7 +435,7 @@ def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, t
 
 
 def test_reset_status_reports_the_batch_to_watch(client, db_session, test_settings):
-    """GEN-02 (FT-02): the signal that covers the whole reset, which POST /reset's batch id does not."""
+    """GEN-05 (FT-02): the signal that covers the whole reset, which POST /reset's batch id does not."""
     h = login(client, *ADMIN)
     idle = client.get("/api/admin/reset/status", headers=h)
     assert idle.status_code == 200
@@ -452,7 +452,7 @@ def test_reset_status_reports_the_batch_to_watch(client, db_session, test_settin
 
 
 def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session, test_settings):
-    """403 beats 409: a non-Admin must not learn from the error message whether a reset is running.
+    """GEN-04, GEN-02: 403 beats 409 — a non-Admin must not learn from the error message whether a reset is running.
 
     Called at the service, not through the API: the route's `require(Permission.POLICY_EDIT)`
     dependency already refuses an Auditor before `start_reset` runs, so an API-level test passes
@@ -471,7 +471,7 @@ def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session
 
 def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
         client, db_session, test_settings, monkeypatch):
-    """GEN-02 (FT-02): loading the evidence is part of the reset, so the batch must not read as
+    """GEN-05 (FT-02): loading the evidence is part of the reset, so the batch must not read as
     finished while it is still happening.
 
     Two things used to go wrong in the gap between the seed load finishing and the documents batch
@@ -487,9 +487,9 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
             running = reset_service.reset_in_progress(db)
             observed["batch_id"] = running.batch_id if running else None
             observed["status"] = running.status if running else None
-        return None  # the real loader is skipped: the invariant is about the status, not the files
+        return None  # the real stager is skipped: the invariant is about the status, not the files
 
-    monkeypatch.setattr(reset_service, "load_seed_documents", spy)
+    monkeypatch.setattr(reset_service, "stage_seed_documents", spy)
 
     resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
     assert resp.status_code == 202
@@ -502,3 +502,74 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
     with db_session() as db:
         assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
         assert reset_service.reset_in_progress(db) is None
+
+
+def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(
+        client, db_session, test_settings, monkeypatch):
+    """GEN-01, GEN-05 (FT-04): a reset must make no further database write once it has handed the
+    evidence batch to a background job.
+
+    This is the defect G0.18's status hold introduced, and it cost all 1,116 evidence documents
+    behind an HTTP 202. `load_seed_documents` returns as soon as the documents batch exists and its
+    analysis has been *submitted*, so restoring the seed batch's status in a `finally` afterwards
+    raced that job: the reset's commit took SQLite's write lock, SQLite refused the job's lock
+    promotion without consulting `busy_timeout` (see `app/db.configure_sqlite`), and the analysis
+    died at `documents/batch.py`.
+
+    The **ordering** is asserted, not the race. Every test forces `MRM_JOB_MODE=inline`, which runs
+    the two jobs one after the other so the race cannot happen — which is precisely why CI could not
+    see FT-04. An ordering assertion holds in either mode, and it is the invariant that matters:
+    whatever the reset still has to write, it writes before it starts something else writing.
+    """
+    from sqlalchemy.orm import Session as SASession
+    from sqlalchemy import event as sa_event
+
+    from app.workers import runner
+
+    events: list[str] = []
+
+    def recording_submit(fn, *args):
+        events.append(f"submit:{fn.__name__}")
+        if fn is reset_service._reset_job:
+            fn(*args)  # the reset itself still runs; the jobs it starts are only recorded
+
+    def on_commit(_session):
+        events.append("commit")
+
+    monkeypatch.setattr(runner, "submit", recording_submit)
+    sa_event.listen(SASession, "after_commit", on_commit)
+    try:
+        resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+    finally:
+        sa_event.remove(SASession, "after_commit", on_commit)
+
+    assert resp.status_code == 202, resp.text
+    assert "submit:analyse_job" in events, f"the reset never handed the evidence over: {events}"
+    after = events[events.index("submit:analyse_job") + 1:]
+    assert after == [], (
+        f"the reset committed {after.count('commit')} time(s) after submitting the evidence analysis; "
+        f"in thread mode those writes race the job and lose the evidence (FT-04)"
+    )
+
+
+def test_ft_04_a_reset_leaves_the_seed_batch_terminal_and_the_evidence_loaded(client, test_settings):
+    """GEN-01, GEN-05 (FT-04): the two halves the fix must not trade against each other.
+
+    The seed batch has to end terminal, or `reset_in_progress` latches and every later reset is
+    refused (FT-05's failure mode); and the evidence has to be there, or the reset silently empties
+    the Document Centre. The original hold achieved the first by writing after the job started,
+    which destroyed the second.
+    """
+    h = login(client, *ADMIN)
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    seed = client.get(f"/api/imports/batches/{batch_id}", headers=h).json()
+    assert seed["status"] in ("Completed", "Partially Completed"), seed
+    assert client.get("/api/admin/reset/status", headers=h).json()["in_progress"] is False
+
+    docs = client.get("/api/documents/batches", headers=h).json()
+    evidence = next(b for b in docs if b["source"] == "seed")
+    assert evidence["status"] == "Completed" and evidence["successful_records"] > 1000, evidence
+    assert client.get("/api/documents", headers=h, params={"limit": 1}).json(), "no evidence survived the reset"

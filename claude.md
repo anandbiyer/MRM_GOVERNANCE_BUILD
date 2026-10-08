@@ -22,7 +22,7 @@ A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env,
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 164 tests: 160 pass, 4 PostgreSQL skip
+.venv\Scripts\python -m pytest                              # 188 tests: 184 pass, 4 PostgreSQL skip
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
@@ -113,11 +113,22 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
 
 ## Two repository conventions that override normal practice
 
-1. **Never delete or silently rewrite code.** Before editing any existing file under `A_Codes/` or
-   `B_Inputs/`, snapshot it first:
+1. **Never delete or silently rewrite code.** Before editing any existing **hand-edited** file under
+   `A_Codes/` or `B_Inputs/`, snapshot it first:
    `bash A_Codes/AZ_tools/snapshot.sh A_Codes AB_backend/app/main.py`
    This copies it to `A_Codes/_OLD/<same relative path>/<name>_v<N>_<YYYYMMDD>.<ext>`. The `_OLD/`
    trees are intentionally committed history; never clean them up.
+
+   **Generated artefacts are out of scope** (decided 2026-10-07, review finding CR-22): the seed
+   workbooks under `B_Inputs/AC_seed` and `B_Inputs/AD_demo_files` are regenerated from
+   `A_Codes/AD_seed/generate_seed.py` and the bootstrap CSVs, so their content is reproducible from
+   files that *are* snapshotted, and snapshotting them per regeneration would restore exactly the
+   churn G0.15 removed. Snapshot the generator and the bootstrap CSVs; not their output.
+
+   A snapshot may also be recovered retrospectively with `git show <commit>^:<path>`, which is how
+   CR-22's three missing versions were restored. A recovered file is named for the date of the edit
+   it precedes, so `_OLD/` is ordered by *when the content was current*, not by when it was written
+   down — `schemas/governance_v2_20261003.py` is therefore older than `governance_v1_20261004.py`.
 2. **Do not create files outside the repository folder** (no desktop shortcuts, no system temp output
    the user is expected to find).
 
@@ -264,11 +275,36 @@ Reviews run only at four points. Ordinary activities finish with the normal test
   refusal or an audit write. The plan's **Reviews** bullet holds the current list.
 - **R3 Gate exit.** When the last activity of a gate is `Done`, run `/review-build gate <N>` and record
   the verdict in the gate's exit row. The gate closes only on **Ready**.
-- **R4 Merge to main or customer demo.** Needs a Ready gate review of the same commit. The hook in
-  `.claude/settings.json` enforces this; if it blocks you, run the review it names. The matcher reads
-  the Bash **command text**, so a command that merely mentions `git push` is evaluated too — a shell
-  one-liner that echoes the phrase can be refused. That is deliberate: a false "needs review" is a
-  prompt, where a false "fine" is an unreviewed merge.
+- **R4 Merge to main or customer demo.** Needs a Ready gate review, enforced by the hook in
+  `.claude/settings.json`; if it blocks you, run the review it names. The rule (relaxed 2026-10-07,
+  when Gate 0 first reached Ready and the old one turned out to be unsatisfiable):
+
+  > the reviewed commit is an **ancestor** of what is being merged or pushed, and nothing under
+  > `A_Codes/`, `B_Inputs/`, `.claude/` or `.github/` changed between them.
+
+  So a review can record itself — `D_Reviews/`, `E_ProjectPlan/` and this file may all move
+  afterwards — while any change to the product, the inputs, the controls or CI needs a fresh review.
+  The rule was `head == HEAD` exactly, which no Ready verdict could ever satisfy, because recording
+  the verdict moves HEAD. For a **merge** the commit judged is the one arriving, not `main`'s tip:
+  main is behind by definition, so comparing against it denied every merge. `.claude/` and `.github/`
+  are protected because the agents, the commands, the hook and the CI workflows *are* the controls —
+  changing a control unreviewed is worse than changing the code unreviewed. This file is deliberately
+  **not** protected: a gate review writes its own findings into §76A.14, and protecting it would
+  reintroduce the deadlock for documentation alone.
+
+  The matcher reads the Bash **command text**, so a command that merely mentions `git push` is
+  evaluated too — a shell one-liner that echoes the phrase can be refused. That is deliberate: a false
+  "needs review" is a prompt, where a false "fine" is an unreviewed merge.
+
+  Run `python .claude/hooks/test_review_gate.py` after any change to the hook: 27 scratch-branch
+  checks covering the allow paths **and** every deny path. They were ad hoc until 2026-10-07, which is
+  how an earlier repair shipped failing open — `\b` became a literal backspace in six regexes, so a
+  real push to main was allowed.
+
+  **Known weakness, not fixed.** The hook lives in the working tree, so while a branch that lacks
+  `.claude/` is checked out there is no gate at all. That is exactly how Gate 0's own merge went
+  through unchallenged: `main` predated the folder. A history rewrite that drops `.claude/` would
+  disable the control silently.
 
 Do not run review agents at any other time unless I ask. A checkpoint whose scope has not changed since
 its last review is skipped, and the earlier report is cited.
@@ -297,7 +333,7 @@ data, so they run one after the other, never together.
 Each gate is built on its own branch, `gate-<N>-<short-name>` (for example `gate-1-core-report`,
 `gate-3-monitoring`), created from `main`. It is merged to `main` only after a Ready
 `/review-build gate <N>`, which the hook enforces. `review-agents` is the Gate 0 branch, and it merges
-once G0.20 is Ready.
+once G0.20 is Ready. **Merged 2026-10-07**, G0.20 Ready; `main` now carries Gate 0.
 
 Exception (2026-10-06): `gate-1-core-report` was branched from `review-agents`, before Gate 0 merged,
 so new development could start. When `review-agents` merges to `main`, merge `main` into
@@ -3241,6 +3277,17 @@ Deactivating a user, or removing their role, invalidates an already-issued token
 ### SEC-06
 A missing or malformed token is refused as unauthenticated.
 
+### SEC-07
+After a role switch completes, the screen shows the new identity and only its permitted actions, and
+the API acts only as the new identity.
+
+*Narrowed 2026-10-07 (spec issue **S9**, review finding CR-32).* The first wording also required that
+"no value fetched under the previous identity is presented under the new one", which the code does not
+do: `resetCachesAndIdentity` invalidates rather than clears, so an **inactive** query still serves its
+previous value on next mount until the refetch resolves. That is correct for the switch itself and
+imprecise for everything else; it is carried as a behaviour item (plan **BL.18**) rather than asserted
+as met. A criterion must state what the system does.
+
 ## 76A.10 Audit trail (AUD)
 
 ### AUD-01
@@ -3282,6 +3329,20 @@ Reset is refused for a role without the required permission.
 ### GEN-03
 The demo files with deliberate errors produce the documented valid/rejected split.
 
+### GEN-04
+A reset started while another is still running is refused with a conflict that names the batch in
+flight. Nothing is deleted and no second job is submitted. The refusal comes after the permission
+check, so an unauthorised caller is still refused for lacking the permission (GEN-02) rather than
+for the reset in progress.
+
+### GEN-05
+A reset exposes a progress signal that spans the whole operation — from the first delete to the last
+evidence file stored — and reports the reset finished only when a further reset would be accepted.
+The batch identifier returned when the reset starts is not that signal: a reset creates two batches
+and the first reaches a terminal status while the second is still loading evidence. A background job
+that fails marks its own batch Failed with the reason, so the signal cannot report a reset in
+progress for ever; a batch left non-terminal by a failed job can be cancelled through the API.
+
 ## 76A.13 Traceability to the superseded conditions
 
 | New ID | Superseded condition (`design.md` §12) |
@@ -3318,22 +3379,42 @@ phases are specified.
 
 A criterion ID appears in a test file only where a test actually verifies it, so
 `grep -rn "<ID>" A_Codes/AB_backend/tests` is a true coverage signal. Gaps are recorded here rather
-than in the test files, so that grep is never polluted by a mention of something not covered. The one
-current exception is the range `GEN-01..GEN-03` in the `test_imports.py` module docstring, which makes
-`grep GEN-03` a false positive — see "Tagging and spec gaps" below.
+than in the test files, so that grep is never polluted by a mention of something not covered. One
+current exception: the range `GEN-01..GEN-03` in the `test_imports.py` module docstring, which makes
+`grep GEN-03` a false positive.
 
-**Referenced is not proven.** The earlier figure in this section counted criteria *mentioned* by a
-test. What matters is whether the test asserts the criterion's expected result, which is a different
-and smaller number.
+**Referenced is not proven, and passing is not proven either.** What matters is whether the test
+fails when the implementation is broken. The `test-outcome-reviewer` mutates the code it is judging;
+a criterion is *proven* only where that mutation makes a named test fail.
 
-Coverage at 2026-10-02 (`test-outcome-reviewer`): **69 of 115** criteria (§76A, §76D, §77, §78, §79)
-are *proven* — 69 of 85 once the 12 unbuilt monitoring criteria (§77), the 17 unbuilt regulatory
-criteria (§76D) and DOC-16 (Phase 5) are excluded. A further 13 have a test that passes without
-asserting the whole expected result, and 3 have no test at all.
+**On `gate-1-core-report` these counts are the ones measured on `main`**, at the Gate 0 exit and so without
+the core Model Risk Report. REG-15 to REG-17 are built here and graded Proven by the G1.18 risk
+checkpoint, which the figures below do not include. The Gate 1 exit review recalculates the whole
+table; do not hand-adjust it in the meantime.
 
-The §76D total is 17 from 2026-10-05: REG-15, REG-16 and REG-17 were added for the core Model Risk
-Report, which **D12** builds in Gate 1. REG-01 to REG-14 are deferred with the rest of Phase 2A, so
-they are reported as *Not built (Phase 2A, deferred D12)* and never counted as failures.
+Coverage at the Gate 0 exit re-run, 2026-10-07 (`test-outcome-reviewer`, commit `779e3de`):
+**72 of 118** criteria (§76A, §76D, §77, §78, §79) are *proven* — **72 of 88** once the 30 unbuilt
+criteria are excluded (12 monitoring, §77; 17 regulatory, §76D; DOC-16, Phase 5). A further **12**
+have a test that passes without asserting the whole expected result, and **4** have no test at all.
+All three CI gates were green, including `backend-postgres`, which was run rather than skipped, so
+AUD-02 is proven end to end.
+
+By set: §76A **46/60** Proven (11 Weak, 3 Untested) · §76D **0/17** (14 deferred D12, 3 in build on
+`gate-1-core-report`) · §77 **0/12** (Phase 6) · §78 **17/20** (1 Weak, 1 Untested, 1 Phase 5) ·
+§79 **9/9**.
+
+Gate 0's net movement over its whole span is **+4 Proven** from the 2026-10-02 baseline of 68:
+**APR-04** and **SEC-05** (G0.8, G0.9), **APR-03** (G0.26) and **GEN-05** (G0.22/G0.23). **CC-01**
+stayed Proven but its new severity drill-down went from non-discriminating to the most tightly
+guarded filter in the suite (G0.26). **LIF-02**, **SCR-02**, **SCR-04**, **CFG-01**, **CFG-02**,
+**SEC-01**, **SEC-02**, **AUD-02**, **CC-02**, **FND-03**, **DOC-13**, **DOC-20** and **GEN-02** were
+strengthened without changing grade. **AUD-01** and **GEN-01** remain partly proven; **SEC-07** and
+**GEN-04**, added by spec issue S7, start Untested-in-CI and Weak respectively.
+
+The §76D total is 17. REG-01 to REG-14 are deferred with the rest of Phase 2A (**D12**) and are
+reported as *Not built (Phase 2A, deferred D12)*, never as failures. REG-15 to REG-17 are the core
+Model Risk Report (plan G1.16–G1.18), being built on `gate-1-core-report`; on `main` they are
+*Not built* until that gate merges.
 
 **REG-15, REG-16 and REG-17 are built as of 2026-10-07** (plan G1.16–G1.18) and covered by
 `tests/test_reports.py` and functional scenario FS-25. They are no longer "not built"; the figure
@@ -3344,27 +3425,26 @@ above still says 69 proven because it is the 2026-10-02 measurement, and only th
 
 | Criterion | Gap | Reason |
 |---|---|---|
-| INV-07 | Model version tracked independently of model ID | `model_version` rows are created and asserted incidentally (`versions[0]`), but no test drives two versions of one model ID. |
-| AUD-03 | Audit trail filters by user, model, entity, action, date, batch, document | Individual filters are used throughout the suite to *find* events; none asserts the filter contract itself, and the date range is never exercised. |
-| DOC-11 | A user can see batch progress | The progress store (`app/workers/runner.ProgressStore`) has no test. |
+| INV-07 | Model version tracked independently of model ID | `model_version` rows are created and read incidentally (`versions[0]`, and `test_cr_07_…` lists them), but no test drives two versions of one model ID. |
+| AUD-03 | Audit trail filters by user, model, entity, action, date, batch, document | Individual filters are used throughout the suite to *find* events, and `conftest.audit_count` depends on them; none asserts the filter contract itself, and the date range is never exercised. |
+| SEC-07 | After a role switch, the screen and the API are the new identity | **Not in CI**, and that is the whole of the gap. There is no frontend test harness (plan **G7.5**) — `AC_frontend` has no test script and no test files. It *is* guarded outside CI by Playwright **FS-27**, added 2026-10-07 after the criterion was narrowed (S9): it switches role through the picker with no navigation, asserts the audit-gated nav item appears and `GET /api/audit` goes 403 → 200, and checks a `window` marker so a reload cannot make it vacuous. Shown to discriminate — restoring the G0.21 defect (`clear()` then `refetchQueries`) fails it. `FS-23` is scoped to SEC-05 and does not cover this. |
+| DOC-11 | A user can see batch progress | The progress store (`app/workers/runner.ProgressStore`) has no test. `GET /api/admin/reset/status` is adjacent but is not batch progress. |
 
 ### Partly proven — a test exists but misses part of the expected result
 
 | Criterion | What is proven | What is missing |
 |---|---|---|
 | INV-01 | A valid registration succeeds | No refusal of a missing mandatory field, and no assertion that the field is named. |
-| INV-02 | A create is audited; an *import* update records before/after | No audit assertion on a manual `PUT /api/models/{id}` — user, role, timestamp, before and after. |
+| INV-02 | A create is audited (action name only); an *import* update records before/after | No audit assertion on a manual `PUT /api/models/{id}` — user, role, timestamp, before and after. |
 | INV-03 | SoD refused on create and on import | Not exercised on manual edit, which the criterion names. |
 | INV-06 | The stale write returns 409 | Not re-read to show the stale write did not take effect. |
 | LIF-01 | `to_phase` on the create event | `from_phase`, transition date, acting user and reason are asserted nowhere; the test carrying the ID ends in a 422. |
 | VAL-03 | No last validation date gives no due date | The model is not shown to be absent from the revalidation queue. |
 | VAL-06 | `last_validation_date` is updated | The recalculated next due date is not re-read. |
-| APR-03 | `condition_status` round-trips through a PATCH | The decision is never observed as outstanding while the condition is open, nor leaving that state when it closes. |
-| APR-04 | Three approvals are returned and the first is Pre-implementation | No comparison of `decision_date`, so the ordering itself is unasserted. |
-| SCR-05 | `score`, `missing` and `explanation` on the API response | `weight`, `effective_weight`, `inputs` and `calculated_at` are never asserted on a response. |
-| SEC-05 | Deactivation invalidates an issued token | Role removal — the criterion's other half, and a different check — is untested. |
-| AUD-01 | Seven writes are shown to produce the right audit event | The transactional coupling: no test shows a refused write leaves no audit event, or that a failed audit rolls the business change back. |
-| GEN-01 | One reset matches the documented portfolio figures; the committed seed's policy covers the baseline and leaves the dashboard working (added 2026-10-03). From 2026-10-07 a **second** reset at the same business date is compared with the first (`test_gen_01_a_reset_clears_the_report_history_and_reseeds_it`) | Still partly proven: the comparison is a model risk report's content hash, which covers the inventory, validation, findings, approvals, score, documentation and the report baseline — but says nothing about documents, document versions, tiering answers, phase history, users or policy settings. |
+| SCR-05 | `score`, `missing`, `explanation` and — since G0.25 — `effective_weight` on an API response | `weight` and `inputs` are asserted on no response, and **`calculated_at` is in neither `ScoreOut` nor `ScoreComponentOut`**, so §57's "last recalculation time" is not implemented. Derived state is computed on read, so the field may be meaningless as specified: decide whether to add it or amend the criterion. |
+| AUD-01 | A refused write leaves no audit event, at three refusal depths, with a control write and a non-cappable `audit_count` helper; and a failed audit rolls back `policy_service.update_setting` | The coupling for **every other service**. Committing the business change before `audit.record` in `model_service.create_model` — gated on the `commit` flag, so the import engine's SAVEPOINTs are untouched — leaves the whole suite green (verified by mutation, 184 passed). A bare commit there fails 8 tests, but only because it breaks the importer, not because any test observes the coupling. Parametrise the audit-failure test over the writing services. |
+| GEN-01 | One reset matches the documented portfolio figures; the committed seed loads, covers the policy baseline and leaves the dashboard working; an incomplete seed fails the batch loudly; the reset keeps its evidence and leaves its batch terminal; the generator never deletes before writing and does not churn unchanged templates. From 2026-10-07 a **second** reset at the same business date is compared with the first (`test_gen_01_a_reset_clears_the_report_history_and_reseeds_it`, G1.18) | Still partly proven: the comparison is a model risk report's content hash, which covers the inventory, validation, findings, approvals, score, documentation and the report baseline — but says nothing about documents, document versions, tiering answers, phase history, users or policy settings. |
+| GEN-04 | The 409, the batch named in the message, the guard not latching over all five terminal statuses, and 403 beating 409 at the service | *"Nothing is deleted and no second job is submitted."* Moving `regenerate_seed(directory)` ahead of the in-flight check leaves all 28 import tests green, even though `start_reset`'s own comment names that ordering as the point of the check. Capture the seed files and the `import_batch` count before the refused call and assert both unchanged, and assert `runner.submit` was not called. |
 | DOC-09 | A batch ID is issued in the documented format | Uniqueness across two batches. |
 
 ### Correctly open — the capability does not exist yet
@@ -3372,28 +3452,62 @@ above still says 69 proven because it is the 2026-10-02 measurement, and only th
 | Criterion | Reason |
 |---|---|
 | DOC-16 | AI extraction cannot persist without confirmation — Phase 5; not yet built. |
-| MON-01…MON-12 | All monitoring criteria — Phase 6; not yet built. |
+| MON-01…MON-12 | All monitoring criteria — Phase 6; not yet built, blocked on D1–D7. |
 | REG-01…REG-14 | All regulatory alignment criteria — Phase 2A, **deferred (D12)**; report as "Not built (Phase 2A, deferred D12)". |
+| REG-15…REG-17 | Core Model Risk Report — **built on this branch** (G1.16–G1.18). Graded Proven by the G1.18 risk checkpoint (`review_state.json`); the Gate 1 exit review recounts them. |
+
+### Residual non-discrimination on otherwise-proven criteria
+
+Recorded separately because the criterion is proven and the gap is narrow:
+
+- **APR-03.** Dropping `decision == "Conditional"` from `governance_view.open_conditions` leaves the
+  suite green: no seed approval is non-Conditional with `condition_status == "Open"`, and
+  `governance_rules.approval_errors` validates the condition fields only when the decision *is*
+  Conditional, so such a row is accepted. Add an `Approved` decision carrying an `Open` condition
+  status and assert it does not hold the model outstanding.
+- **GEN-01 / GEN-05 (FT-04).** `test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis`
+  listens on SQLAlchemy's **Session** `after_commit`, so it proves "no Session commit after the
+  submit", not "no write after the submit". A post-submit write on the Engine races the background
+  job identically and is invisible to it, as is an uncommitted write transaction still open at submit
+  time. Listen on the `Engine`-level `"commit"` event, or state the scope in the docstring.
 
 ### Tagging and spec gaps
 
+- **GEN-04 and GEN-05 tagging: fixed 2026-10-07.** GEN-04 had been the only criterion in §76A whose
+  ID appeared in no test, while this section's prose claimed otherwise — so the grep contract said
+  "uncovered" and the prose said "covered", and both were wrong. GEN-04 is now on
+  `test_a_second_reset_is_refused_while_one_is_running`,
+  `test_a_finished_reset_does_not_block_the_next_one`,
+  `test_a_users_own_document_batch_does_not_block_a_reset` and
+  `test_an_unauthorised_caller_is_refused_before_the_in_flight_check`; GEN-05 on the second of those,
+  `test_reset_status_reports_the_batch_to_watch` and
+  `test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded`. GEN-04 stays **partly proven**:
+  the tag was the easy half, and its "nothing is deleted and no second job is submitted" clause is
+  still unasserted.
 - **GEN-03** is substantively proven by `test_tc_imp_03_1_preview_then_partial_load` and
   `test_row_level_errors_by_type`, but neither names the ID; the grep hit comes from the module
   docstring range. Tag the two tests. The "documented" valid/rejected split is also not documented
   anywhere — record it.
 - **IMP-01** ("multiple CSV/XLSX files") is tagged on a single-file test; the multi-file proof is on
   `test_cross_file_dependencies_in_one_batch`, tagged IMP-06. Move or add the tag.
-- **BRD §65** (file validation and security) has no acceptance criteria, yet five tests cover it
-  (`test_file_validation`, `test_oversized_document_rejected`, `test_path_traversal_rejected`, and the
-  traversal and zip-bomb halves of `test_doc_05_zip_upload_and_safety`). That work is invisible to every
-  coverage count. Add a criteria set (76E) and tag them.
-- **Migrations and schema drift** (`test_postgres.py`) likewise map to no criterion.
+- **Five further tests are untagged but substantively prove a criterion**: `test_cr_07_…` (DOC-13),
+  `test_d5_and_d10_decided_keys_are_configured` (CFG-01, FND-03) and
+  `test_displayed_columns_degrades_when_the_monitoring_phase_is_absent` (LIF-02).
+- **30 of 188 tests are untraced**, because four areas have no criteria: BRD **§65** (file validation
+  and security — 4 tests), BRD **§64** reliability (`test_db_config.py` — 5 tests), the **seed
+  generator**'s file safety (`test_seed_generator.py` — 12 tests), and **migrations and schema
+  drift** (`test_postgres.py` — 2 tests). Add a criteria set (76E) covering §64 and §65 and tag them.
+- **SEC-07** has no CI-gated test and cannot get one until the frontend harness (G7.5) exists. Record
+  in the G0.21 row that its evidence is non-CI, and write an `FS-` scenario for the **role switch**
+  path specifically rather than relying on FS-23, which tests SEC-05.
 
-The three untested criteria and the thirteen partly proven ones are real gaps in built functionality
-and should be closed before Phase 6 adds more surface area; AUD-01, APR-03, APR-04 and SEC-05 first.
+The four untested criteria and the twelve partly proven ones are real gaps in built functionality and
+should be closed before Phase 6 adds more surface area; **AUD-01's per-service coupling, GEN-01's
+determinism and GEN-04's "nothing happened" clause first**, because each currently passes against a
+broken implementation.
 
-The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text in its
-report. Update this section from that report rather than by hand.
+The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text
+in its report. Update this section from that report rather than by hand.
 
 ---
 

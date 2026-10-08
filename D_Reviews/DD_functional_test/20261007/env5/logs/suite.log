@@ -1,0 +1,399 @@
+
+Running 31 tests using 1 worker
+
+  ✓   1 [functional] › functional\audit.spec.ts:8:5 › FS-20 AUD-03 the audit trail filters by each documented dimension (6.3s)
+  ✓   2 [functional] › functional\audit.spec.ts:69:5 › FS-24 AUD-01 refused writes leave no audit event; a permitted write adds exactly one (2.6s)
+  ✓   3 [functional] › functional\dashboards.spec.ts:6:5 › FS-18 CC-01 CC-02 every tile and bar drills to a list of its own size (2.5s)
+  ✓   4 [functional] › functional\dashboards.spec.ts:61:5 › FS-19 CC-04 every insight links to its source record (1.7s)
+  -   5 [functional] › functional\dashboards.spec.ts:87:6 › FS-34 Copilot answers cite records from the app
+  ✓   6 [functional] › functional\dashboards.spec.ts:107:7 › FS-26 date-only rendering › CC-01 LIF-02 a date-only value renders its own calendar day, west of UTC (2.1s)
+  ✓   7 [functional] › functional\documents.spec.ts:9:5 › FS-15 DOC-01 DOC-08 DOC-17 single upload, a new version, and a refused duplicate (1.7s)
+  ✘   8 [functional] › functional\documents.spec.ts:55:5 › FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest (1.5s)
+  ✘   9 [functional] › functional\documents.spec.ts:55:5 › FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest (retry #1) (3.4s)
+  ✘  10 [functional] › functional\documents.spec.ts:96:5 › FS-17 DOC-20 completeness on Model 360 changes after an upload (3.3s)
+  ✘  11 [functional] › functional\documents.spec.ts:96:5 › FS-17 DOC-20 completeness on Model 360 changes after an upload (retry #1) (3.3s)
+  -  12 [functional] › functional\documents.spec.ts:134:6 › FS-33 DOC-16 AI extraction proposals are confirmed or dropped
+  ✓  13 [functional] › functional\import.spec.ts:15:5 › FS-02 IMP-02 IMP-03 enabled templates download with registry columns; disabled ones do not (3.5s)
+  ✓  14 [functional] › functional\import.spec.ts:49:5 › FS-03 IMP-01 IMP-05 IMP-08 INV-03 T02 demo preview names field and row, then loads (4.4s)
+  ✓  15 [functional] › functional\import.spec.ts:81:5 › FS-04 IMP-01 IMP-07 re-loading the same file does not duplicate models (7.4s)
+  ✓  16 [functional] › functional\import.spec.ts:102:5 › FS-05 VAL-01 FND-01 APR-01 T03–T05 load onto the right models (1.6s)
+  ✓  17 [functional] › functional\import.spec.ts:122:5 › FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the same counts (23.1s)
+  -  18 [functional] › functional\import.spec.ts:185:6 › FS-25 REG-15 REG-16 REG-17 core Model Risk Report: figures, reproducibility and access
+  -  19 [functional] › functional\import.spec.ts:191:6 › FS-30 MON-01 MON-02 MON-03 monitoring plan, metrics, results and breach
+  -  20 [functional] › functional\import.spec.ts:195:6 › FS-31 REG-01 REG-14 inventory classes, vendor models, challenges, dependencies
+  -  21 [functional] › functional\import.spec.ts:200:6 › FS-32 CDE and DQ results load and appear on Data Audit
+  ✘  22 [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import (30.2s)
+  ✘  23 [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import (retry #1) (30.2s)
+  ✓  24 [functional] › functional\inventory.spec.ts:59:5 › FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail (4.6s)
+  ✓  25 [functional] › functional\inventory.spec.ts:108:5 › FS-08 TIR-01 TIR-04 TIR-05 tiering follows policy; an override needs a reason (2.0s)
+  ✓  26 [functional] › functional\inventory.spec.ts:144:5 › FS-09 LIF-01 INV-05 a phase move without required data is refused (1.8s)
+  ✓  27 [functional] › functional\inventory.spec.ts:161:5 › FS-10 VAL-02 VAL-04 revalidation status is correct for the fixed business date (1.6s)
+  ✘  28 [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move (30.1s)
+  ✘  29 [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move (retry #1) (30.1s)
+  ✘  30 [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close (30.1s)
+  ✘  31 [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close (retry #1) (30.1s)
+  ✓  32 [functional] › functional\inventory.spec.ts:226:5 › FS-13 SCR-01 SCR-05 the score breakdown matches an independent calculation (3.5s)
+  ✓  33 [functional] › functional\inventory.spec.ts:253:5 › FS-14 CFG-02 CFG-03 TIR-03 a policy change moves tiers and is audited (1.8s)
+  ✓  34 [functional] › functional\security.spec.ts:8:5 › FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and the API refuses their writes (2.2s)
+  ✓  35 [functional] › functional\security.spec.ts:40:5 › FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review (2.5s)
+  ✓  36 [functional] › functional\security.spec.ts:96:5 › FS-23 SEC-05 re-importing T01 without a role invalidates that role's session (2.7s)
+
+
+  1) [functional] › functional\documents.spec.ts:55:5 › FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest 
+
+    Error: the valid files are still Ready
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      79 |     expect(invalid.length, "the deliberately broken file is isolated").toBeGreaterThan(0);
+      80 |     const ready = batch.items.filter((i: { status: string }) => i.status === "Ready");
+    > 81 |     expect(ready.length, "the valid files are still Ready").toBeGreaterThan(0);
+         |                                                             ^
+      82 |
+      83 |     await page.goto(`/documents/batches/${batch.batch_id}`);
+      84 |     await checkpoint(page, "FS-16_batch_review");
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\documents.spec.ts:81:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: the valid files are still Ready
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      79 |     expect(invalid.length, "the deliberately broken file is isolated").toBeGreaterThan(0);
+      80 |     const ready = batch.items.filter((i: { status: string }) => i.status === "Ready");
+    > 81 |     expect(ready.length, "the valid files are still Ready").toBeGreaterThan(0);
+         |                                                             ^
+      82 |
+      83 |     await page.goto(`/documents/batches/${batch.batch_id}`);
+      84 |     await checkpoint(page, "FS-16_batch_review");
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\documents.spec.ts:81:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-16-DOC-03-DOC-8fc80--ZIP-upload-with-a-manifest-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [functional] › functional\documents.spec.ts:96:5 › FS-17 DOC-20 completeness on Model 360 changes after an upload 
+
+    Error: the model should start with a gap to close
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      102 |
+      103 |   const before = await completeness();
+    > 104 |   expect(before.missing.length, "the model should start with a gap to close").toBeGreaterThan(0);
+          |                                                                               ^
+      105 |   const target = before.missing[0];
+      106 |
+      107 |   const resp = await page.request.post("/api/documents", {
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\documents.spec.ts:104:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: the model should start with a gap to close
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      102 |
+      103 |   const before = await completeness();
+    > 104 |   expect(before.missing.length, "the model should start with a gap to close").toBeGreaterThan(0);
+          |                                                                               ^
+      105 |   const target = before.missing[0];
+      106 |
+      107 |   const resp = await page.request.post("/api/documents", {
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\documents.spec.ts:104:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\documents-FS-17-DOC-20-com-a49b7-360-changes-after-an-upload-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByLabel(/^s*Validator/)
+        - locator resolved to <select class="select">…</select>
+      - attempting select option action
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+        - waiting 20ms
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+          - waiting 100ms
+        56 × waiting for element to be visible and enabled
+           - did not find some options
+         - retrying select option action
+           - waiting 500ms
+
+
+      16 |     const control = page.getByLabel(new RegExp(`^\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      17 |     const tag = await control.evaluate((el) => el.tagName.toLowerCase());
+    > 18 |     if (tag === "select") await control.selectOption(value);
+         |                                         ^
+      19 |     else await control.fill(value);
+      20 |   }
+      21 |   // The four tiering answers are selects in the Risk tiering panel; their labels come from policy.
+        at fillNewModel (C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:18:41)
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:31:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByLabel(/^s*Validator/)
+        - locator resolved to <select class="select">…</select>
+      - attempting select option action
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+        - waiting 20ms
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+          - waiting 100ms
+        52 × waiting for element to be visible and enabled
+           - did not find some options
+         - retrying select option action
+           - waiting 500ms
+
+
+      16 |     const control = page.getByLabel(new RegExp(`^\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      17 |     const tag = await control.evaluate((el) => el.tagName.toLowerCase());
+    > 18 |     if (tag === "select") await control.selectOption(value);
+         |                                         ^
+      19 |     else await control.fill(value);
+      20 |   }
+      21 |   // The four tiering answers are selects in the Risk tiering panel; their labels come from policy.
+        at fillNewModel (C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:18:41)
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:31:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Raise finding' })
+
+
+      182 |
+      183 |   await page.goto("/models/M-0012");
+    > 184 |   await page.getByRole("button", { name: "Raise finding" }).click();
+          |                                                             ^
+      185 |   await page.getByLabel("Title", { exact: true }).fill("Functional suite finding");
+      186 |   await page.getByLabel("Severity", { exact: true }).selectOption("Low");
+      187 |   await page.getByLabel("Category", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:184:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Raise finding' })
+
+
+      182 |
+      183 |   await page.goto("/models/M-0012");
+    > 184 |   await page.getByRole("button", { name: "Raise finding" }).click();
+          |                                                             ^
+      185 |   await page.getByLabel("Title", { exact: true }).fill("Functional suite finding");
+      186 |   await page.getByLabel("Severity", { exact: true }).selectOption("Low");
+      187 |   await page.getByLabel("Category", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:184:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Record decision' })
+
+
+      204 |
+      205 |   await page.goto("/models/M-0023");
+    > 206 |   await page.getByRole("button", { name: "Record decision" }).click();
+          |                                                               ^
+      207 |   await page.getByLabel("Decision date", { exact: true }).fill("2026-09-01");
+      208 |   await page.getByLabel("Forum", { exact: true }).selectOption({ index: 1 });
+      209 |   await page.getByLabel("Decision type", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:206:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Record decision' })
+
+
+      204 |
+      205 |   await page.goto("/models/M-0023");
+    > 206 |   await page.getByRole("button", { name: "Record decision" }).click();
+          |                                                               ^
+      207 |   await page.getByLabel("Decision date", { exact: true }).fill("2026-09-01");
+      208 |   await page.getByLabel("Forum", { exact: true }).selectOption({ index: 1 });
+      209 |   await page.getByLabel("Decision type", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:206:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [functional] › functional\documents.spec.ts:55:5 › FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest 
+    [functional] › functional\documents.spec.ts:96:5 › FS-17 DOC-20 completeness on Model 360 changes after an upload 
+    [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import 
+    [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move 
+    [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close 
+  6 skipped
+  20 passed (4.9m)

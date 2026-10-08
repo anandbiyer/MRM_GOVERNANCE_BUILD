@@ -1,0 +1,10 @@
+backend-postgres gate RUN LOCALLY (container mrm-mis-postgres-1, Up 2 days (healthy), 0.0.0.0:5432)
+MRM_TEST_POSTGRES_URL=postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm
+alembic upgrade head -> no-op (already at head)
+pytest -q tests/test_postgres.py -> 4 passed, 1 warning in 0.27s
+  test_migration_created_foundation_tables           PASS
+  test_audit_event_is_append_only[UPDATE ...]        PASS
+  test_audit_event_is_append_only[DELETE ...]        PASS
+  test_migrations_match_orm_models                   PASS  (no drift; closes TR-05, confirms G0.14)
+Non-vacuity check: adding a drift_probe column to the validation ORM makes
+test_migrations_match_orm_models fail. Reverted.

@@ -5,6 +5,7 @@ import { useModelMeta } from "../api/queries";
 import { useAuth } from "../auth/AuthContext";
 import { DaysToDue, Pill } from "../components/Pills";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../components/States";
+import { formatDate } from "../format";
 
 interface DistItem { key: string; count: number; pct: number }
 interface Insight { severity: string; rule: string; message: string; model_id: string | null; source: string; link: string }
@@ -109,7 +110,7 @@ export function CommandCenter() {
   return (
     <div className="stack">
       <PageHeader eyebrow="Portfolio" title="Command Center"
-                  lede={`Model risk across the portfolio as of ${new Date(d.as_of).toLocaleDateString()}. Every figure is calculated from the governance records and opens the matching models.`} />
+                  lede={`Model risk across the portfolio as of ${formatDate(d.as_of)}. Every figure is calculated from the governance records and opens the matching models.`} />
       <p className="note">
         These figures are what the <Link to="/reports/model-risk">Model Risk Report</Link> states for
         the same business date.
@@ -178,7 +179,7 @@ export function CommandCenter() {
                     <tr key={r.model_id}>
                       <td><Link className="mono" to={`/models/${r.model_id}`}>{r.model_id}</Link> {r.model_name}</td>
                       <td><Pill value={r.tier} /></td>
-                      <td className="mono">{r.next_due ?? "—"}</td>
+                      <td className="mono">{formatDate(r.next_due)}</td>
                       <td><DaysToDue days={r.days_to_due} /></td>
                       <td><Pill value={r.status} /></td>
                     </tr>

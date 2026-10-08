@@ -116,3 +116,28 @@ export async function hasHorizontalScroll(page: Page): Promise<boolean> {
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+/**
+ * The exact string the browser renders for a date-only API value, computed in the page's own
+ * locale by the rule `AC_frontend/src/format.ts` uses: the three numbers, built in **local** time.
+ *
+ * Asserting against this instead of a hard-coded "9/30/2026" keeps the check locale-independent
+ * while still being an independent calculation — it never calls the app's own formatter. The whole
+ * point of review finding MP-10 was that `new Date("2026-09-30")` is UTC midnight and so renders
+ * the previous day west of UTC, which is why this helper must not go through `Date`'s parser
+ * either.
+ */
+export async function localeDateOnly(page: Page, isoDate: string): Promise<string> {
+  const [year, month, day] = isoDate.slice(0, 10).split("-").map(Number);
+  return page.evaluate(
+    ([y, m, d]) => new Date(y, m - 1, d).toLocaleDateString(),
+    [year, month, day],
+  );
+}
+
+/** Read a Model 360 `<dl class="kv">` value by its term, e.g. "Next due". */
+export async function kvValue(page: Page, term: string): Promise<string> {
+  const dd = page.locator("dl.kv div", { has: page.getByText(term, { exact: true }) }).locator("dd").first();
+  await expect(dd, `Model 360 should show "${term}"`).toBeVisible();
+  return (await dd.innerText()).trim();
+}

@@ -1,10 +1,37 @@
 // Helpers for the functional suite (review agent 4). Locators are role/label/text only — never a
 // data-testid, because adding one would mean editing product code to make a test pass.
+import fs from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 export const RUN_DIR = process.env.FT_RUN_DIR ?? "";
+
+/**
+ * Wait until the server agrees who we are.
+ *
+ * Waiting for the nav rail proved nothing: it is already on the page from the *previous* session, so
+ * a role switch that silently did not happen looked like a success and the scenario went on to test
+ * the wrong role (harness defect H-07). That is a false-negative generator — the worst kind of
+ * harness bug, because it makes a passing run meaningless rather than failing loudly. The identity
+ * is therefore read back from `/api/auth/me`, which is the only authority on it.
+ */
+async function confirmIdentity(page: Page, role: string, userId?: string): Promise<void> {
+  await expect(page.locator('nav.rail[aria-label="Main"]')).toBeVisible();
+  const want = userId ? `${userId}|${role}` : role;
+  await expect
+    .poll(async () => {
+      const token = await page.evaluate(() => localStorage.getItem("mrm.token"));
+      if (!token) return "no token";
+      const resp = await page.request.get("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resp.ok()) return `HTTP ${resp.status()}`;
+      const me = (await resp.json()) as { user_id: string; role: string };
+      return userId ? `${me.user_id}|${me.role}` : me.role;
+    }, { timeout: 10_000, message: `the session never became ${want}` })
+    .toBe(want);
+}
 
 /** Sign in through the development role picker. Same mechanism as the `app` project's helper. */
 export async function signInAs(page: Page, role: string): Promise<void> {
@@ -14,7 +41,7 @@ export async function signInAs(page: Page, role: string): Promise<void> {
   const option = page.locator("option", { hasText: new RegExp(`^${escapeRegExp(role)} — `) }).first();
   await expect(option, `no user holds the role "${role}"`).toHaveCount(1);
   await picker.selectOption((await option.getAttribute("value")) ?? "");
-  await expect(page.locator('nav.rail[aria-label="Main"]')).toBeVisible();
+  await confirmIdentity(page, role);
 }
 
 /** Sign in as a named user and role, when a scenario needs a specific person. */
@@ -23,7 +50,7 @@ export async function signInAsUser(page: Page, userId: string, role: string): Pr
   const picker = page.getByLabel("Act as user and role");
   await expect(picker).toBeVisible();
   await picker.selectOption(`${userId}|${role}`);
-  await expect(page.locator('nav.rail[aria-label="Main"]')).toBeVisible();
+  await confirmIdentity(page, role, userId);
 }
 
 /** Navigate by sidebar link, as a user would. */
@@ -105,4 +132,22 @@ export async function checkpoint(page: Page, name: string): Promise<string> {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Find a seeded evidence file by model and area, instead of composing its path.
+ *
+ * The seed lays documents out as `Model_Governance/<Business_Line>/<Model>/<Area>/`, so the path
+ * depends on the model's business line — M-0012 is Commercial Banking, not Credit Risk, which is
+ * what harness defect H-06 assumed. Searching means a reseed that moves a model between business
+ * lines cannot silently break a scenario.
+ */
+export function findSeedEvidence(modelId: string, area: string, fileName: string): string {
+  const root = path.join(RUN_DIR, "inputs", "evidence", "Model_Governance");
+  for (const line of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!line.isDirectory()) continue;
+    const candidate = path.join(root, line.name, modelId, area, fileName);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  throw new Error(`No seeded evidence at <business line>/${modelId}/${area}/${fileName} under ${root}`);
 }

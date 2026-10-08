@@ -1,0 +1,247 @@
+
+Running 12 tests using 1 worker
+
+  ✘   1 [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import (30.2s)
+  ✘   2 [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import (retry #1) (30.2s)
+  ✓   3 [functional] › functional\inventory.spec.ts:59:5 › FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail (4.5s)
+  ✓   4 [functional] › functional\inventory.spec.ts:108:5 › FS-08 TIR-01 TIR-04 TIR-05 tiering follows policy; an override needs a reason (2.1s)
+  ✓   5 [functional] › functional\inventory.spec.ts:144:5 › FS-09 LIF-01 INV-05 a phase move without required data is refused (1.8s)
+  ✓   6 [functional] › functional\inventory.spec.ts:161:5 › FS-10 VAL-02 VAL-04 revalidation status is correct for the fixed business date (1.6s)
+  ✘   7 [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move (30.1s)
+  ✘   8 [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move (retry #1) (30.1s)
+  ✘   9 [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close (30.1s)
+  ✘  10 [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close (retry #1) (30.1s)
+  ✓  11 [functional] › functional\inventory.spec.ts:226:5 › FS-13 SCR-01 SCR-05 the score breakdown matches an independent calculation (3.4s)
+  ✓  12 [functional] › functional\inventory.spec.ts:253:5 › FS-14 CFG-02 CFG-03 TIR-03 a policy change moves tiers and is audited (1.7s)
+  ✓  13 [functional] › functional\security.spec.ts:8:5 › FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and the API refuses their writes (2.1s)
+  ✓  14 [functional] › functional\security.spec.ts:40:5 › FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review (2.4s)
+  ✓  15 [functional] › functional\security.spec.ts:96:5 › FS-23 SEC-05 re-importing T01 without a role invalidates that role's session (2.2s)
+
+
+  1) [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByLabel(/^s*Validator/)
+        - locator resolved to <select class="select">…</select>
+      - attempting select option action
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+        - waiting 20ms
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+          - waiting 100ms
+        52 × waiting for element to be visible and enabled
+           - did not find some options
+         - retrying select option action
+           - waiting 500ms
+
+
+      16 |     const control = page.getByLabel(new RegExp(`^\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      17 |     const tag = await control.evaluate((el) => el.tagName.toLowerCase());
+    > 18 |     if (tag === "select") await control.selectOption(value);
+         |                                         ^
+      19 |     else await control.fill(value);
+      20 |   }
+      21 |   // The four tiering answers are selects in the Risk tiering panel; their labels come from policy.
+        at fillNewModel (C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:18:41)
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:31:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByLabel(/^s*Validator/)
+        - locator resolved to <select class="select">…</select>
+      - attempting select option action
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+        - waiting 20ms
+        2 × waiting for element to be visible and enabled
+          - did not find some options
+        - retrying select option action
+          - waiting 100ms
+        52 × waiting for element to be visible and enabled
+           - did not find some options
+         - retrying select option action
+           - waiting 500ms
+
+
+      16 |     const control = page.getByLabel(new RegExp(`^\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      17 |     const tag = await control.evaluate((el) => el.tagName.toLowerCase());
+    > 18 |     if (tag === "select") await control.selectOption(value);
+         |                                         ^
+      19 |     else await control.fill(value);
+      20 |   }
+      21 |   // The four tiering answers are selects in the Risk tiering panel; their labels come from policy.
+        at fillNewModel (C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:18:41)
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:31:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\inventory-FS-06-INV-03-a-s-a5e69-sed-in-the-UI-and-on-import-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Raise finding' })
+
+
+      182 |
+      183 |   await page.goto("/models/M-0012");
+    > 184 |   await page.getByRole("button", { name: "Raise finding" }).click();
+          |                                                             ^
+      185 |   await page.getByLabel("Title", { exact: true }).fill("Functional suite finding");
+      186 |   await page.getByLabel("Severity", { exact: true }).selectOption("Low");
+      187 |   await page.getByLabel("Category", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:184:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Raise finding' })
+
+
+      182 |
+      183 |   await page.goto("/models/M-0012");
+    > 184 |   await page.getByRole("button", { name: "Raise finding" }).click();
+          |                                                             ^
+      185 |   await page.getByLabel("Title", { exact: true }).fill("Functional suite finding");
+      186 |   await page.getByLabel("Severity", { exact: true }).selectOption("Low");
+      187 |   await page.getByLabel("Category", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:184:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\inventory-FS-11-FND-02-FND-85c88-tch-the-overdue-counts-move-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Record decision' })
+
+
+      204 |
+      205 |   await page.goto("/models/M-0023");
+    > 206 |   await page.getByRole("button", { name: "Record decision" }).click();
+          |                                                               ^
+      207 |   await page.getByLabel("Decision date", { exact: true }).fill("2026-09-01");
+      208 |   await page.getByLabel("Forum", { exact: true }).selectOption({ index: 1 });
+      209 |   await page.getByLabel("Decision type", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:206:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Record decision' })
+
+
+      204 |
+      205 |   await page.goto("/models/M-0023");
+    > 206 |   await page.getByRole("button", { name: "Record decision" }).click();
+          |                                                               ^
+      207 |   await page.getByLabel("Decision date", { exact: true }).fill("2026-09-01");
+      208 |   await page.getByLabel("Forum", { exact: true }).selectOption({ index: 1 });
+      209 |   await page.getByLabel("Decision type", { exact: true }).selectOption({ index: 1 });
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:206:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\inventory-FS-12-APR-03-a-c-3e2e4--until-its-conditions-close-functional-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [functional] › functional\inventory.spec.ts:26:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import 
+    [functional] › functional\inventory.spec.ts:179:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move 
+    [functional] › functional\inventory.spec.ts:199:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close 
+  9 passed (3.6m)

@@ -1,0 +1,4 @@
+Python 3.14.5 (CI: 3.14 - match)
+pytest -q --junitxml=backend.xml
+182 collected: 178 passed, 4 skipped (tests/test_postgres.py self-skip), 0 failed
+73.125 s

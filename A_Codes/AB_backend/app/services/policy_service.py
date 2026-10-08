@@ -6,6 +6,8 @@ from app.audit import service as audit
 from app.auth.security import Principal
 from app.models import PolicySetting
 from app.rules.policy_values import (
+    PHASE_LIST_KEYS,
+    PHASE_NAME_KEYS,
     PolicyValueError,
     check_key_specific,
     normalise_policy_value,
@@ -18,7 +20,10 @@ ENTITY = "policy_setting"
 TIER_KEYS = ("tier_high_min", "tier_medium_min")
 # Settings whose current value another setting is validated against (see rules.check_key_specific).
 # Loaded for every interactive edit so a cross-field rule can see the other side.
-CONTEXT_KEYS = (*TIER_KEYS, "lifecycle_phases", "monitoring_phase",
+# Every key a cross-field rule in `policy_values.check_key_specific` may need to read. The phase
+# keys are listed from `policy_values` itself, so adding a phase-naming setting there is enough
+# (CR-21); forgetting this tuple is how a guard silently stops guarding.
+CONTEXT_KEYS = (*TIER_KEYS, "lifecycle_phases", *PHASE_NAME_KEYS, *PHASE_LIST_KEYS,
                 "score_band_warn_min", "score_band_good_min")
 
 

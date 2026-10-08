@@ -6,6 +6,7 @@ import type { AuditEvent, DocumentDetail } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { ErrorState, Loading } from "../../components/States";
 import { Preview, formatBytes, invalidateDocuments } from "./shared";
+import { formatDate } from "../../format";
 
 export function DocumentDetailPage() {
   const { documentId } = useParams();
@@ -50,7 +51,7 @@ export function DocumentDetailPage() {
           <h4>Details</h4>
           <dl className="kv">
             {([["Model", <Link to={`/models/${d.model_id}`}>{d.model_id}</Link>], ["Folder", <span className="mono">{d.folder_path ?? "—"}</span>],
-              ["Effective date", d.effective_date ?? "—"], ["Source", d.source],
+              ["Effective date", formatDate(d.effective_date)], ["Source", d.source],
               ["Classification", `${d.classification_source ?? "—"}${d.classification_confidence !== null ? ` (${Math.round(d.classification_confidence * 100)}%)` : ""}`],
               ["Why", d.classification_reason ?? "—"], ["Extraction", `${d.extraction_status} (AI extraction arrives in Phase 5)`],
               ["Retention", `${d.retention_start ?? "—"} → ${d.retention_end ?? "—"}`]] as [string, React.ReactNode][]).map(([k, v]) => (

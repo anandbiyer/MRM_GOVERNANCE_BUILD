@@ -1,0 +1,71 @@
+== env/functional.db (main run, after FS-21)
+   model 257
+   document 2
+   document_version 2
+   import_batch 12
+   batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-002', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   batch ('B-20260930-003', 'documents', 'zip', 'Ready', 3, 0, None)
+   batch ('B-20260930-004', 'documents', 'zip', 'Ready', 3, 0, None)
+   batch ('B-20260930-005', 'structured', 'upload', 'Partially Completed', 1, 1, None)
+   batch ('B-20260930-006', 'structured', 'upload', 'Partially Completed', 1, 1, None)
+   batch ('B-20260930-007', 'structured', 'upload', 'Partially Completed', 1, 1, None)
+   batch ('B-20260930-008', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-009', 'documents', 'seed', 'Validating', 1116, 0, None)
+   batch ('B-20260930-010', 'documents', 'batch', 'Ready', 1, 0, None)
+   batch ('B-20260930-011', 'structured', 'upload', 'Completed', 1, 1, None)
+   batch ('B-20260930-012', 'documents', 'zip', 'Partially Completed', 3, 2, None)
+== env2/functional2.db (clean db, one API reset)
+   model 256
+   document 0
+   document_version 0
+   import_batch 2
+   batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-002', 'documents', 'seed', 'Validating', 1116, 0, None)
+
+== env4/functional4.db (G0.22-G0.24 verification, 2026-10-07, after the fixes)
+   Built fresh: Base.metadata.create_all (alembic's 0003 trigger is PostgreSQL-only, so
+   `alembic upgrade head` cannot build a SQLite database), then `cli bootstrap`, then `cli reset`.
+   model 256
+   document 1116      <- was 0 in env/ and env2/ before G0.22; FT-04 closed
+   import_batch 2
+   batch ('B-20260930-001', 'seed', 'reset', 'Completed', 6, 6, None)
+   batch ('B-20260930-002', 'documents', 'seed', 'Completed', 1116, 1116, None)
+== env5/functional5.db (Gate 0 re-run, 2026-10-07, commit 779e3de, after the full suite)
+   Built fresh: Base.metadata.create_all + cli bootstrap + cli reset (alembic 0003 is PG-only)
+   model 256
+   app_user 65
+   validation 415
+   finding 206
+   approval 383
+   document 1116
+   document_version 1116
+   policy_setting 70
+   audit_event 28198
+   import_batch 59
+   document_folder 1191
+   -- reset/seed batches --
+   ('B-20260930-001', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-002', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-008', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-009', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-010', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-011', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-023', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-024', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-031', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-032', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-033', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-034', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-040', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-041', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-048', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-049', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-050', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-051', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-056', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-057', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   ('B-20260930-058', 'seed', 'reset', 'Completed', 1395, 1395, None)
+   ('B-20260930-059', 'documents', 'seed', 'Completed', 1116, 1116, None)
+   -- non-terminal batches (must be none) --
+   7

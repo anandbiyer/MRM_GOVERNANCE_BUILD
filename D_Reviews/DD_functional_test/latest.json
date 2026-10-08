@@ -1,0 +1,264 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--project=functional",
+      "-g",
+      "FS-23|FS-26|FS-27"
+    ],
+    "configFile": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\playwright.config.ts",
+    "rootDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mockup",
+        "name": "mockup",
+        "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "app",
+        "name": "app",
+        "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "functional",
+        "name": "functional",
+        "testDir": "C:/Users/anand/OneDrive/Documents/AI_Projects/MRM_Governance_Build/A_Codes/AF_e2e/functional",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\D_Reviews\\DD_functional_test\\latest.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "..\\functional\\dashboards.spec.ts",
+      "file": "../functional/dashboards.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "FS-26 date-only rendering",
+          "file": "../functional/dashboards.spec.ts",
+          "line": 100,
+          "column": 6,
+          "specs": [
+            {
+              "title": "CC-01 LIF-02 a date-only value renders its own calendar day, west of UTC",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "functional",
+                  "projectName": "functional",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3804,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-08T02:17:24.136Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\dashboards-FS-26-date-only-62560-wn-calendar-day-west-of-UTC-functional\\test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "86a5e4e303644cf814e4-0edb16225565d3a79fee",
+              "file": "../functional/dashboards.spec.ts",
+              "line": 107,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "..\\functional\\security.spec.ts",
+      "file": "../functional/security.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FS-23 SEC-05 re-importing T01 without a role invalidates that role's session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2804,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T02:17:28.932Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\security-FS-23-SEC-05-re-i-8c482-lidates-that-role-s-session-functional\\test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a7e9410bcc1ef00e9656-59f091435a73327d1dd2",
+          "file": "../functional/security.spec.ts",
+          "line": 96,
+          "column": 5
+        },
+        {
+          "title": "FS-27 SEC-07 a role switch takes effect without a page reload",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1641,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-08T02:17:31.743Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\security-FS-27-SEC-07-a-ro-a9710-ffect-without-a-page-reload-functional\\test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a7e9410bcc1ef00e9656-9c845bc046e2ccbc404a",
+          "file": "../functional/security.spec.ts",
+          "line": 142,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-08T02:17:23.387Z",
+    "duration": 10081.397,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

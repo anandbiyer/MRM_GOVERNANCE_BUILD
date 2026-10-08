@@ -8,7 +8,12 @@ async function fillNewModel(page: import("@playwright/test").Page, values: Recor
   await page.goto("/models/new");
   await expect(page.getByLabel("Model name")).toBeVisible();
   for (const [label, value] of Object.entries(values)) {
-    const control = page.getByLabel(label, { exact: true });
+    // Not `{ exact: true }`: these labels *wrap* their control, so a <select>'s label text is the
+    // field name followed by every option's text ("Model type" + "Credit Risk" + ...). Exact
+    // matching therefore worked for text inputs and could never work for a select, which is why
+    // FS-06 and FS-07 timed out on "Model type" (harness defect H-01). Anchored to the start of
+    // the label so one field name cannot match another's.
+    const control = page.getByLabel(new RegExp(`^\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     const tag = await control.evaluate((el) => el.tagName.toLowerCase());
     if (tag === "select") await control.selectOption(value);
     else await control.fill(value);
@@ -18,16 +23,49 @@ async function fillNewModel(page: import("@playwright/test").Page, values: Recor
   for (let i = 0; i < 4; i++) await tiering.nth(i).selectOption("2");
 }
 
+/**
+ * A control in an open Model 360 action form, by its field label.
+ *
+ * `getByLabel("Severity", { exact: true })` cannot work here: `ActionForm` renders `<label
+ * className="field">Severity<select>…</select></label>`, so the accessible name of the select is
+ * "Severity" followed by every option's text. That is the same wrapping-label trap as harness
+ * defect H-01, and it is why FS-11 and FS-12 timed out on their first select. XPath `text()`
+ * selects only the label's *direct* text children, so the option text is excluded and one field
+ * name cannot match another's ("Decision" vs "Decision date" vs "Decision type").
+ */
+function actionField(page: import("@playwright/test").Page, label: string) {
+  return page.locator(
+    `xpath=//form[contains(@class,"action-form")]//label[normalize-space(text())="${label}"]`
+  ).locator("input, select, textarea");
+}
+
 test("FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import", async ({ page }) => {
   await signInAs(page, "Admin");
   const before = dbCount("model");
   const auditBefore = dbCount("audit_event", "entity = 'model'");
 
+  // The person named as both Owner and Validator has to hold *both* roles, because the Validator
+  // `<select>` lists only users with the Validator role (`ModelForm.tsx`, `userOpts("Validator")`).
+  // U-003 holds Model Owner only, so the option could never exist and `selectOption` timed out for
+  // 30 s — harness defect H-11, not a product defect: the UI not offering an impossible validator
+  // is correct. U-101 (Jia Chen) is the seed's only Model Owner *and* Validator, which is exactly
+  // the fixture an SoD breach needs. Asserted rather than assumed, so a reseed that drops the dual
+  // role fails loudly here instead of timing out in the form.
+  const dualRole = dbQuery(
+    `SELECT u.user_id AS user_id FROM app_user u
+      WHERE u.active = 1
+        AND EXISTS (SELECT 1 FROM user_role r WHERE r.user_id = u.user_id AND r.role = 'Model Owner')
+        AND EXISTS (SELECT 1 FROM user_role r WHERE r.user_id = u.user_id AND r.role = 'Validator')
+      ORDER BY u.user_id`);
+  expect(dualRole.length, "the seed must have a user holding both Model Owner and Validator")
+    .toBeGreaterThan(0);
+  const sameUser = String(dualRole[0].user_id);
+
   await fillNewModel(page, {
     "Model name": "SoD probe", "Model subtype": "PD", "Business line": "Business Banking",
     "Version": "v1.0", "Model type": "Credit Risk", "Lifecycle phase": "Validation",
     "Purpose": "Checks that a refused create writes nothing.",
-    "Owner": "U-003", "Developer": "U-021", "Validator": "U-003",
+    "Owner": sameUser, "Developer": "U-021", "Validator": sameUser,
   });
   await page.getByRole("button", { name: /Register|Save/ }).first().click();
 
@@ -56,6 +94,12 @@ test("FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in th
     // Admin, because a Model Owner may only edit models already assigned to them (SEC-03).
     await signInAs(page, "Admin");
     const tilesBefore = (await apiAs(page, "/api/dashboard/summary")).body as { tiles: Record<string, number> };
+    // Events are counted from here on, not for all time. A reset reloads the 256-model seed but
+    // *keeps* the audit trail (Part 0), so the next free model id is handed out again and the
+    // trail already holds a `create` for it from an earlier run — `= 1` then failed on a second
+    // run against the same database while the product was behaving correctly (harness defect
+    // H-15; the id reuse itself is reported as unspecified behaviour).
+    const sinceEvent = Number(dbQuery("SELECT COALESCE(MAX(event_id), 0) AS n FROM audit_event")[0].n);
 
     await fillNewModel(page, {
       "Model name": "Functional probe PD", "Model subtype": "PD", "Business line": "Business Banking",
@@ -68,9 +112,10 @@ test("FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in th
     const modelId = page.url().split("/").pop()!;
     await checkpoint(page, "FS-07_created");
 
-    // INV-01/INV-02: the create is audited.
-    expect(dbCount("audit_event", "entity = 'model' AND action = 'create' AND entity_id = ?", [modelId]))
-      .toBe(1);
+    // INV-01/INV-02: the create is audited — exactly once, by this scenario.
+    expect(dbCount("audit_event",
+      "entity = 'model' AND action = 'create' AND entity_id = ? AND event_id > ?",
+      [modelId, sinceEvent])).toBe(1);
 
     // CR-06 / G0.5 at runtime: the Command Center reflects the new model without a reload.
     await openScreen(page, "Command Center");
@@ -172,17 +217,25 @@ test("FS-10 VAL-02 VAL-04 revalidation status is correct for the fixed business 
 });
 
 test("FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move", async ({ page }) => {
-  await signInAsUser(page, "U-003", "Model Owner");  // the owner of M-0012 in the seed
+  // Two harness defects fixed here (H-02). The owner is *read* from the model rather than named:
+  // the comment used to say U-003 owned M-0012, and the seed now owns it with U-101, so
+  // `ensure_can_edit_finding` would have refused the write with a 403 that the scenario would have
+  // reported as a product defect. And "Raise finding" lives behind the Findings tab of Model 360
+  // (`Model360Page.tsx`, `tab === "Findings"`), so the tab has to be opened first.
+  const modelId = "M-0012";
+  const owner = String(dbQuery("SELECT owner_id FROM model WHERE model_id = ?", [modelId])[0].owner_id);
+  await signInAsUser(page, owner, "Model Owner");
   const before = (await apiAs(page, "/api/dashboard/summary")).body as { tiles: Record<string, number> };
 
-  await page.goto("/models/M-0012");
+  await page.goto(`/models/${modelId}`);
+  await page.getByRole("tab", { name: /^Findings/ }).click();
   await page.getByRole("button", { name: "Raise finding" }).click();
-  await page.getByLabel("Title", { exact: true }).fill("Functional suite finding");
-  await page.getByLabel("Severity", { exact: true }).selectOption("Low");
-  await page.getByLabel("Category", { exact: true }).selectOption({ index: 1 });
-  await page.getByLabel("Due date", { exact: true }).fill("2026-12-31");
-  await page.getByLabel("Description", { exact: true }).fill("Raised by FS-11.");
-  await page.getByRole("button", { name: /Save|Raise/ }).first().click();
+  await actionField(page, "Title").fill("Functional suite finding");
+  await actionField(page, "Severity").selectOption("Low");
+  await actionField(page, "Category").selectOption({ index: 1 });
+  await actionField(page, "Due date").fill("2026-12-31");
+  await actionField(page, "Description").fill("Raised by FS-11.");
+  await page.getByRole("button", { name: "Save finding" }).click();
 
   await expect.poll(async () =>
     ((await apiAs(page, "/api/dashboard/summary")).body as { tiles: Record<string, number> })
@@ -197,23 +250,40 @@ test("FS-12 APR-03 a conditional approval stays outstanding until its conditions
     ((await apiAs(page, "/api/models?flag=open_conditions")).body as { model_id: string }[])
       .map((m) => m.model_id);
 
+  // "Record decision" sits behind the Approvals tab of Model 360, and behind the `Reveal` toggle
+  // that renders the form (H-02); the scenario used to look for it on the Overview tab.
   await page.goto("/models/M-0023");
+  await page.getByRole("tab", { name: /^Approvals/ }).click();
   await page.getByRole("button", { name: "Record decision" }).click();
-  await page.getByLabel("Decision date", { exact: true }).fill("2026-09-01");
-  await page.getByLabel("Forum", { exact: true }).selectOption({ index: 1 });
-  await page.getByLabel("Decision type", { exact: true }).selectOption({ index: 1 });
-  await page.getByLabel("Decision", { exact: true }).selectOption("Conditional");
-  await page.getByLabel("Conditions", { exact: true }).fill("Functional suite condition");
-  await page.getByLabel("Condition due date", { exact: true }).fill("2026-12-31");
-  await page.getByLabel("Condition status", { exact: true }).selectOption("Open");
-  await page.getByRole("button", { name: /Save|Record/ }).first().click();
+  await actionField(page, "Decision date").fill("2026-09-01");
+  await actionField(page, "Forum").selectOption({ index: 1 });
+  await actionField(page, "Decision type").selectOption({ index: 1 });
+  await actionField(page, "Decision").selectOption("Conditional");
+  await actionField(page, "Conditions").fill("Functional suite condition");
+  await actionField(page, "Condition due date").fill("2026-12-31");
+  await actionField(page, "Condition status").selectOption("Open");
+  await page.getByRole("button", { name: "Save decision" }).click();
 
   await expect.poll(outstanding, { timeout: 15_000 }).toContain("M-0023");
   await checkpoint(page, "FS-12_outstanding");
 
   await page.reload();
   await page.getByRole("tab", { name: /^Approvals/ }).click();
-  await page.getByRole("button", { name: /Met/ }).first().click();
+  // The button reads "Mark conditions met" — lower-case "met", so the old case-sensitive /Met/
+  // never matched it and the scenario timed out *after* proving the first half of APR-03.
+  //
+  // Every open condition is closed, not just the first. APR-03 is "stays visible as outstanding
+  // until *every* condition is closed", so one click proves nothing when the model has two open
+  // conditions — and it has two whenever this scenario has run before against the same database,
+  // which is how it looked like a product defect on its first green run.
+  const markMet = page.getByRole("button", { name: /Mark conditions met/i });
+  for (let open = await markMet.count(); open > 0; open = await markMet.count()) {
+    expect(await outstanding(), "APR-03: outstanding while a condition is still open")
+      .toContain("M-0023");
+    await markMet.first().click();
+    await expect(markMet, "the closed condition leaves the open set").toHaveCount(open - 1,
+      { timeout: 15_000 });
+  }
   await expect.poll(outstanding, { timeout: 15_000 }).not.toContain("M-0023");
   await checkpoint(page, "FS-12_cleared");
 });

@@ -8,6 +8,23 @@ class PolicyValueError(ValueError):
     pass
 
 
+# Settings whose value is the *name* of a lifecycle phase, and settings that are a *list* of phase
+# names. `lifecycle_phases` is editable, so every one of these is a reference that a rename can
+# break — CR-02 was `monitoring_phase`, CR-21 was the required-document bands, and the rest were
+# only ever unbroken by luck. Both directions are checked below from one list rather than key by
+# key, so a new phase-naming setting is guarded by adding its name here and nowhere else.
+PHASE_NAME_KEYS = (
+    "monitoring_phase",
+    "mrc_required_from_phase",
+    "validator_required_from_phase",
+    "validation_data_required_from_phase",
+    "required_docs_development_from_phase",
+    "required_docs_validation_from_phase",
+    "required_docs_production_from_phase",
+)
+PHASE_LIST_KEYS = ("production_phases",)
+
+
 def parse_policy_value(value: str, value_type: str):
     """Return the typed value, or raise PolicyValueError with a human-readable message."""
     if value_type not in VALUE_TYPES:
@@ -66,15 +83,17 @@ def check_key_specific(key: str, parsed, others: dict[str, object]) -> None:
             raise PolicyValueError("Tier thresholds must satisfy 4 < medium minimum < high minimum ≤ 12.")
     if key.startswith("weight_") and parsed < 0:
         raise PolicyValueError("Score weights cannot be negative.")
-    # R3 needs the monitoring phase to be a real lifecycle phase; checked from either side, because
-    # renaming the phase list is how the two drifted apart before (review finding CR-02). `others` is
-    # empty on the bootstrap/import path, so this only guards interactive edits — see CR-03.
-    if key == "monitoring_phase":
+    # A setting that names a lifecycle phase must name a real one; checked from either side, because
+    # renaming the phase list is how the two drifted apart before (review findings CR-02, CR-21).
+    # `others` is empty on the bootstrap/import path, so this only guards interactive edits — CR-03.
+    if key in PHASE_NAME_KEYS or key in PHASE_LIST_KEYS:
         phases = others.get("lifecycle_phases")
-        if phases and parsed not in phases:
+        named = parsed if key in PHASE_LIST_KEYS else [parsed]
+        unknown = [n for n in named if n not in (phases or named)]
+        if phases and unknown:
             raise PolicyValueError(
-                f"'{parsed}' is not one of the configured lifecycle phases ({'; '.join(phases)}). "
-                f"The Revalidation column is derived from it.")
+                f"{', '.join(repr(n) for n in unknown)} is not one of the configured lifecycle phases "
+                f"({'; '.join(phases)}). Add the phase first, then point this setting at it.")
     if key in ("score_band_warn_min", "score_band_good_min"):
         warn = parsed if key == "score_band_warn_min" else others.get("score_band_warn_min")
         good = parsed if key == "score_band_good_min" else others.get("score_band_good_min")
@@ -84,11 +103,22 @@ def check_key_specific(key: str, parsed, others: dict[str, object]) -> None:
             raise PolicyValueError(
                 f"the amber minimum ({warn}) must be below the green minimum ({good}).")
     if key == "lifecycle_phases":
-        monitoring = others.get("monitoring_phase")
-        if monitoring and monitoring not in parsed:
-            raise PolicyValueError(
-                f"the list must still contain the configured monitoring phase '{monitoring}', which the "
-                f"Revalidation column is derived from. Change 'monitoring_phase' first.")
+        # Every setting that names a phase must still find it. Dropping a phase another setting
+        # names is how a rename silently disabled a rule: the Revalidation column (CR-02) and the
+        # required-document bands (CR-21), where the required list fell to [] and *raised* every
+        # governance score. Refusing the edit forces the caller to move the setting first.
+        for other_key in PHASE_NAME_KEYS:
+            named = others.get(other_key)
+            if named and named not in parsed:
+                raise PolicyValueError(
+                    f"the list must still contain '{named}', which '{other_key}' names. "
+                    f"Change '{other_key}' first.")
+        for other_key in PHASE_LIST_KEYS:
+            missing = [n for n in (others.get(other_key) or []) if n not in parsed]
+            if missing:
+                raise PolicyValueError(
+                    f"the list must still contain {', '.join(repr(n) for n in missing)}, which "
+                    f"'{other_key}' names. Change '{other_key}' first.")
 
 
 def normalise_policy_value(value: str, value_type: str) -> str:

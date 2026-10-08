@@ -1,7 +1,7 @@
 // FS-01, FS-22, FS-23 — roles, permissions and session invalidation (§76A.9 SEC-*).
 import { expect, test } from "@playwright/test";
 import path from "node:path";
-import { apiAs, checkpoint, dbCount, openScreen, RUN_DIR, signInAs, signInAsUser } from "./helpers";
+import { apiAs, checkpoint, dbCount, findSeedEvidence, openScreen, RUN_DIR, signInAs, signInAsUser } from "./helpers";
 
 const READ_ONLY = ["Auditor", "Executive"];
 
@@ -38,8 +38,10 @@ test("FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and
   });
 
 test("FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review", async ({ page }) => {
-  const pdf = path.join(RUN_DIR, "inputs", "evidence", "Model_Governance", "Credit_Risk", "M-0012",
-                        "Governance", "TOR.pdf");
+  // The seed lays evidence out under the model's *business line*, so the path cannot be guessed
+  // from the model id: M-0012 is Commercial Banking, not Credit Risk (harness defect H-06). Found
+  // rather than hard-coded, so a reseed that moves a model does not silently break this.
+  const pdf = findSeedEvidence("M-0012", "Governance", "TOR.pdf");
 
   for (const [userId, role] of [["U-021", "Model Developer"], ["U-031", "Data Owner"]] as const) {
     await signInAsUser(page, userId, role);
@@ -103,20 +105,81 @@ test("FS-23 SEC-05 re-importing T01 without a role invalidates that role's sessi
 
   // There is no role-edit screen or API (CR-19), so the role is removed the only supported way:
   // re-importing T01 through the Import Centre.
-  await signInAs(page, "Admin");
-  await openScreen(page, "Import Centre");
-  const input = page.locator('input[type="file"]').first();
-  await input.setInputFiles(path.join(RUN_DIR, "inputs", "T01_role_removed.csv"));
-  await page.getByRole("button", { name: /Upload and validate/i }).click();
-  await expect(page.getByText(/Ready|Validation Failed/)).toBeVisible({ timeout: 15_000 });
-  await checkpoint(page, "FS-23_t01_preview");
-  await page.getByRole("button", { name: /^Load/ }).click();
-  await expect(page.getByText(/Completed|Partially Completed/)).toBeVisible({ timeout: 20_000 });
+  const importT01 = async (file: string, shot?: string) => {
+    await signInAs(page, "Admin");
+    await openScreen(page, "Import Centre");
+    const input = page.locator('input[type="file"]').first();
+    await input.setInputFiles(path.join(RUN_DIR, "inputs", file));
+    await page.getByRole("button", { name: /Upload and validate/i }).click();
+    await expect(page.getByText(/Ready|Validation Failed/)).toBeVisible({ timeout: 15_000 });
+    if (shot) await checkpoint(page, shot);
+    await page.getByRole("button", { name: /^Load/ }).click();
+    await expect(page.getByText(/Completed|Partially Completed/)).toBeVisible({ timeout: 20_000 });
+  };
 
-  // The removed role's session is refused at once; the retained role still works.
-  expect((await page.request.get("/api/auth/me", { headers: headers(mrcToken) })).status(),
-         "the removed role's token").toBe(403);
-  expect((await page.request.get("/api/auth/me", { headers: headers(execToken) })).status(),
-         "the retained role's token").toBe(200);
-  await checkpoint(page, "FS-23_after_reimport");
+  try {
+    await importT01("T01_role_removed.csv", "FS-23_t01_preview");
+
+    // The removed role's session is refused at once; the retained role still works.
+    expect((await page.request.get("/api/auth/me", { headers: headers(mrcToken) })).status(),
+           "the removed role's token").toBe(403);
+    expect((await page.request.get("/api/auth/me", { headers: headers(execToken) })).status(),
+           "the retained role's token").toBe(200);
+    await checkpoint(page, "FS-23_after_reimport");
+  } finally {
+    // Put MRC Member back (H-13). U-040 is the seed's only MRC Member, so leaving the role removed
+    // takes FS-12 out with it on every later run — and this scenario is FT-03's regression test, so
+    // it is re-run often. In a `finally` because a failed assertion above must not leave the suite
+    // unable to run again.
+    await importT01("T01_role_restored.csv");
+    const restored = await page.request.post("/api/auth/login",
+                                             { data: { user_id: "U-040", role: "MRC Member" } });
+    expect(restored.status(), "MRC Member must be signable again after FS-23").toBe(200);
+  }
+});
+
+
+test("FS-27 SEC-07 a role switch takes effect without a page reload", async ({ page }) => {
+  // The regression test for FT-03 / G0.21, and the only named guard for SEC-07 at any level — there
+  // is no frontend test harness (plan G7.5), so nothing in CI covers this.
+  //
+  // The defect: `signIn` stored the new token and called `qc.clear()`, but nothing made the `["me"]`
+  // query fetch again, so the application kept the previous identity's permissions until a full page
+  // reload. The role picker *is* this build's sign-in, so a switch that appears not to work is
+  // demo-visible.
+  //
+  // Everything after the switch runs without navigating. A marker on `window` is checked at the end:
+  // if the page had reloaded, the marker would be gone and the scenario would be proving nothing,
+  // because a reload makes the identity correct however the cache behaves.
+  await signInAs(page, "Executive");
+  await page.evaluate(() => { (window as unknown as Record<string, unknown>).__fs27 = "no reload"; });
+
+  const tokenNow = () => page.evaluate(() => localStorage.getItem("mrm.token"));
+  const auditTrail = page.getByRole("link", { name: "Audit Trail" });
+  const audit = async () => (await page.request.get("/api/audit",
+    { headers: { Authorization: `Bearer ${await tokenNow()}` } })).status();
+
+  // Executive holds read only: the audit-gated nav item is absent and the API refuses it.
+  await expect(auditTrail).toHaveCount(0);
+  expect(await audit(), "Executive must not read the audit trail").toBe(403);
+  const executiveToken = await tokenNow();
+  await checkpoint(page, "FS-27_as_executive");
+
+  // Switch in place, through the picker the demo uses — no page.goto anywhere.
+  await page.getByLabel("Act as user and role").selectOption("U-001|Admin");
+
+  // The screen shows the new identity and only its permitted actions...
+  await expect(auditTrail, "the audit-gated nav item must appear for Admin").toHaveCount(1);
+  await expect(page.getByLabel("Act as user and role")).toHaveValue("U-001|Admin");
+  // ...and the API acts only as the new identity.
+  await expect.poll(async () => await tokenNow(), { timeout: 10_000 })
+    .not.toBe(executiveToken);
+  const me = await page.request.get("/api/auth/me",
+    { headers: { Authorization: `Bearer ${await tokenNow()}` } });
+  expect(await me.json(), "the session the app now holds").toMatchObject({ user_id: "U-001", role: "Admin" });
+  expect(await audit(), "Admin must read the audit trail").toBe(200);
+  await checkpoint(page, "FS-27_after_switch_to_admin");
+
+  expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).__fs27),
+         "the page must not have reloaded — a reload would make this scenario vacuous").toBe("no reload");
 });

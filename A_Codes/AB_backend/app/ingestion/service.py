@@ -2,6 +2,7 @@
 import csv
 import hashlib
 import io
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
@@ -22,9 +23,46 @@ from app.services.policy_access import Policy
 from app.storage import get_store
 from app.workers import runner
 
+log = logging.getLogger(__name__)
+
 ALLOWED_EXT = (".xlsx", ".csv")
 EDITABLE = ("Uploaded", "Ready", "Validation Failed", "Failed")
 RUNNING = ("Validating", "Processing")
+# Cancelling is the way out of a batch, including one a dead job left running — see the note on
+# `documents.batch.CANCELLABLE` (FT-05).
+CANCELLABLE = EDITABLE + RUNNING
+
+
+def record_job_failure(session_factory: Callable[[], Session], batch_id: str, stage: str,
+                       exc: BaseException) -> None:
+    """Mark a batch Failed because the background job working on it crashed (FT-05).
+
+    `runner.submit` only logs an exception, so without this a crashed job leaves its batch
+    non-terminal for ever — and for the evidence batch a reset creates, that means
+    `GET /api/admin/reset/status` reports a reset in progress that will never end and every later
+    reset is refused 409, with no way out through the product. `engine.run` has always done this for
+    structured imports (`engine._record`'s `failure`); the document jobs and the reset job did not.
+
+    Deliberately no audit event, matching `engine._record`: a batch status is processing state, not
+    a governance change, and §58's event list does not include it. The reason is written to the
+    batch so the Import Centre shows it.
+
+    Its own session, and it never raises: it runs while an exception is already in flight, and
+    losing that exception to a secondary failure would be worse than not recording it.
+    """
+    try:
+        with session_factory() as db:
+            batch = db.get(ImportBatch, batch_id)
+            if batch is None:
+                return
+            if batch.status == "Failed" and batch.error_message:
+                return  # an inner job already recorded a more specific reason; do not paper over it
+            batch.status = "Failed"
+            batch.completed_at = datetime.now(UTC)
+            batch.error_message = f"{stage} failed: {type(exc).__name__}: {exc}"
+            db.commit()
+    except Exception:  # noqa: BLE001 — see the docstring: never mask the original failure
+        log.exception("Could not record the failure of batch %s", batch_id)
 
 
 def _require_import(principal: Principal | None) -> None:
@@ -163,7 +201,7 @@ def start(db: Session, session_factory: Callable[[], Session], principal: Princi
 def cancel(db: Session, principal: Principal, batch_id: str) -> ImportBatch:
     _require_import(principal)
     batch = get_batch(db, batch_id)
-    if batch.status not in EDITABLE:
+    if batch.status not in CANCELLABLE:
         raise ConflictError(f"Batch {batch_id} is {batch.status} and cannot be cancelled.")
     batch.status = "Cancelled"
     audit.record(db, principal, action="cancel", entity="import_batch", entity_id=batch_id, import_batch_id=batch_id)

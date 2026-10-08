@@ -9,6 +9,8 @@ import {
   openAppScreen,
   openMockupDashTab,
   openMockupScreen,
+  kvValue,
+  localeDateOnly,
   openModel360Tab,
   signInAs,
 } from "../helpers";
@@ -178,6 +180,20 @@ item("MUP-10", "Model 360 header fields", "8", async ({ page, isMockup }) => {
   const body = page.locator("body");
   await expect(body).toContainText(/M-0012/);
   await expect(body).toContainText(/High|Medium|Low/);
+
+  // Review finding MP-10 (G0.24): every date-only value used to render one calendar day early in
+  // any timezone behind UTC, because `new Date("2026-04-16")` is midnight UTC. These three are
+  // M-0012's seeded values, asserted against an independent local-time calculation, so the test
+  // fails on this host and passes in UTC only if the day is right — which is the whole defect.
+  const dates: [string, string][] = [
+    ["Last validation", "2026-04-16"],
+    ["Next due", "2027-04-16"],
+    ["Go-live", "2024-08-09"],
+  ];
+  for (const [term, iso] of dates) {
+    expect(await kvValue(page, term), `Model 360 "${term}" must render ${iso} as a local calendar day`)
+      .toBe(await localeDateOnly(page, iso));
+  }
 });
 
 item("MUP-11", "Status chips and overdue badge", "8", async ({ page, isMockup }) => {
@@ -497,6 +513,33 @@ item("MUP-34", "Counts agree across Command Center, Operations Board and Model 3
   // being replaced and read 0, which is what made this check flaky in a full run (G0.13).
   await expect(page.locator("div.tablewrap tbody tr"),
     `Operations Board rows must match the Command Center total (${total})`).toHaveCount(total);
+
+  // Counts were never the only thing that had to agree across screens. The worse half of MP-10 was
+  // that the Command Center's revalidation timeline printed the raw ISO string while Model 360
+  // formatted it, so the same model showed two different due dates depending on the screen.
+  await openAppScreen(page, "Command Center");
+  const lede = page.getByText(/Model risk across the portfolio as of /);
+  await expect(lede).toBeVisible();
+  const asOf = (await lede.innerText()).match(/as of ([^.]+)\./)?.[1]?.trim();
+  expect(asOf, "the Command Center lede must state the business date")
+    .toBe(await localeDateOnly(page, "2026-09-30")); // MRM_TODAY_OVERRIDE, mockup-parity.md line 1
+
+  const timeline = page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: /Revalidation timeline/ }) });
+  await expect(timeline).toBeVisible();
+  const row = timeline.locator("tbody tr").first();
+  const modelId = (await row.locator("td").first().innerText()).match(/M-\d{4}/)?.[0];
+  expect(modelId, "the revalidation timeline must list a model").toMatch(/^M-\d{4}$/);
+  const dueOnCommandCenter = (await row.locator("td").nth(2).innerText()).trim();
+  // Not a raw ISO string any more, and not a different day from Model 360's own answer.
+  expect(dueOnCommandCenter, "the timeline must format the due date, not print raw ISO")
+    .not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+  await page.goto(`/models/${modelId}`);
+  await expect(page.getByText(modelId as string).first()).toBeVisible();
+  expect(await kvValue(page, "Next due"),
+    `${modelId}'s next due date must read the same on the Command Center and on Model 360`)
+    .toBe(dueOnCommandCenter);
 });
 
 item("MUP-35", "Actions not permitted are hidden and refused by the API", "1", async ({ page, isMockup }) => {
@@ -511,6 +554,78 @@ item("MUP-35", "Actions not permitted are hidden and refused by the API", "1", a
     .toHaveCount(0);
   await page.goto("/models/new");
   await expect(page.locator("body")).toContainText(/not permitted|forbidden|403/i);
+});
+
+// --- Screens added at the Gate 0 exit review (2026-10-07) -----------------------------------
+// Admin and the Audit Trail are built screens (BRD §55.8, §55.9) that had no checklist item, and
+// MUP-25 covered only the Document Centre's upload and completeness tabs.
+
+item("MUP-36", "Admin policy settings listed and editable", "1", async ({ page, isMockup }) => {
+  if (isMockup) {
+    // Mock-up rail step 1 "Configure policy" is the T12 policy settings screen.
+    await openMockupScreen(page, "policy");
+    await expect(page.locator("#stage")).toContainText(/polic/i);
+    return;
+  }
+  await signInAs(page, "Admin");
+  await openAppScreen(page, "Admin");
+  const policy = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: /Policy settings/ }) });
+  await expect(policy).toBeVisible();
+  await expect(policy.getByRole("columnheader", { name: "Key" })).toBeVisible();
+  await expect(policy.getByRole("columnheader", { name: "Value" })).toBeVisible();
+  // Admin holds policy:edit, so the panel announces that changes are audited rather than read-only.
+  await expect(policy).toContainText(/versioned and audited/i);
+  await expect(policy.locator("tbody tr").first()).toBeVisible();
+});
+
+item("MUP-37", "Audit Trail filters by user, model, entity, action, batch, document and date", "1",
+     async ({ page, isMockup }) => {
+  if (isMockup) {
+    // The mock-up has no Audit Trail screen; it reports audit_event as a governance table only.
+    // Recorded as an accepted difference in mockup-parity.md (§55.9, AUD-03).
+    await openMockupScreen(page, "overview");
+    await expect(page.locator("body")).toContainText(/audit/i);
+    return;
+  }
+  await signInAs(page, "Admin");
+  await openAppScreen(page, "Audit Trail");
+  for (const label of ["User", "Model", "Entity", "Action", "Batch", "Document", "From date", "To date"]) {
+    await expect(page.getByLabel(label, { exact: true }), `audit filter "${label}"`).toBeVisible();
+  }
+  const rows = page.locator("div.tablewrap tbody tr");
+  await expect(rows.first()).toBeVisible();
+  const before = await rows.count();
+  // A filter must actually narrow the list, not just exist.
+  await page.getByLabel("Action", { exact: true }).fill("reset");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect.poll(() => rows.count()).toBeLessThan(before);
+  await expect(page.locator("div.tablewrap tbody")).toContainText(/reset/i);
+});
+
+item("MUP-38", "Document register with search / filter and version history", "4", async ({ page, isMockup }) => {
+  if (isMockup) {
+    await openMockupScreen(page, "documents");
+    await expect(page.locator("#stage")).toContainText(/document/i);
+    return;
+  }
+  await signInAs(page, "Validator");
+  await openAppScreen(page, "Document Centre");
+  await page.getByRole("tab", { name: /^Register/ }).click();
+  const rows = page.locator("div.tablewrap tbody tr");
+  await expect(rows.first(), "the seeded evidence must be listed").toBeVisible();
+  const before = await rows.count();
+  expect(before, "the Register tab must list documents").toBeGreaterThan(0);
+  // Folder tree (§55.6): the folder hierarchy of the uploaded evidence is navigable.
+  await expect(page.locator(".doc-layout")).toBeVisible();
+  // Filtering must narrow the list, not merely exist.
+  await page.getByPlaceholder("Model (M-0012)").fill("M-0012");
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect.poll(() => rows.count()).toBeLessThan(before);
+  // Opening a document shows its immutable version history (§36, DOC-17). The row is clickable;
+  // its only <a> is the model link, which would navigate to Model 360 instead.
+  await rows.first().locator("td").first().click();
+  await expect(page.getByRole("heading", { name: /^Versions/ })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Version" })).toBeVisible();
 });
 
 /** Sign in as Validator and open a model page. */
