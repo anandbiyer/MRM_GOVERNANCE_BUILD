@@ -41,6 +41,13 @@ PROTECTED_PATHS = ("A_Codes", "B_Inputs", ".claude", ".github")
 # `uvicorn app.main:app` contains it, so starting the backend was refused as a merge to main.
 GIT_PUSH = re.compile(r"(?:^|[;&|]\s*|&&\s*)git\s+(?:-\S+\s+)*push\b")
 GIT_MERGE = re.compile(r"(?:^|[;&|]\s*|&&\s*)git\s+(?:-\S+\s+)*merge\b")
+# What a `git merge` would bring in. For a push, HEAD already contains the commits under scrutiny; for
+# a merge run on main it does not — main is behind by definition — so checking HEAD would report "not
+# an ancestor" for every merge and the gate would be a blanket deny, useful to nobody. The commit to
+# judge is the one being merged in.
+GIT_MERGE_ARGS = re.compile(r"(?:^|[;&|]\s*|&&\s*)git\s+(?:-\S+\s+)*merge\b(?P<rest>[^;&|]*)")
+# `--abort` and `--quit` undo a merge in progress; they introduce nothing, so the gate ignores them.
+MERGE_UNDO = re.compile(r"--(?:abort|quit)\b")
 
 
 def decide(decision: str, reason: str) -> None:
@@ -74,6 +81,8 @@ def targets_main(action: str, command: str) -> bool:
         return False
 
     if is_merge and not is_push:
+        if MERGE_UNDO.search(command):
+            return False  # --abort / --quit remove a merge in progress; nothing new arrives
         # `git merge X` run while main is checked out merges X *into* main.
         return current_branch() in ("main", "master")
     # push: `git push origin main`, `git push origin HEAD:main`, `git push --all`.
@@ -100,6 +109,20 @@ def head() -> str:
         return out.stdout.strip()
     except Exception:
         return ""
+
+
+def merge_source(command: str) -> str | None:
+    """The ref a `git merge` would bring in, or None if the command names none.
+
+    Flags and their values are skipped, and the ref is the last bare token left. A merge with no ref
+    (`git merge --continue`) returns None, and the caller then falls back to HEAD rather than
+    guessing — a gate that cannot tell what is being merged must not allow it.
+    """
+    m = GIT_MERGE_ARGS.search(command)
+    if not m:
+        return None
+    tokens = [tok for tok in m.group("rest").split() if not tok.startswith("-")]
+    return tokens[-1].strip("'\"") if tokens else None
 
 
 def resolve(rev: str) -> str:
@@ -180,16 +203,26 @@ def main() -> None:
     if not commit:
         decide("deny", "Merging to main needs a Ready gate review, and HEAD could not be read.")
 
-    if recorded != commit:
-        if not is_ancestor(recorded, commit):
+    # For a merge, judge what is arriving; for a push, HEAD already holds it.
+    incoming = merge_source(command) if (GIT_MERGE.search(command) and not GIT_PUSH.search(command)) else None
+    target, target_name = commit, "HEAD"
+    if incoming is not None:
+        target = resolve(incoming)
+        target_name = f"{incoming} ({target[:8]})" if target else incoming
+        if not target:
+            decide("deny", f"Merging to main needs a Ready gate review of what is being merged, and "
+                           f"{incoming!r} is not a commit in this repository.")
+
+    if recorded != target:
+        if not is_ancestor(recorded, target):
             decide("deny", f"Merging to main needs a Ready gate review of this commit. Gate {gate} "
-                           f"was reviewed at {recorded[:8]}, which is not an ancestor of HEAD "
-                           f"({commit[:8]}) — the branch has diverged or been rewritten since. "
+                           f"was reviewed at {recorded[:8]}, which is not an ancestor of "
+                           f"{target_name} — the branch has diverged or been rewritten since. "
                            f"Run /review-build gate {gate}.")
-        changed = protected_changes(recorded, commit)
+        changed = protected_changes(recorded, target)
         if changed is None:
             decide("deny", f"Merging to main needs a Ready gate review of this commit, and the "
-                           f"changes between {recorded[:8]} and HEAD could not be compared. "
+                           f"changes between {recorded[:8]} and {target_name} could not be compared. "
                            f"Run /review-build gate {gate}.")
         if changed:
             shown = ", ".join(changed[:5]) + (f" (+{len(changed) - 5} more)" if len(changed) > 5 else "")
@@ -197,8 +230,9 @@ def main() -> None:
                            f"reviewed at {recorded[:8]}, and {len(changed)} protected file(s) have "
                            f"changed since: {shown}. Run /review-build gate {gate}.")
 
-    where = (f"at this commit ({commit[:8]})" if recorded == commit else
-             f"at {recorded[:8]}; nothing under {'/, '.join(PROTECTED_PATHS)}/ has changed since")
+    where = (f"at this commit ({target[:8]})" if recorded == target else
+             f"at {recorded[:8]}; nothing under {'/, '.join(PROTECTED_PATHS)}/ has changed between "
+             f"that and {target_name}")
     decide("allow", f"Gate {gate} reviewed Ready {where}.")
 
 

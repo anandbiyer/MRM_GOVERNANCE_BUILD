@@ -101,7 +101,8 @@ def main() -> int:
         print("   'needs review' is a prompt where a false 'fine' is an unreviewed merge)")
 
         print("\nReviewed commit IS HEAD:")
-        check("git merge feature", run_hook(cwd, "git merge feature")[0], "allow")
+        git(cwd, "branch", "-f", "feature", "HEAD")  # the ref must exist: a merge is judged by
+        check("git merge feature", run_hook(cwd, "git merge feature")[0], "allow")  # what it brings in
         check("git push origin main", run_hook(cwd, "git push origin main")[0], "allow")
 
         print("\nVerdict is not Ready:")
@@ -113,7 +114,7 @@ def main() -> int:
         commit_file(cwd, "D_Reviews/20261007_summary.md", "Ready\n", "record the verdict")
         decision, reason = run_hook(cwd, "git push origin main")
         check("git push origin main", decision, "allow")
-        assert "has changed since" in reason, reason
+        assert "has changed between" in reason, reason
 
         print("\nE_ProjectPlan/ and CLAUDE.md too — a review writes its findings into both:")
         commit_file(cwd, "E_ProjectPlan/project_plan.md", "Done\n", "plan")
@@ -147,6 +148,28 @@ def main() -> int:
         commit_all(cwd, "bad state")
         decision, reason = run_hook(cwd, "git push origin main")
         check("unknown head", decision, "deny")
+        assert "not a commit" in reason, reason
+
+        print("\nMerging INTO main: the gate judges the incoming commit, not main's tip.")
+        print("  (main is behind by definition, so checking HEAD would deny every merge)")
+        git(cwd, "checkout", "-q", "-B", "main", base)
+        git(cwd, "checkout", "-q", "-B", "feature")
+        commit_file(cwd, "D_Reviews/notes.md", "docs only\n", "docs on the branch")
+        git(cwd, "checkout", "-q", "main")
+        write_state(cwd, base)
+        commit_all(cwd, "state on main")
+        check("docs-only branch", run_hook(cwd, "git merge feature")[0], "allow")
+
+        git(cwd, "checkout", "-q", "feature")
+        commit_file(cwd, "A_Codes/app.py", "x = 9\n", "product change on the branch")
+        git(cwd, "checkout", "-q", "main")
+        decision, reason = run_hook(cwd, "git merge feature")
+        check("branch with a product change", decision, "deny")
+        assert "A_Codes/app.py" in reason, reason
+        check("git merge --no-ff feature", run_hook(cwd, "git merge --no-ff feature")[0], "deny")
+        check("git merge --abort", run_hook(cwd, "git merge --abort")[0], "allow")
+        decision, reason = run_hook(cwd, "git merge no-such-branch")
+        check("unknown ref", decision, "deny")
         assert "not a commit" in reason, reason
 
         print("\nNo review_state.json at all:")
