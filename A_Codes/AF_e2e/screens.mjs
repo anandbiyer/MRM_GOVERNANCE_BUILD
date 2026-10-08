@@ -203,5 +203,48 @@ const browser = await chromium.launch();
   await page.close();
 }
 
+// --- Date rendering evidence (review finding MP-10, fixed by G0.24) --------------------------
+// Not a mock-up comparison: these are the two screens that disagreed with each other about the
+// same model's due date, captured so the agreement can be read off the evidence rather than taken
+// on trust. The host timezone must be behind UTC for them to be worth anything.
+{
+  const page = await browser.newPage({ viewport: VIEWPORT });
+  await signInAs(page, "Executive");
+  await appScreen(page, "Command Center");
+  await shot(page, "MP-10_command_center", "app");
+  const first = await page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: /Revalidation timeline/ }) })
+    .locator("tbody tr").first().locator("td").first().innerText();
+  const modelId = first.match(/M-\d{4}/)?.[0] ?? "M-0012";
+  await appModel(page, modelId);
+  await shot(page, "MP-10_model360", "app");
+  console.log("  (revalidation timeline first row: " + modelId + ")");
+  await page.close();
+}
+
+// --- Screens added at the Gate 0 exit review, plus the document detail KV list (CR-34) ------
+{
+  const page = await browser.newPage({ viewport: VIEWPORT });
+  await signInAs(page, "Admin");
+  await appScreen(page, "Admin");
+  await shot(page, "MUP-36", "app");
+  await appScreen(page, "Audit Trail");
+  await shot(page, "MUP-37", "app");
+  await page.close();
+}
+{
+  const page = await browser.newPage({ viewport: VIEWPORT });
+  await signInAs(page, "Validator");
+  await appScreen(page, "Document Centre");
+  await appTab(page, "Register");
+  await shot(page, "MUP-38", "app");
+  // The Details KV list: "Effective date" is formatted, "Retention" is not (review finding CR-34).
+  await page.locator("div.tablewrap tbody tr").first().locator("td").first().click();
+  await page.getByRole("heading", { name: /^Versions/ }).waitFor();
+  await page.waitForTimeout(300);
+  await shot(page, "MUP-38b", "app");
+  await page.close();
+}
+
 await browser.close();
 console.log(`\nScreenshots in ${OUT}`);

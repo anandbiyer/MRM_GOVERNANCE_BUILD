@@ -9,6 +9,8 @@ import {
   openAppScreen,
   openMockupDashTab,
   openMockupScreen,
+  kvValue,
+  localeDateOnly,
   openModel360Tab,
   signInAs,
 } from "../helpers";
@@ -178,6 +180,20 @@ item("MUP-10", "Model 360 header fields", "8", async ({ page, isMockup }) => {
   const body = page.locator("body");
   await expect(body).toContainText(/M-0012/);
   await expect(body).toContainText(/High|Medium|Low/);
+
+  // Review finding MP-10 (G0.24): every date-only value used to render one calendar day early in
+  // any timezone behind UTC, because `new Date("2026-04-16")` is midnight UTC. These three are
+  // M-0012's seeded values, asserted against an independent local-time calculation, so the test
+  // fails on this host and passes in UTC only if the day is right — which is the whole defect.
+  const dates: [string, string][] = [
+    ["Last validation", "2026-04-16"],
+    ["Next due", "2027-04-16"],
+    ["Go-live", "2024-08-09"],
+  ];
+  for (const [term, iso] of dates) {
+    expect(await kvValue(page, term), `Model 360 "${term}" must render ${iso} as a local calendar day`)
+      .toBe(await localeDateOnly(page, iso));
+  }
 });
 
 item("MUP-11", "Status chips and overdue badge", "8", async ({ page, isMockup }) => {
@@ -494,6 +510,33 @@ item("MUP-34", "Counts agree across Command Center, Operations Board and Model 3
   // being replaced and read 0, which is what made this check flaky in a full run (G0.13).
   await expect(page.locator("div.tablewrap tbody tr"),
     `Operations Board rows must match the Command Center total (${total})`).toHaveCount(total);
+
+  // Counts were never the only thing that had to agree across screens. The worse half of MP-10 was
+  // that the Command Center's revalidation timeline printed the raw ISO string while Model 360
+  // formatted it, so the same model showed two different due dates depending on the screen.
+  await openAppScreen(page, "Command Center");
+  const lede = page.getByText(/Model risk across the portfolio as of /);
+  await expect(lede).toBeVisible();
+  const asOf = (await lede.innerText()).match(/as of ([^.]+)\./)?.[1]?.trim();
+  expect(asOf, "the Command Center lede must state the business date")
+    .toBe(await localeDateOnly(page, "2026-09-30")); // MRM_TODAY_OVERRIDE, mockup-parity.md line 1
+
+  const timeline = page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: /Revalidation timeline/ }) });
+  await expect(timeline).toBeVisible();
+  const row = timeline.locator("tbody tr").first();
+  const modelId = (await row.locator("td").first().innerText()).match(/M-\d{4}/)?.[0];
+  expect(modelId, "the revalidation timeline must list a model").toMatch(/^M-\d{4}$/);
+  const dueOnCommandCenter = (await row.locator("td").nth(2).innerText()).trim();
+  // Not a raw ISO string any more, and not a different day from Model 360's own answer.
+  expect(dueOnCommandCenter, "the timeline must format the due date, not print raw ISO")
+    .not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+  await page.goto(`/models/${modelId}`);
+  await expect(page.getByText(modelId as string).first()).toBeVisible();
+  expect(await kvValue(page, "Next due"),
+    `${modelId}'s next due date must read the same on the Command Center and on Model 360`)
+    .toBe(dueOnCommandCenter);
 });
 
 item("MUP-35", "Actions not permitted are hidden and refused by the API", "1", async ({ page, isMockup }) => {

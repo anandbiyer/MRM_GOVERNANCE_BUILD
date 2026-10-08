@@ -4,10 +4,16 @@
   "gates": {
     "0": {
       "date": "2026-10-07",
-      "verdict": "Not ready",
-      "summary": "D_Reviews/20261007_summary.md",
-      "head": "f89ef6ada28ae7596f6c180ed35547c0a4d1344c",
-      "note": "1 Critical (FT-04, data loss on Reset to seed) and 6 High. All four agents ran; CI gates green. Gate 0's rows are complete and none claims an absent fix."
+      "verdict": "Ready",
+      "summary": "D_Reviews/20261007_summary_rerun.md",
+      "head": "c8deaaf",
+      "note": "Re-run after G0.22-G0.26. All four agents; three CI gates green; functional 25/25; parity 0 Missing 0 Partial. All seven Critical/High findings from the f89ef6a run closed and re-verified by the agent that raised them. One new High (CR-29, missing _OLD/ snapshot) closed in c8deaaf. Everything else new is Medium or Low. NOTE: the hook at review_gate.py:123 requires head == HEAD exactly, and recording a verdict necessarily moves HEAD, so a merge will be refused until that rule is relaxed - see the summary.",
+      "previous": {
+        "date": "2026-10-07",
+        "verdict": "Not ready",
+        "head": "f89ef6ada28ae7596f6c180ed35547c0a4d1344c",
+        "summary": "D_Reviews/20261007_summary.md"
+      }
     }
   }
 }
