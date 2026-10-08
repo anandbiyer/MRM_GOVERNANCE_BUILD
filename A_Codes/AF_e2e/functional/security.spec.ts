@@ -137,3 +137,49 @@ test("FS-23 SEC-05 re-importing T01 without a role invalidates that role's sessi
     expect(restored.status(), "MRC Member must be signable again after FS-23").toBe(200);
   }
 });
+
+
+test("FS-27 SEC-07 a role switch takes effect without a page reload", async ({ page }) => {
+  // The regression test for FT-03 / G0.21, and the only named guard for SEC-07 at any level — there
+  // is no frontend test harness (plan G7.5), so nothing in CI covers this.
+  //
+  // The defect: `signIn` stored the new token and called `qc.clear()`, but nothing made the `["me"]`
+  // query fetch again, so the application kept the previous identity's permissions until a full page
+  // reload. The role picker *is* this build's sign-in, so a switch that appears not to work is
+  // demo-visible.
+  //
+  // Everything after the switch runs without navigating. A marker on `window` is checked at the end:
+  // if the page had reloaded, the marker would be gone and the scenario would be proving nothing,
+  // because a reload makes the identity correct however the cache behaves.
+  await signInAs(page, "Executive");
+  await page.evaluate(() => { (window as unknown as Record<string, unknown>).__fs27 = "no reload"; });
+
+  const tokenNow = () => page.evaluate(() => localStorage.getItem("mrm.token"));
+  const auditTrail = page.getByRole("link", { name: "Audit Trail" });
+  const audit = async () => (await page.request.get("/api/audit",
+    { headers: { Authorization: `Bearer ${await tokenNow()}` } })).status();
+
+  // Executive holds read only: the audit-gated nav item is absent and the API refuses it.
+  await expect(auditTrail).toHaveCount(0);
+  expect(await audit(), "Executive must not read the audit trail").toBe(403);
+  const executiveToken = await tokenNow();
+  await checkpoint(page, "FS-27_as_executive");
+
+  // Switch in place, through the picker the demo uses — no page.goto anywhere.
+  await page.getByLabel("Act as user and role").selectOption("U-001|Admin");
+
+  // The screen shows the new identity and only its permitted actions...
+  await expect(auditTrail, "the audit-gated nav item must appear for Admin").toHaveCount(1);
+  await expect(page.getByLabel("Act as user and role")).toHaveValue("U-001|Admin");
+  // ...and the API acts only as the new identity.
+  await expect.poll(async () => await tokenNow(), { timeout: 10_000 })
+    .not.toBe(executiveToken);
+  const me = await page.request.get("/api/auth/me",
+    { headers: { Authorization: `Bearer ${await tokenNow()}` } });
+  expect(await me.json(), "the session the app now holds").toMatchObject({ user_id: "U-001", role: "Admin" });
+  expect(await audit(), "Admin must read the audit trail").toBe(200);
+  await checkpoint(page, "FS-27_after_switch_to_admin");
+
+  expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).__fs27),
+         "the page must not have reloaded — a reload would make this scenario vacuous").toBe("no reload");
+});

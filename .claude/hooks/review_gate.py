@@ -19,6 +19,22 @@ from pathlib import Path
 
 STATE = Path(__file__).resolve().parents[2] / "D_Reviews" / "review_state.json"
 
+# What the gate actually protects. The reviewed commit no longer has to *be* HEAD — recording a Ready
+# verdict necessarily creates a commit after the one reviewed, so `head == HEAD` was unsatisfiable:
+# refuse, review, HEAD moves, refuse again. It never showed until Gate 0 first reached Ready.
+#
+# The guarantee kept instead: the reviewed commit is an ancestor of HEAD, and nothing under these
+# paths changed between them. So a review can record itself, and the plan, the reports and the BRD
+# can be written up afterwards, while any change to the product, the inputs, the review machinery or
+# CI still demands a fresh review. `.claude/` and `.github/` are in the list because the agents, the
+# commands, this hook and the CI workflows are the controls: changing a control unreviewed is the one
+# thing worse than changing the code unreviewed.
+#
+# CLAUDE.md itself is deliberately *not* protected — it is the BRD, and a gate review's own findings
+# are written into it (the §76A.14 coverage table is recalculated from the test reviewer's report).
+# Protecting it would reintroduce the deadlock for documentation alone.
+PROTECTED_PATHS = ("A_Codes", "B_Inputs", ".claude", ".github")
+
 # The hook is registered on the Bash tool as a whole, so it sees every command, not only git ones:
 # the `if` field in settings.json does not filter. It must therefore decide for itself whether the
 # command is a push or a merge at all. Matching the bare word "main" anywhere was not enough --
@@ -86,6 +102,42 @@ def head() -> str:
         return ""
 
 
+def resolve(rev: str) -> str:
+    """Full sha for a possibly abbreviated rev, or "" if it is not a commit in this repository."""
+    if not rev:
+        return ""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--verify", f"{rev}^{{commit}}"],
+                             capture_output=True, text=True, timeout=10)
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except Exception:
+        return ""
+
+
+def is_ancestor(earlier: str, later: str) -> bool:
+    """True only on a clear yes. `merge-base --is-ancestor` exits 0 for yes, 1 for no, >1 on error,
+    and an error must not read as a yes."""
+    try:
+        out = subprocess.run(["git", "merge-base", "--is-ancestor", earlier, later],
+                             capture_output=True, text=True, timeout=10)
+        return out.returncode == 0
+    except Exception:
+        return False
+
+
+def protected_changes(earlier: str, later: str) -> list[str] | None:
+    """Files under PROTECTED_PATHS that differ between the two commits. None if git could not say —
+    which the caller must treat as a refusal, not as "nothing changed"."""
+    try:
+        out = subprocess.run(["git", "diff", "--name-only", earlier, later, "--", *PROTECTED_PATHS],
+                             capture_output=True, text=True, timeout=30)
+        if out.returncode != 0:
+            return None
+        return [line for line in out.stdout.splitlines() if line.strip()]
+    except Exception:
+        return None
+
+
 def latest_gate(state: dict) -> tuple[str, dict] | tuple[None, None]:
     """The most recently dated gate entry, which is the one that must be Ready."""
     gates = state.get("gates") or {}
@@ -120,12 +172,34 @@ def main() -> None:
     if entry.get("verdict") != "Ready":
         decide("deny", f"Merging to main needs a Ready gate review of this commit. "
                        f"Gate {gate} is '{entry.get('verdict')}' — run /review-build gate {gate}.")
-    if entry.get("head") != commit:
-        decide("deny", f"Merging to main needs a Ready gate review of this commit. "
-                       f"Gate {gate} was reviewed at {str(entry.get('head'))[:8]}, "
-                       f"HEAD is {commit[:8]} — run /review-build gate {gate}.")
+    recorded = resolve(str(entry.get("head") or ""))
+    if not recorded:
+        decide("deny", f"Merging to main needs a Ready gate review. Gate {gate} records head "
+                       f"{str(entry.get('head'))[:12]!r}, which is not a commit in this repository — "
+                       f"re-run /review-build gate {gate}.")
+    if not commit:
+        decide("deny", "Merging to main needs a Ready gate review, and HEAD could not be read.")
 
-    decide("allow", f"Gate {gate} reviewed Ready at this commit ({commit[:8]}).")
+    if recorded != commit:
+        if not is_ancestor(recorded, commit):
+            decide("deny", f"Merging to main needs a Ready gate review of this commit. Gate {gate} "
+                           f"was reviewed at {recorded[:8]}, which is not an ancestor of HEAD "
+                           f"({commit[:8]}) — the branch has diverged or been rewritten since. "
+                           f"Run /review-build gate {gate}.")
+        changed = protected_changes(recorded, commit)
+        if changed is None:
+            decide("deny", f"Merging to main needs a Ready gate review of this commit, and the "
+                           f"changes between {recorded[:8]} and HEAD could not be compared. "
+                           f"Run /review-build gate {gate}.")
+        if changed:
+            shown = ", ".join(changed[:5]) + (f" (+{len(changed) - 5} more)" if len(changed) > 5 else "")
+            decide("deny", f"Merging to main needs a Ready gate review of this commit. Gate {gate} was "
+                           f"reviewed at {recorded[:8]}, and {len(changed)} protected file(s) have "
+                           f"changed since: {shown}. Run /review-build gate {gate}.")
+
+    where = (f"at this commit ({commit[:8]})" if recorded == commit else
+             f"at {recorded[:8]}; nothing under {'/, '.join(PROTECTED_PATHS)}/ has changed since")
+    decide("allow", f"Gate {gate} reviewed Ready {where}.")
 
 
 if __name__ == "__main__":

@@ -381,7 +381,7 @@ def test_reset_disabled(client, test_settings):
 
 
 def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test_settings):
-    """GEN-02 (FT-02): a reset clears every governance table and reloads it, so two overlapping runs
+    """GEN-04, GEN-02 (FT-02): a reset clears every governance table and reloads it, so two overlapping runs
     would interleave one run's deletes with the other's inserts.
 
     The batch the caller is handed is not a sufficient signal on its own: a reset creates the seed
@@ -404,7 +404,7 @@ def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test
 
 
 def test_a_finished_reset_does_not_block_the_next_one(client, db_session, test_settings):
-    """GEN-02: the guard must not latch. Every terminal status leaves a reset startable.
+    """GEN-04, GEN-05: the guard must not latch. Every terminal status leaves a reset startable.
 
     The statuses are written out rather than read from `reset_service.TERMINAL_BATCH_STATUSES`: a
     test that iterates the constant it is checking cannot fail when that constant is wrong. This
@@ -424,7 +424,7 @@ def test_a_finished_reset_does_not_block_the_next_one(client, db_session, test_s
 
 
 def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, test_settings):
-    """A batch waiting for a user's review is not a reset, and must not stand in the way of one."""
+    """GEN-04: a batch waiting for a user's review is not a reset, and must not stand in the way of one."""
     with db_session() as db:
         db.add(ImportBatch(batch_id="B-TEST-upload", batch_type="documents", source="upload",
                            status="Ready", options={}))
@@ -435,7 +435,7 @@ def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, t
 
 
 def test_reset_status_reports_the_batch_to_watch(client, db_session, test_settings):
-    """GEN-02 (FT-02): the signal that covers the whole reset, which POST /reset's batch id does not."""
+    """GEN-05 (FT-02): the signal that covers the whole reset, which POST /reset's batch id does not."""
     h = login(client, *ADMIN)
     idle = client.get("/api/admin/reset/status", headers=h)
     assert idle.status_code == 200
@@ -452,7 +452,7 @@ def test_reset_status_reports_the_batch_to_watch(client, db_session, test_settin
 
 
 def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session, test_settings):
-    """403 beats 409: a non-Admin must not learn from the error message whether a reset is running.
+    """GEN-04, GEN-02: 403 beats 409 — a non-Admin must not learn from the error message whether a reset is running.
 
     Called at the service, not through the API: the route's `require(Permission.POLICY_EDIT)`
     dependency already refuses an Auditor before `start_reset` runs, so an API-level test passes
@@ -471,7 +471,7 @@ def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session
 
 def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
         client, db_session, test_settings, monkeypatch):
-    """GEN-02 (FT-02): loading the evidence is part of the reset, so the batch must not read as
+    """GEN-05 (FT-02): loading the evidence is part of the reset, so the batch must not read as
     finished while it is still happening.
 
     Two things used to go wrong in the gap between the seed load finishing and the documents batch
