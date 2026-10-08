@@ -22,7 +22,7 @@ A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env,
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 164 tests: 160 pass, 4 PostgreSQL skip
+.venv\Scripts\python -m pytest                              # 188 tests: 184 pass, 4 PostgreSQL skip
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
@@ -273,8 +273,36 @@ Reviews run only at four points. Ordinary activities finish with the normal test
   refusal or an audit write. The plan's **Reviews** bullet holds the current list.
 - **R3 Gate exit.** When the last activity of a gate is `Done`, run `/review-build gate <N>` and record
   the verdict in the gate's exit row. The gate closes only on **Ready**.
-- **R4 Merge to main or customer demo.** Needs a Ready gate review of the same commit. The hook in
-  `.claude/settings.json` enforces this; if it blocks you, run the review it names.
+- **R4 Merge to main or customer demo.** Needs a Ready gate review, enforced by the hook in
+  `.claude/settings.json`; if it blocks you, run the review it names. The rule (relaxed 2026-10-07,
+  when Gate 0 first reached Ready and the old one turned out to be unsatisfiable):
+
+  > the reviewed commit is an **ancestor** of what is being merged or pushed, and nothing under
+  > `A_Codes/`, `B_Inputs/`, `.claude/` or `.github/` changed between them.
+
+  So a review can record itself — `D_Reviews/`, `E_ProjectPlan/` and this file may all move
+  afterwards — while any change to the product, the inputs, the controls or CI needs a fresh review.
+  The rule was `head == HEAD` exactly, which no Ready verdict could ever satisfy, because recording
+  the verdict moves HEAD. For a **merge** the commit judged is the one arriving, not `main`'s tip:
+  main is behind by definition, so comparing against it denied every merge. `.claude/` and `.github/`
+  are protected because the agents, the commands, the hook and the CI workflows *are* the controls —
+  changing a control unreviewed is worse than changing the code unreviewed. This file is deliberately
+  **not** protected: a gate review writes its own findings into §76A.14, and protecting it would
+  reintroduce the deadlock for documentation alone.
+
+  The matcher reads the Bash **command text**, so a command that merely mentions `git push` is
+  evaluated too — a shell one-liner that echoes the phrase can be refused. That is deliberate: a false
+  "needs review" is a prompt, where a false "fine" is an unreviewed merge.
+
+  Run `python .claude/hooks/test_review_gate.py` after any change to the hook: 22 scratch-branch
+  checks covering the allow paths **and** every deny path. They were ad hoc until 2026-10-07, which is
+  how an earlier repair shipped failing open — `\b` became a literal backspace in six regexes, so a
+  real push to main was allowed.
+
+  **Known weakness, not fixed.** The hook lives in the working tree, so while a branch that lacks
+  `.claude/` is checked out there is no gate at all. That is exactly how Gate 0's own merge went
+  through unchallenged: `main` predated the folder. A history rewrite that drops `.claude/` would
+  disable the control silently.
 
 Do not run review agents at any other time unless I ask. A checkpoint whose scope has not changed since
 its last review is skipped, and the earlier report is cited.
@@ -303,7 +331,7 @@ data, so they run one after the other, never together.
 Each gate is built on its own branch, `gate-<N>-<short-name>` (for example `gate-1-core-report`,
 `gate-3-monitoring`), created from `main`. It is merged to `main` only after a Ready
 `/review-build gate <N>`, which the hook enforces. `review-agents` is the Gate 0 branch, and it merges
-once G0.20 is Ready.
+once G0.20 is Ready. **Merged 2026-10-07**, G0.20 Ready; `main` now carries Gate 0.
 
 Exception (2026-10-06): `gate-1-core-report` was branched from `review-agents`, before Gate 0 merged,
 so new development could start. When `review-agents` merges to `main`, merge `main` into
