@@ -42,12 +42,12 @@ them means the reset did not take, and the run must stop. The policy count has m
 | FS-13 | The governance score breakdown for three sample models matches an independent calculation | SCR-01, SCR-05 | Validator | — | 2 |
 | FS-14 | Changing a policy setting changes the tier thresholds and keeps the setting's history | CFG-02, CFG-03, TIR-03 | Admin | T12 | 2 |
 | FS-15 | Upload a single document, upload version 2, and upload a duplicate; check classification, versioning and duplicate detection | DOC-01, DOC-08, DOC-17 | Model Owner | seed PDFs | 4 |
-| FS-16 | Batch, folder and ZIP upload with T17/T18 manifests; documents map to models; failures are reported per file | DOC-03…DOC-06, DOC-10, DOC-15 | Admin | generated ZIP | 4 |
+| FS-16 | ZIP package with a T17 manifest, then a multi-file upload through the Document Centre control, then a folder-source upload; documents map to models; failures are reported per file | DOC-03…DOC-07, DOC-10, DOC-13, DOC-15, DOC-18 | Admin | generated ZIP + per-run PDFs | 4 |
 | FS-17 | Document completeness on Model 360 changes after an upload | DOC-20, §40 | Model Owner | seed PDF | 4 |
 | FS-18 | Each Command Center tile drills down to a list whose count equals the tile and the Operations Board filter. "Models with open findings" counts models, and each findings link in its sub-line opens a list of that size. Each severity bar filters by `finding_severity`. Score-band links use the `scored_*` flags (G0.2, G0.4). The tile label differs from the mock-up as an accepted difference | CC-01, CC-02 | Executive | — | 8 |
 | FS-19 | Each insight links to its source record | CC-04 | Executive | — | 8 |
 | FS-20 | Audit trail filters by user, model, entity, action, date, batch and document | AUD-03 | Auditor | — | 8 |
-| FS-21 | Resetting to the seed twice with the same business date gives the same counts, and leaves `B_Inputs` content unchanged (timestamp-only churn is G0.15) | GEN-01 | Admin | — | 2 |
+| FS-21 | Resetting to the seed twice with the same business date gives the same counts **and reloads the 1,116 evidence documents** (FT-04); a reset started while one is running is refused with a conflict naming the batch and submits no second job (FT-02); `B_Inputs` content is unchanged (timestamp-only churn is G0.15) | GEN-01, GEN-04, GEN-05 | Admin | — | 2 |
 | FS-22 | A Model Developer and a Data Owner can upload a document batch but cannot remap, confirm or cancel it in review; the API returns 403 and nothing changes. A role with `document:review` can (CR-04, G0.3) | SEC-02, DOC-03 | Model Developer, Data Owner | seed PDFs | 4 |
 | FS-23 | Removing one role from a user by re-importing T01 (there is no role-edit screen or API yet, CR-19) invalidates that role's session at once, in the UI and the API. The user's other roles keep working (TR-04, G0.9) | SEC-05 | Admin | generated T01 | 1 |
 | FS-24 | Refused writes through the UI leave no audit event: an SoD breach, a tier override without a reason, and an action without permission. A permitted write adds exactly one event (TR-01, G0.7) | AUD-01 | Admin | — | 2 |
@@ -83,3 +83,31 @@ exercises. Specific corrections:
 No scenarios were renumbered and none removed. No scenarios were added: the starting catalogue
 already covers every §76A family with at least one scenario, and the four Gate 0 runtime-proof
 scenarios (FS-07, FS-18, FS-22, FS-23, FS-24) were already present.
+
+## Harness defects closed in the 2026-10-07 re-run
+
+Recorded here so the next run can tell a harness change from a product change. All of these produced
+a *false negative* — a scenario that failed, or passed, on itself rather than on the application.
+
+| ID | Scenario | Was | Now |
+|---|---|---|---|
+| H-02 | FS-11, FS-12 | Looked for `Raise finding` / `Record decision` on the Overview tab; they live behind the Findings and Approvals tabs. FS-11 also named U-003 as M-0012's owner, which the seed has not been true of for some time, so the write would have been refused 403 and read as a product defect | Clicks the tab; reads the owner from the model. Both scenarios also use `actionField()` — XPath on the label's direct `text()`, because `ActionForm` wraps its control in the `<label>` and `getByLabel(..., {exact:true})` therefore matches "Severity" plus every option |
+| H-03 | FS-16 | Asserted the final item status on the `POST /api/documents/batches` response, but analysis is a background job: items read `Uploaded` there and `Ready` a second later | Polls `GET /api/documents/batches/{id}` until no item is `Uploaded`, then asserts. The same applies after Confirm, which is also asynchronous |
+| H-04 | FS-17 | Hard-coded M-0042, which has all five required documents on a complete seed, so there was no gap to close and DOC-20 could never be judged | Finds a model from `/api/documents/completeness?missing_only=true` |
+| H-09 (part) | FS-12, FS-16 | Not re-runnable: FS-12 closed only the *first* open condition, so a second run left the model outstanding; FS-16's ZIP files are exact duplicates on a second run, so the Store path was never reached | FS-12 closes every open condition, which is what APR-03 actually says; FS-16 keeps the ZIP for DOC-05/DOC-06 and uploads per-run unique bytes for the Store path |
+| H-11 | FS-06 | Named U-003 as both Owner and Validator, but the Validator `<select>` lists only Validator-role users, so the option could never exist | Queries the seed for a user holding **both** roles (U-101) and fails loudly if there is none |
+| H-12 | FS-21 | Default 30 s test timeout against its own 300 s poll | `test.setTimeout(900_000)` |
+| H-13 | FS-23 | Removed U-040's MRC Member role and never restored it; U-040 is the seed's only MRC Member, so FS-12 could not sign in on any later run | Restores it in a `finally` from `T01_role_restored.csv`, and proves it by signing in |
+| H-14 | FS-20 | Checkpoint screenshot taken while the table still read "Loading…" | Waits for the first row |
+| **H-15** | FS-07 | Asserted `= 1` `create` audit event for the model id it was given. A reset reloads the seed but **keeps the audit trail**, so the next free model id is handed out again and the trail already holds a `create` for it — the scenario failed on a second run while the product was correct | Counts only events newer than the scenario's own starting `event_id` |
+| **H-16** | FS-21 | Screenshotted the Command Center without reloading it, so the evidence showed the pre-reset portfolio (260 models) after a reset that had restored 256 | Reloads, and asserts the tile equals the stored count |
+
+Still open and deliberately not fixed: **H-08** (`openScreen` does not wait for the destination —
+latent, no scenario fails on it), and the rest of **H-09** (FS-15 and FS-24 leave state behind; both
+are idempotent enough to pass twice, and FS-21's reset clears them mid-suite).
+
+One ordering effect worth knowing rather than fixing: FS-24's control write sets `reval_lead_days`
+to 90 and does not put it back, so the scenarios between it and FS-21's reset see a 90-day
+revalidation lead time. Every assertion in that window is internally consistent (each tile is
+compared with its own drill-down), but two screenshots of the Command Center in the same run can
+legitimately show different revalidation-queue counts.

@@ -62,7 +62,11 @@ test("FS-20 AUD-03 the audit trail filters by each documented dimension", async 
   expect(sameDay.every((e) => e.occurred_at.slice(0, 10) === day),
     "the date range must exclude other days").toBe(true);
 
+  // The screenshot used to be taken the moment the link was clicked, so the saved evidence read
+  // "Loading…" with no rows even though every assertion above had passed (harness defect H-14).
+  // Waiting for the first row means the evidence shows what a user sees.
   await openScreen(page, "Audit Trail");
+  await expect(page.locator("table tbody tr").first()).toBeVisible({ timeout: 15_000 });
   await checkpoint(page, "FS-20_audit_trail");
 });
 

@@ -142,9 +142,50 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
     return { Authorization: `Bearer ${(await resp.json()).access_token}` };
   };
 
-  const reset = async () => {
+  // A reset that has not finished, read straight from the test database rather than from the API:
+  // mid-reset `app_user` is empty for a moment, so nothing can be asked over HTTP, and this is the
+  // same condition `reset_service.reset_in_progress` applies.
+  const resetInFlight = () => dbCount("import_batch",
+    "source IN ('reset','seed') AND status NOT IN " +
+    "('Completed','Partially Completed','Failed','Validation Failed','Cancelled')");
+
+  /**
+   * GEN-04: a second reset, while one is running, is refused with a conflict naming the batch in
+   * flight — and no second job is submitted.
+   *
+   * The criterion was tagged on this scenario but never asserted, so the tag was a false coverage
+   * signal: two *sequential* resets prove determinism, not the guard. 401 and 403 are retried
+   * rather than failed, because the reset deletes `app_user` and for a second or two there is
+   * nobody to authenticate as (plan BL.1) — an unanswered question, not a wrong answer.
+   */
+  const probeConcurrentReset = async () => {
+    const batchesBefore = dbCount("import_batch", "source IN ('reset','seed')");
+    let verdict = "the reset finished before a second one could be attempted";
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline) {
+      if (resetInFlight() === 0) break;
+      const resp = await page.request.post("/api/admin/reset", { headers: await asAdmin() });
+      const text = await resp.text();
+      if (resp.status() === 409) {
+        expect(text, "the refusal names the batch in flight").toMatch(/batch B-\d{8}-\d{3}/);
+        verdict = "refused";
+        break;
+      }
+      if (resp.status() === 202) {
+        verdict = `a second reset was accepted while one was running: ${text}`;
+        break;
+      }
+      await page.waitForTimeout(300);  // 401/403: mid-delete, ask again
+    }
+    expect(verdict, "GEN-04: a concurrent reset must be refused with a conflict").toBe("refused");
+    expect(dbCount("import_batch", "source IN ('reset','seed')"),
+      "GEN-04: the refused reset must not have created a batch").toBe(batchesBefore);
+  };
+
+  const reset = async (probe = false) => {
     const resp = await page.request.post("/api/admin/reset", { headers: await asAdmin() });
     expect(resp.status(), await resp.text()).toBe(202);
+    if (probe) await probeConcurrentReset();
 
     // Wait for the *reset*, not for the batch the caller is handed. A reset creates two batches —
     // the seed import and then one for the 1116 evidence files — so the id in the response reports
@@ -170,10 +211,17 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
     }
   };
 
-  await reset();
+  await reset(true);   // the first reset also carries the GEN-04 concurrency probe
   const first = snapshot();
   await reset();
   const second = snapshot();
+  // The Command Center has been open since sign-in and still shows what it fetched *before* the
+  // first reset — 260 models, because FS-03 and FS-04 added four. Reload, so the saved evidence is
+  // the post-reset state and not a stale tile, and check the screen agrees with the database.
+  await page.reload();
+  await expect(page.locator(".tile", { hasText: "Total models" }).first(),
+    "CC-01 after a reset: the tile equals the stored model count")
+    .toContainText(String(second.models), { timeout: 15_000 });
   await checkpoint(page, "FS-21_after_two_resets");
   expect(second, "GEN-01: a reset at the same business date is deterministic").toEqual(first);
   expect(first.models).toBe(256);

@@ -1,0 +1,71 @@
+
+Running 31 tests using 1 worker
+
+  ✓   1 [functional] › functional\audit.spec.ts:8:5 › FS-20 AUD-03 the audit trail filters by each documented dimension (3.5s)
+  ✓   2 [functional] › functional\audit.spec.ts:73:5 › FS-24 AUD-01 refused writes leave no audit event; a permitted write adds exactly one (2.5s)
+  ✓   3 [functional] › functional\dashboards.spec.ts:6:5 › FS-18 CC-01 CC-02 every tile and bar drills to a list of its own size (2.5s)
+  ✓   4 [functional] › functional\dashboards.spec.ts:61:5 › FS-19 CC-04 every insight links to its source record (1.6s)
+  -   5 [functional] › functional\dashboards.spec.ts:87:6 › FS-34 Copilot answers cite records from the app
+  ✓   6 [functional] › functional\dashboards.spec.ts:107:7 › FS-26 date-only rendering › CC-01 LIF-02 a date-only value renders its own calendar day, west of UTC (2.0s)
+  ✓   7 [functional] › functional\documents.spec.ts:9:5 › FS-15 DOC-01 DOC-08 DOC-17 single upload, a new version, and a refused duplicate (1.5s)
+  ✓   8 [functional] › functional\documents.spec.ts:55:5 › FS-16 DOC-03 DOC-04 DOC-05 DOC-06 DOC-10 DOC-15 batch and ZIP upload with a manifest (2.3s)
+  ✓   9 [functional] › functional\documents.spec.ts:192:5 › FS-17 DOC-20 completeness on Model 360 changes after an upload (1.8s)
+  -  10 [functional] › functional\documents.spec.ts:240:6 › FS-33 DOC-16 AI extraction proposals are confirmed or dropped
+  ✓  11 [functional] › functional\import.spec.ts:15:5 › FS-02 IMP-02 IMP-03 enabled templates download with registry columns; disabled ones do not (1.6s)
+  ✓  12 [functional] › functional\import.spec.ts:49:5 › FS-03 IMP-01 IMP-05 IMP-08 INV-03 T02 demo preview names field and row, then loads (4.2s)
+  ✓  13 [functional] › functional\import.spec.ts:81:5 › FS-04 IMP-01 IMP-07 re-loading the same file does not duplicate models (7.4s)
+  ✓  14 [functional] › functional\import.spec.ts:102:5 › FS-05 VAL-01 FND-01 APR-01 T03–T05 load onto the right models (1.7s)
+  ✓  15 [functional] › functional\import.spec.ts:122:5 › FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the same counts (21.1s)
+  -  16 [functional] › functional\import.spec.ts:226:6 › FS-25 REG-15 REG-16 REG-17 core Model Risk Report: figures, reproducibility and access
+  -  17 [functional] › functional\import.spec.ts:232:6 › FS-30 MON-01 MON-02 MON-03 monitoring plan, metrics, results and breach
+  -  18 [functional] › functional\import.spec.ts:236:6 › FS-31 REG-01 REG-14 inventory classes, vendor models, challenges, dependencies
+  -  19 [functional] › functional\import.spec.ts:241:6 › FS-32 CDE and DQ results load and appear on Data Audit
+  ✓  20 [functional] › functional\inventory.spec.ts:42:5 › FS-06 INV-03 a segregation-of-duties breach is refused in the UI and on import (2.3s)
+  ✘  21 [functional] › functional\inventory.spec.ts:92:5 › FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail (2.1s)
+  ✓  22 [functional] › functional\inventory.spec.ts:92:5 › FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail (retry #1) (4.8s)
+  ✓  23 [functional] › functional\inventory.spec.ts:141:5 › FS-08 TIR-01 TIR-04 TIR-05 tiering follows policy; an override needs a reason (1.9s)
+  ✓  24 [functional] › functional\inventory.spec.ts:177:5 › FS-09 LIF-01 INV-05 a phase move without required data is refused (1.7s)
+  ✓  25 [functional] › functional\inventory.spec.ts:194:5 › FS-10 VAL-02 VAL-04 revalidation status is correct for the fixed business date (1.5s)
+  ✓  26 [functional] › functional\inventory.spec.ts:212:5 › FS-11 FND-02 FND-04 CC-01 raise a finding and watch the overdue counts move (2.0s)
+  ✓  27 [functional] › functional\inventory.spec.ts:240:5 › FS-12 APR-03 a conditional approval stays outstanding until its conditions close (2.3s)
+  ✓  28 [functional] › functional\inventory.spec.ts:284:5 › FS-13 SCR-01 SCR-05 the score breakdown matches an independent calculation (1.7s)
+  ✓  29 [functional] › functional\inventory.spec.ts:311:5 › FS-14 CFG-02 CFG-03 TIR-03 a policy change moves tiers and is audited (1.7s)
+  ✓  30 [functional] › functional\security.spec.ts:8:5 › FS-01 SEC-01 SEC-02 SEC-03 SEC-04 read-only roles see no write actions and the API refuses their writes (2.1s)
+  ✓  31 [functional] › functional\security.spec.ts:40:5 › FS-22 SEC-02 DOC-03 upload is allowed but batch review needs document:review (2.4s)
+  ✓  32 [functional] › functional\security.spec.ts:96:5 › FS-23 SEC-05 re-importing T01 without a role invalidates that role's session (2.6s)
+
+
+  1) [functional] › functional\inventory.spec.ts:92:5 › FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      109 |     // INV-01/INV-02: the create is audited.
+      110 |     expect(dbCount("audit_event", "entity = 'model' AND action = 'create' AND entity_id = ?", [modelId]))
+    > 111 |       .toBe(1);
+          |        ^
+      112 |
+      113 |     // CR-06 / G0.5 at runtime: the Command Center reflects the new model without a reload.
+      114 |     await openScreen(page, "Command Center");
+        at C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AF_e2e\functional\inventory.spec.ts:111:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-07-INV-01-INV-14cfc-re-after-in-the-audit-trail-functional\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-07-INV-01-INV-14cfc-re-after-in-the-audit-trail-functional\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-07-INV-01-INV-14cfc-re-after-in-the-audit-trail-functional\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\D_Reviews\DD_functional_test\20261007\test-results\inventory-FS-07-INV-01-INV-14cfc-re-after-in-the-audit-trail-functional\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 flaky
+    [functional] › functional\inventory.spec.ts:92:5 › FS-07 INV-01 INV-02 AUD-01 CC-01 create then edit, with before/after in the audit trail 
+  6 skipped
+  24 passed (1.4m)
