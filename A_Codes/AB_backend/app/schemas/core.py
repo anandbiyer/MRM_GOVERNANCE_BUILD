@@ -1,8 +1,32 @@
 """API schemas for Phase 1 (kept separate from ORM models, BRD §82 rule 4)."""
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    """Label a naive timestamp as UTC, and leave an aware one alone.
+
+    Every timestamp column is `DateTime(timezone=True)` and every value is written either by
+    `datetime.now(UTC)` or by the database's `now()`, so a naive value read back is always UTC
+    wall-clock. SQLite has no timezone type, so it returns these without a zone, and PostgreSQL —
+    the system of record (§49) — returns them with one. Serialising the naive form sent the browser
+    a time it read as *local*, which rendered a UTC wall-clock as local and landed on the adjacent
+    calendar day: the Model 360 Score tab said 10/7 while its History tab said 10/8 for events
+    minutes apart (review finding MP-15, plan BL.28).
+
+    Applied through the `Utc` annotation below rather than per field, so a new timestamp field is
+    covered by declaring its type. Deliberately **not** applied to `date` fields: a calendar day
+    carries no zone, and giving it one would reintroduce the same shift from the other direction.
+    """
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=UTC)
+
+
+#: A timestamp as the API emits it: always with an offset. Use for anything that is an instant.
+Utc = Annotated[datetime, AfterValidator(_as_utc)]
 
 
 class ORMModel(BaseModel):
@@ -65,7 +89,7 @@ class PolicySettingOut(ORMModel):
     category: str | None
     description: str | None
     updated_by: str | None
-    updated_at: datetime | None
+    updated_at: Utc | None
     row_version: int
 
 
@@ -79,7 +103,7 @@ class PolicySettingUpdate(BaseModel):
 
 class AuditEventOut(ORMModel):
     event_id: int
-    occurred_at: datetime
+    occurred_at: Utc
     user_id: str | None
     role: str | None
     action: str

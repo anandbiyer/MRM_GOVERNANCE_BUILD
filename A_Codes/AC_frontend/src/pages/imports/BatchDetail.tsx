@@ -6,6 +6,7 @@ import { invalidateGovernance } from "../../api/queries";
 import type { AuditEvent, ImportBatchDetail, ImportIssue, ImportTemplate } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { EmptyState, ErrorState, Loading } from "../../components/States";
+import { formatDateTime} from "../../format";
 
 const RUNNING = ["Validating", "Processing"];
 const EDITABLE = ["Uploaded", "Ready", "Validation Failed", "Failed"];
@@ -92,7 +93,7 @@ export function BatchDetail() {
         <div className="eyebrow"><Link to="/imports">Import Centre</Link> · Batch</div>
         <h1 className="mono" style={{ fontSize: 26 }}>{b.batch_id} <BatchStatus status={b.status} /></h1>
         <p className="lede">
-          {b.total_files} file(s) uploaded by {b.uploaded_by ?? "system"} ({b.source}) on {b.created_at ? new Date(b.created_at).toLocaleString() : "—"}.
+          {b.total_files} file(s) uploaded by {b.uploaded_by ?? "system"} ({b.source}) on {b.created_at ? formatDateTime(b.created_at) : "—"}.
           Existing records: <b>{String(b.options.on_existing ?? "update")}</b>.
         </p>
       </header>
@@ -215,7 +216,7 @@ export function BatchDetail() {
                 <tbody>
                   {audit.data.map((e) => (
                     <tr key={e.event_id}>
-                      <td className="mono">{new Date(e.occurred_at).toLocaleString()}</td>
+                      <td className="mono">{formatDateTime(e.occurred_at)}</td>
                       <td>{e.action}</td><td className="mono">{e.entity}</td><td className="mono">{e.entity_id}</td>
                       <td className="mono">{e.model_id ? <Link to={`/models/${e.model_id}`}>{e.model_id}</Link> : ""}</td>
                     </tr>

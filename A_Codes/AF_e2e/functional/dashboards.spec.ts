@@ -209,3 +209,82 @@ test("FS-28 CC-03 the revalidation timeline shows §10's full list, owner includ
 
   await checkpoint(page, "FS-28_revalidation_timeline");
 });
+
+
+// FS-29 — one date per event, west of UTC (MP-15 / MP-16, plan BL.28).
+//
+// Model 360 showed two different calendar days for events minutes apart: the Score tab read
+// "calculated 10/7/2026, 9:07 PM" while the History tab and the lifecycle line read 10/8/2026.
+// `score.calculated_at` is built in Python as `datetime.now(UTC)` and serialised with a `Z`;
+// `changed_at`, `recorded_at`, `occurred_at` and `uploaded_at` came from the database default and
+// were serialised naive, which the browser reads as *local* — so a UTC wall-clock was rendered as
+// local and landed on the adjacent day. Three datetime fields were also passed to `formatDate`,
+// whose contract is date-only.
+//
+// This asserts the screen agrees with the instant the API actually sent, which is the property that
+// was broken; comparing two on-screen dates to each other would pass if both were wrong the same way.
+test.describe("FS-29 one date per event", () => {
+  test.use({ timezoneId: "America/Los_Angeles" });
+
+  test("§67 a timestamp renders the day of the instant the API sent", async ({ page }) => {
+    await signInAs(page, "Admin");
+    const model = (await apiAs(page, "/api/models/M-0012")).body as {
+      score: { calculated_at: string };
+      phase_history: { changed_at: string }[];
+    };
+
+    // Every timestamp must carry an offset, or the browser is guessing.
+    expect(model.score.calculated_at, "score.calculated_at").toMatch(/(Z|[+-]\d\d:\d\d)$/);
+    expect(model.phase_history.length, "M-0012 must have phase history").toBeGreaterThan(0);
+    for (const h of model.phase_history) {
+      expect(h.changed_at, "phase_history.changed_at").toMatch(/(Z|[+-]\d\d:\d\d)$/);
+    }
+
+    // The day each instant falls on *in the browser's timezone*, computed in the page so it is the
+    // same clock the application renders with.
+    //
+    // Note what carries the proof here, because it is not this. If the API went back to sending
+    // naive timestamps, `new Date(...)` below would misread them exactly as the page does, the two
+    // would agree, and this check would pass while the screen was wrong — the same "test that
+    // cannot fail" that TR-25 and TR-26 were. The discriminating assertions are the offset checks
+    // above (they failed against the real defect: 14 of 16 API timestamps had no zone) and the
+    // time-of-day check below, which fails if a datetime is sent through the date-only formatter.
+    const localDay = (iso: string) =>
+      page.evaluate((s) => new Date(s).toLocaleDateString(), iso);
+    const HAS_TIME = /\d{1,2}:\d{2}/;
+
+    await page.goto("/models/M-0012");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    // Both panels live behind their own tab, so each is opened before it is read.
+    await page.getByRole("tab", { name: "Score" }).click();
+    await expect(page.getByRole("heading", { name: /Governance score/ })).toBeVisible();
+    expect(await page.locator("main").innerText(),
+           "the Score tab must show the day of its own calculated_at")
+      .toContain(await localDay(model.score.calculated_at));
+
+    // The phase history is on Overview (the lifecycle list), not on the History tab — which is the
+    // *audit* trail. MP-15 compared the two, so the scenario reads the one that carries changed_at.
+    await page.getByRole("tab", { name: "Overview" }).click();
+    await expect(page.getByText("→").first()).toBeVisible();
+    const overview = await page.locator("main").innerText();
+    expect(overview, "the lifecycle history must show the day of its own changed_at")
+      .toContain(await localDay(model.phase_history[0].changed_at));
+    // `changed_at` is an instant, so it must come through `formatDateTime` and carry a time.
+    // Passing it to `formatDate` — which is what MP-15 found — drops the time silently.
+    expect(overview, "a lifecycle entry must show a time, not just a date").toMatch(HAS_TIME);
+
+    // And the audit trail on the History tab, which is the other half of the disagreement.
+    const audit = (await apiAs(page, "/api/audit?model_id=M-0012")).body as { occurred_at: string }[];
+    expect(audit.length, "M-0012 must have audit events").toBeGreaterThan(0);
+    expect(audit[0].occurred_at, "audit occurred_at").toMatch(/(Z|[+-]\d\d:\d\d)$/);
+    await page.getByRole("tab", { name: "History" }).click();
+    await expect(page.getByRole("heading", { name: /History|Audit/ }).first()).toBeVisible();
+    const historyTab = await page.locator("main").innerText();
+    expect(historyTab, "the History tab must show the day of its own occurred_at")
+      .toContain(await localDay(audit[0].occurred_at));
+    expect(historyTab, "an audit entry must show a time, not just a date").toMatch(HAS_TIME);
+
+    await checkpoint(page, "FS-29_one_date_per_event");
+  });
+});

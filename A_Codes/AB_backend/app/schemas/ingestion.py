@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.core import Utc
+
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -67,10 +69,10 @@ class ImportBatchOut(ORMModel):
     uploaded_by: str | None
     status: str
     options: dict
-    created_at: datetime | None
-    started_at: datetime | None
-    validated_at: datetime | None
-    completed_at: datetime | None
+    created_at: Utc | None
+    started_at: Utc | None
+    validated_at: Utc | None
+    completed_at: Utc | None
     total_files: int
     successful_files: int
     failed_files: int

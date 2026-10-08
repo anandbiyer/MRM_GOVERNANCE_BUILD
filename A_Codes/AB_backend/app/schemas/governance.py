@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.core import Utc
+
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -82,7 +84,7 @@ class ScoreOut(BaseModel):
     overall: Decimal | None
     reason: str | None
     components: list[ScoreComponentOut]
-    calculated_at: datetime
+    calculated_at: Utc
 
 
 class ModelStateOut(BaseModel):
@@ -126,7 +128,7 @@ class TieringOut(ORMModel):
     override_tier: str | None
     override_reason: str | None
     override_by: str | None
-    override_at: datetime | None
+    override_at: Utc | None
 
 
 class ModelOut(ORMModel):
@@ -151,8 +153,8 @@ class ModelOut(ORMModel):
     legacy_sod_exception: bool
     tiering: TieringOut
     row_version: int
-    created_at: datetime | None
-    updated_at: datetime | None
+    created_at: Utc | None
+    updated_at: Utc | None
 
 
 class PhaseHistoryOut(ORMModel):
@@ -160,7 +162,7 @@ class PhaseHistoryOut(ORMModel):
     to_phase: str
     reason: str | None
     user_id: str | None
-    changed_at: datetime
+    changed_at: Utc
 
 
 class TierOverrideOut(ORMModel):
@@ -169,14 +171,14 @@ class TierOverrideOut(ORMModel):
     new_tier: str
     reason: str
     user_id: str
-    created_at: datetime
+    created_at: Utc
 
 
 class VersionOut(ORMModel):
     version: str
     change_reason: str | None
     user_id: str | None
-    recorded_at: datetime
+    recorded_at: Utc
 
 
 class RelationshipOut(BaseModel):
@@ -384,7 +386,7 @@ class ModelRiskReportOut(ORMModel):
     report_id: str
     business_date: date
     generated_by: str | None
-    generated_at: datetime
+    generated_at: Utc
     framework_label: str
     content_hash: str
     previous_report_id: str | None
