@@ -13,6 +13,7 @@ Standard library only, so it runs under whatever Python is on PATH.
 """
 import json
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -111,18 +112,48 @@ def head() -> str:
         return ""
 
 
-def merge_source(command: str) -> str | None:
-    """The ref a `git merge` would bring in, or None if the command names none.
+# Options to `git merge` that consume the next token, so it is a value and not a ref.
+# A token that begins a redirection or a pipe: `|`, `>`, `>>`, `<`, `;`, `&&`, and `2>&1`.
+SHELL_OPERATOR = re.compile(r"^\d*[|<>&;]")
 
-    Flags and their values are skipped, and the ref is the last bare token left. A merge with no ref
-    (`git merge --continue`) returns None, and the caller then falls back to HEAD rather than
-    guessing — a gate that cannot tell what is being merged must not allow it.
+MERGE_VALUE_FLAGS = ("-m", "--message", "-F", "--file", "-s", "--strategy", "-X", "--strategy-option",
+                     "-S", "--gpg-sign", "--into-name", "--log")
+
+
+def merge_sources(command: str) -> list[str] | None:
+    """The refs a `git merge` would bring in, or None if the command names none.
+
+    Everything after the first shell operator is dropped — a redirection or a pipe is not part of the
+    git command, and reading one as a ref is how an early version of this took `2>` for a branch
+    name. Flags are skipped, and so is the *value* of any flag that takes one, which is what keeps
+    `-m "merge main"` from looking like a ref. Several refs is an octopus merge; every one of them is
+    judged, because any of them can carry an unreviewed change.
+
+    None for a merge that names no ref (`git merge --continue`); the caller then falls back to HEAD
+    rather than guessing, because a gate that cannot tell what is being merged must not allow it.
     """
     m = GIT_MERGE_ARGS.search(command)
     if not m:
         return None
-    tokens = [tok for tok in m.group("rest").split() if not tok.startswith("-")]
-    return tokens[-1].strip("'\"") if tokens else None
+    try:
+        tokens = shlex.split(m.group("rest"), posix=True)
+    except ValueError:  # an unbalanced quote — refuse to guess
+        return None
+    refs, skip = [], False
+    for tok in tokens:
+        # Stop at the first shell operator. Splitting the raw string instead left the file
+        # descriptor behind, so `git merge feature 2>&1` offered `2` as a ref.
+        if SHELL_OPERATOR.match(tok):
+            break
+        if skip:
+            skip = False
+            continue
+        if tok.startswith("-"):
+            if tok in MERGE_VALUE_FLAGS:
+                skip = True
+            continue
+        refs.append(tok)
+    return refs or None
 
 
 def resolve(rev: str) -> str:
@@ -203,16 +234,30 @@ def main() -> None:
     if not commit:
         decide("deny", "Merging to main needs a Ready gate review, and HEAD could not be read.")
 
-    # For a merge, judge what is arriving; for a push, HEAD already holds it.
-    incoming = merge_source(command) if (GIT_MERGE.search(command) and not GIT_PUSH.search(command)) else None
-    target, target_name = commit, "HEAD"
+    # For a merge, judge every ref arriving; for a push, HEAD already holds it.
+    incoming = merge_sources(command) if (GIT_MERGE.search(command) and not GIT_PUSH.search(command)) else None
+    targets = [(commit, "HEAD")]
     if incoming is not None:
-        target = resolve(incoming)
-        target_name = f"{incoming} ({target[:8]})" if target else incoming
-        if not target:
-            decide("deny", f"Merging to main needs a Ready gate review of what is being merged, and "
-                           f"{incoming!r} is not a commit in this repository.")
+        targets = []
+        for ref in incoming:
+            sha = resolve(ref)
+            if not sha:
+                decide("deny", f"Merging to main needs a Ready gate review of what is being merged, and "
+                               f"{ref!r} is not a commit in this repository.")
+            targets.append((sha, f"{ref} ({sha[:8]})"))
 
+    for target, target_name in targets:
+        check_target(gate, recorded, target, target_name)
+
+    one = targets[0]
+    where = (f"at this commit ({one[0][:8]})" if recorded == one[0] and len(targets) == 1 else
+             f"at {recorded[:8]}; nothing under {'/, '.join(PROTECTED_PATHS)}/ has changed between "
+             f"that and {', '.join(name for _, name in targets)}")
+    decide("allow", f"Gate {gate} reviewed Ready {where}.")
+
+
+def check_target(gate: str, recorded: str, target: str, target_name: str) -> None:
+    """Deny unless `recorded` is an ancestor of `target` with no protected path changed between."""
     if recorded != target:
         if not is_ancestor(recorded, target):
             decide("deny", f"Merging to main needs a Ready gate review of this commit. Gate {gate} "
@@ -229,11 +274,6 @@ def main() -> None:
             decide("deny", f"Merging to main needs a Ready gate review of this commit. Gate {gate} was "
                            f"reviewed at {recorded[:8]}, and {len(changed)} protected file(s) have "
                            f"changed since: {shown}. Run /review-build gate {gate}.")
-
-    where = (f"at this commit ({target[:8]})" if recorded == target else
-             f"at {recorded[:8]}; nothing under {'/, '.join(PROTECTED_PATHS)}/ has changed between "
-             f"that and {target_name}")
-    decide("allow", f"Gate {gate} reviewed Ready {where}.")
 
 
 if __name__ == "__main__":

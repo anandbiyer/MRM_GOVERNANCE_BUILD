@@ -172,6 +172,22 @@ def main() -> int:
         check("unknown ref", decision, "deny")
         assert "not a commit" in reason, reason
 
+        # Shell operators and flag values are not refs. An early version took `2>` for a branch name
+        # and refused an ordinary merge, which is the reason this block exists.
+        git(cwd, "checkout", "-q", "feature")
+        git(cwd, "reset", "-q", "--hard", "HEAD~1")  # drop the product change: docs-only again
+        git(cwd, "checkout", "-q", "main")
+        for cmd in ('git merge feature 2>&1 | tail -20',
+                    'git merge feature -m "merge main into feature"',
+                    'git merge --no-ff -m "x" feature > out.log',
+                    "git merge -s ort -X theirs feature"):
+            decision, reason = run_hook(cwd, cmd)
+            check(cmd, decision, "allow")
+            assert "feature" in reason, reason
+        decision, reason = run_hook(cwd, "git merge feature no-such-branch")
+        check("octopus with one bad ref", decision, "deny")
+        assert "not a commit" in reason, reason
+
         print("\nNo review_state.json at all:")
         (cwd / "D_Reviews" / "review_state.json").unlink()
         check("git push origin main", run_hook(cwd, "git push origin main")[0], "deny")
