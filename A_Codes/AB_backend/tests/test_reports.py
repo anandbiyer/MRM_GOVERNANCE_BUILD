@@ -634,3 +634,81 @@ def test_s12_the_seeded_report_is_labelled_and_a_generated_one_is_not(client, te
 
     generated = _generate(client, login(client, *ADMIN))
     assert generated["is_seeded"] is False, "a report a user generated is not an example"
+
+
+def test_reg_17_lists_a_retired_model_and_a_newly_opened_finding(loaded_client):
+    """REG-17, TR-37: the two change lists that had only negative assertions.
+
+    `models_retired` and `findings_opened` were asserted exclusively as empty — `not
+    changes["models_retired"]`, `== []`, `findings_opened == []` — and the seed shapes no
+    retirements, so mutations that made the service always return either list empty passed all 22
+    report tests. REG-17 says the section "lists exactly the differences", and three of the five
+    lists were pinned to exact counts while these two were pinned to nothing.
+
+    So: generate, then retire a model and raise a finding, then generate again and require both to
+    appear, exactly once, with the right model and finding. Deliberately also checks what must *not*
+    move, because a list that reported everything would satisfy a bare "is it non-empty".
+    """
+    h = login(loaded_client, *MRC)
+    admin = login(loaded_client, *ADMIN)
+    first = _generate(loaded_client, h)
+
+    models = _get(loaded_client, admin, "/api/models")
+    retirement = _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"][-1]
+    victim = next(m for m in models if m["state"]["displayed_column"] != retirement)
+    detail = _get(loaded_client, admin, f"/api/models/{victim['model_id']}")
+
+    moved = loaded_client.post(f"/api/models/{victim['model_id']}/transition", headers=admin, json={
+        "to_phase": retirement, "reason": "TR-37: exercise models_retired with content",
+        "row_version": detail["model"]["row_version"]})
+    assert moved.status_code == 200, moved.text
+
+    raised = loaded_client.post("/api/findings", headers=admin, json={
+        "finding_id": "F-9101", "model_id": "M-0012", "title": "TR-37 probe",
+        "description": "Exercises findings_opened with content.", "severity": "Medium",
+        "category": "Documentation", "status": "Open", "owner_id": "U-003",
+        "raised_date": "2026-09-01", "due_date": "2026-12-31"})
+    assert raised.status_code == 201, raised.text
+
+    second = _generate(loaded_client, login(loaded_client, *MRC))
+    changes = second["sections"]["changes_since"]
+    assert changes["previous_report_id"] == first["report_id"]
+
+    assert [r["model_id"] for r in changes["models_retired"]] == [victim["model_id"]], (
+        f"the retired model must be listed exactly once: {changes['models_retired']}")
+    assert [f["finding_id"] for f in changes["findings_opened"]] == ["F-9101"], (
+        f"the newly opened finding must be listed exactly once: {changes['findings_opened']}")
+
+    # And nothing else moved: no model was added or closed, so those lists stay empty. A list that
+    # reported every model would pass a non-emptiness check and fail this one.
+    assert changes["models_added"] == [], changes["models_added"]
+    assert changes["findings_closed"] == [], changes["findings_closed"]
+
+
+def test_reg_17_a_retirement_is_reported_once_not_twice(loaded_client):
+    """REG-17: a retirement is a phase change *and* a retirement, which is one event.
+
+    Found while closing TR-37 and raised by the test reviewer as an aside nothing recorded: a model
+    moved into the retirement phase appears in `models_retired` and in `phase_changes`, so a reader
+    counting "what changed" counts it twice. Asserted here as the behaviour that was chosen, so a
+    future change to it is deliberate rather than silent.
+    """
+    h = login(loaded_client, *MRC)
+    admin = login(loaded_client, *ADMIN)
+    _generate(loaded_client, h)
+
+    retirement = _get(loaded_client, admin, "/api/models/meta")["lifecycle_phases"][-1]
+    models = _get(loaded_client, admin, "/api/models")
+    victim = next(m for m in models if m["state"]["displayed_column"] != retirement)
+    detail = _get(loaded_client, admin, f"/api/models/{victim['model_id']}")
+    assert loaded_client.post(f"/api/models/{victim['model_id']}/transition", headers=admin, json={
+        "to_phase": retirement, "reason": "REG-17: retirement counted once",
+        "row_version": detail["model"]["row_version"]}).status_code == 200
+
+    changes = _generate(loaded_client, login(loaded_client, *MRC))["sections"]["changes_since"]
+    retired = [r["model_id"] for r in changes["models_retired"]]
+    phase_changed = [r["model_id"] for r in changes["phase_changes"]]
+    assert retired == [victim["model_id"]]
+    assert phase_changed == [victim["model_id"]], (
+        "a retirement is currently reported in both lists; if that changes, change this assertion "
+        "deliberately rather than deleting it")
