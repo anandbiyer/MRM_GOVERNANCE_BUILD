@@ -11,6 +11,10 @@ report history has to survive a demo reset, which deletes and reloads `app_user`
 `previous_report_id` is self-referential and nullable — the first report has no predecessor, which is
 why "changes since the previous report" is empty rather than absent in that one.
 
+The self-referential foreign key is declared as a named `ForeignKeyConstraint`, like every other
+foreign key in the chain (see `0002_governance_core._fk`). This migration originally used an inline
+`sa.ForeignKey`, which cannot carry a name, and the drift guard could not see it (CR-42).
+
 `is_seeded` marks the example a reset creates, so the report list and the reopened report can say so
 (spec issues S11 and S12, the D12 addendum). Edited into this migration rather than added by a
 follow-up, because 0007 has not reached `main`.
@@ -39,12 +43,18 @@ def upgrade() -> None:
         sa.Column("framework_label", sa.String(200), nullable=False),
         sa.Column("content_hash", sa.String(64), nullable=False),
         sa.Column("storage_path", sa.String(400), nullable=False),
-        sa.Column("previous_report_id", sa.String(40),
-                  sa.ForeignKey("model_risk_report.report_id"), nullable=True),
+        sa.Column("previous_report_id", sa.String(40), nullable=True),
         # The example a reset seeds. Not derived from `generated_by is None`: "no user generated
         # this" and "this is a shaped example" are different statements, and only the second is
         # safe to put on a screen (S11, S12).
         sa.Column("is_seeded", sa.Boolean(), nullable=False, server_default=sa.false()),
+        # Named, like every other foreign key in the chain. An inline `sa.ForeignKey` cannot carry a
+        # name, and alembic's drift guard compares foreign keys by columns and referents rather than
+        # by name, so nothing in CI would have noticed the omission (CR-42). The failure mode is a
+        # later migration dropping the constraint by its conventional name: fine against a SQLite
+        # `create_all` schema, broken against a migrated PostgreSQL one.
+        sa.ForeignKeyConstraint(["previous_report_id"], ["model_risk_report.report_id"],
+                                name="fk_model_risk_report_previous_report_id_model_risk_report"),
     )
     op.create_index("ix_model_risk_report_business_date", "model_risk_report", ["business_date"])
     op.create_index("ix_model_risk_report_generated_by", "model_risk_report", ["generated_by"])
