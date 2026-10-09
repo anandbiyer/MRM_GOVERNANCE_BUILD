@@ -11,6 +11,7 @@ parameter, so there is nothing here that asks for one.
 """
 from decimal import Decimal
 
+from app.services import report_service
 from tests.conftest import ADMIN, AUDITOR, EXECUTIVE, MRC, VALIDATOR, audit_count, login
 
 SECTIONS = ("inventory", "validation", "findings", "approvals", "score", "documentation", "changes_since")
@@ -541,3 +542,43 @@ def test_reg_17_the_pdf_is_this_report_and_carries_its_content(loaded_client):
         f"sixty extra table rows added only {grew} bytes, so the renderer is not putting the sections "
         f"on the page. A ratio was the wrong measure: a real report already carries content, so it is "
         f"the difference that shows whether the rows were rendered")
+
+
+def test_reg_16_the_hash_ignores_which_report_came_before(loaded_client, loaded_session):
+    """REG-16, FT-09: two generations from the same data agree even once a predecessor exists.
+
+    This is the case the test above cannot reach. `loaded_client` starts with no stored report, so
+    both of its generations diff *nothing* and hash an identical empty change section — the fixture
+    is what makes it pass, not the code. A reset seeds a previous report, and then the first
+    generation of a day diffs that while the second diffs the first, so the change lists differ by
+    construction. With `changes_since` inside the digest the hashes could never agree, which is how
+    REG-16 came to fail in production terms while CI stayed green (FT-09).
+
+    Decided by **S10** (the D12 addendum): the predecessor is provenance, so everything derived
+    solely from it is too. The hash covers the report's figures.
+    """
+    h = login(loaded_client, *MRC)
+
+    # A predecessor with content differences, built the way a reset builds one.
+    seeded = report_service.seed_previous_report(loaded_session)
+    assert seeded, "the fixture must be able to seed a predecessor"
+
+    first, second, third = (_generate(loaded_client, h) for _ in range(3))
+    assert first["content_hash"] == second["content_hash"], (
+        "generation 1 diffs the seeded report and generation 2 diffs generation 1; the hash must not "
+        "see that difference (FT-09)")
+    assert second["content_hash"] == third["content_hash"], "and it must stay stable after that"
+
+    # The change lists really do differ — otherwise this proves nothing about the exclusion.
+    assert first["sections"]["changes_since"] != second["sections"]["changes_since"], (
+        "the change sections must differ, or the hashes would agree for the wrong reason")
+
+    # The exclusion is narrow: a figure still moves the hash.
+    assert loaded_client.post("/api/models", headers=login(loaded_client, *ADMIN), json={
+        "model_id": "M-9003", "model_name": "FT-09 probe", "model_type": "Credit Risk",
+        "model_subtype": "PD", "purpose": "Hash probe after a predecessor exists.",
+        "business_line": "Business Banking", "owner_id": "U-003", "developer_id": "U-021",
+        "validator_id": "U-014", "lifecycle_phase": "Development", "version": "v1.0",
+        "q_materiality": 3, "q_complexity": 3, "q_reliance": 3, "q_regulatory_use": 3}).status_code == 201
+    assert _generate(loaded_client, h)["content_hash"] != first["content_hash"], (
+        "a change to the portfolio must still change the hash")

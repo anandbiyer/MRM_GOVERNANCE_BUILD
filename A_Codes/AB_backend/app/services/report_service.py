@@ -52,23 +52,26 @@ def _plain(value: Any) -> Any:
     return value
 
 
-#: Provenance, not content: which report came before does not change what this one says about the
-#: portfolio. They are excluded from the hash so that two generations from the same data on the same
-#: business date match (REG-16) — the second one necessarily has a predecessor and the first does not.
-#: The change *lists* stay in: those are findings about the portfolio, and they do differ.
-_NOT_CONTENT = ("previous_report_id", "previous_generated_at")
-
-
 def content_hash(sections: dict) -> str:
-    """SHA-256 of the canonical content.
+    """SHA-256 of the report's figures.
 
-    `generated_at`, `generated_by` and `report_id` are not part of it, nor is the predecessor's
-    identity, so two generations from the same data on the same business date hash the same (REG-16)
-    while a change to any figure does not.
+    `generated_at`, `generated_by` and `report_id` are not part of it, and **nor is any of
+    `changes_since`** — not the predecessor's identity and not the change lists derived from it.
+
+    That exclusion is the whole of REG-16 as reworded by the **D12 addendum** (spec issue S10, review
+    finding FT-09). The earlier version excluded only `previous_report_id` and
+    `previous_generated_at`, calling them "provenance, not content", and then kept the lists computed
+    *solely* from that predecessor — self-contradictory, and it made the criterion unsatisfiable as
+    soon as any predecessor existed: the first generation of a day diffs the previous stored report
+    and the second diffs the first, so the lists differ by construction and any hash covering them
+    differs too. If the predecessor's identity is provenance, so is everything derived from it.
+
+    What remains covered is every figure the report states about the portfolio — inventory by tier
+    and stage, revalidation, findings, approvals, score, documentation, and the baseline. Two reports
+    that say different things about the portfolio still hash differently; two that say the same thing
+    no longer differ because one happened to run second.
     """
     content = {k: v for k, v in sections.items() if k != "changes_since"}
-    content["changes_since"] = {k: v for k, v in sections["changes_since"].items()
-                               if k not in _NOT_CONTENT}
     canonical = json.dumps(_plain(content), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
