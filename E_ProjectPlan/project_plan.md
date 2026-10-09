@@ -267,9 +267,17 @@ threshold-applied `dq_result` columns in §48.
 
 **Delivers MUP-26.**
 
+**AI provider (D13, decided 2026-10-09).** G5.1 also builds the provider seam: environment settings
+`MRM_AI_PROVIDER` (`stub` | `claude`) and `MRM_AI_MODEL` in `app/config.py` — not T12 rows — with
+`stub` the default when no API key is present. `claude` with no key **refuses to start** with a clear
+message and never falls back to the stub. Tests run against the stub. The §60 provenance fields record
+the provider and model behind every extraction.
+
 ## 9. Gate 6 — Phase 9, Audit Copilot
 
-Criteria unblocked: **D11** decided 2026-10-09 — COP-01…COP-10 in §76C. The AI provider is still **D13**.
+Unblocked: **D11** decided 2026-10-09 — COP-01…COP-10 in §76C. **D13** decided the same day: the
+Copilot uses Gate 5's provider seam (`MRM_AI_PROVIDER`, `MRM_AI_MODEL`; stub by default, refuses to start
+if `claude` is chosen with no key), and COP-06's audit event records the provider and model.
 
 | ID | Activity | Status |
 |---|---|---|
@@ -360,6 +368,7 @@ without a reproduction is a guess.
 | Date | Change |
 |---|---|
 | 2026-10-03 | Plan created. Records GR.1–GR.10 as Done from the current session; Gates 0–7 opened with all activities `Not started` or `Blocked`. |
+| 2026-10-09 | **D13 decided — every §81A decision is now recorded.** Option 3: both a stub and the Claude API, switched by the environment settings `MRM_AI_PROVIDER` (`stub` \| `claude`) and `MRM_AI_MODEL` in `app/config.py` rather than T12 rows. The stub is the default when no key is present; choosing `claude` without a key refuses to start rather than falling back silently. Noted under Gates 5 and 6. Documentation only; `decisions-d1-d7` merges to `main`. |
 | 2026-10-09 | **D8 and D11 decided: Data Audit and Copilot have acceptance criteria.** §76B adds **DQ-01…DQ-13** (CDE registry, thresholds from data, status with a boundary example, the threshold in force stored on each result, issues raised from failures without duplicates, D10-pattern statuses, T06/T10 through the service path, audit, `dq:manage`, Data Audit agreeing with Model 360, the Critical DQ insight). §76C adds **COP-01…COP-10** (read-only, citations that exist and are correct, no invented figures, the user's role respected, every exchange audited with §60 provenance, suggested questions, embedded text treated as data, provider failure shown). §48 gains `cde_model`, so one CDE may feed several models, and threshold-applied columns on `dq_result`. Gate 4 gets its policy-key note. G4.1–G4.6 and G6.1–G6.4 move from `Blocked` to `Not started`; Gate 6's provider waits on D13. Criteria total 126 → 149. No new permissions. Documentation only. |
 | 2026-10-09 | **Gate 2 closed: D1, D2, D3, D4, D6 and D7 decided** and recorded in [`decision_log.md`](decision_log.md) and §81A. D1: `monitoring_metric`/`monitoring_result` are the system of record, `kpi`/`kpi_result` are not created, T07/T08 are aliases of T14/T15, `performance_point` gains `monitoring_run_id`. D2: `range_lower`/`range_upper`, inclusive Pass, no Warn, copied onto results. D3: breaches only from the rules; T16 updates a matched breach; new `breach_severities` and `breach_to_finding_severity`. D4: backtests are runs of type Backtest. D6: Monitoring-phase models score the share of Pass metrics in the latest signed-off non-backtest run; no plan scores 0. D7: **MON-13…MON-20** added to §77, so the criteria total goes 118 → 126. Amended in review the same day: T07/T08 **retired** rather than aliased (MON-19 reworded), MON-14's conditions fixed and highest severity wins, MON-02 is any Fail, T16 matches on `breach_id` and ignores severity, D6's edge cases settled, MON-17 reads `monitoring_required_evidence`; template total 21 → 19. G2.1–G2.4, G2.6, G2.7 Decided; G3.1–G3.15 `Blocked (G2)` → `Not started`; Gate 3 note lists the new policy keys, which are added in Gate 3, not now. Specification and plan only — no product code, tests, seed, `B_Inputs` or T12 files. |
 | 2026-10-07 | **Gate 0 merged to `main`** (fast-forward, 44 commits). Both CI gates re-run green on `main`: backend 184 pass / 4 skip, frontend build. Two things worth recording about the merge itself. The hook's rule as specified could not evaluate a merge at all — on `git merge X` from main, HEAD is main's tip and main is behind by definition, so "the reviewed commit is an ancestor of HEAD" is false for every merge; the hook now judges the commit arriving, with five more tests covering it. And **the merge went through with no gate present**, because `main` predated `.claude/` and the hook lives in the working tree — the control is absent exactly when you are on the branch it protects. Recorded in Part 0 as a known weakness rather than quietly fixed. The recorded head was moved forward from `c8deaaf` to `69f867f` so the gate could merge, with `reviewed_head` and a `head_note` in `review_state.json` stating why: nine protected files changed after the review and **none is product code** — the diff over `app/`, `src/`, `AD_seed/` and `B_Inputs/` is empty — they are the hook and its tests, six docstring-only criterion tags, FS-27, and four harness files the parity tester wrote as its own deliverables. That is my judgement and it is reversible by re-running the gate review at that commit. |

@@ -473,6 +473,50 @@ score and document completeness are all already computed on read by `governance_
 
 ---
 
+## D13 — AI provider for AI extraction (Gate 5) and the Copilot (Gate 6)
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §37, §51, §60, §61, §76C |
+| **Needed before** | Gate 5 (the first gate that calls a model) |
+| **Decided on** | 2026-10-09 |
+| **Decided by** | Anand |
+
+**Options.**
+
+1. **Claude API**, with the key in `.env` (never committed).
+2. **An offline stub** that returns deterministic canned results, for demos and tests.
+3. **Both**, switchable by a policy setting `ai_provider`, with the stub as the default when no key is
+   present.
+
+**Decision.** Option 3: both providers, switchable.
+
+- The switch is an **environment setting**, `MRM_AI_PROVIDER` (`stub` | `claude`), in `app/config.py`,
+  with `MRM_AI_MODEL` for the model name. It is **not a T12 row**: whether an API key is present is a
+  fact about the deployment, not a governance policy, and Part 0 already keeps infrastructure settings
+  in `app/config.py` (as with `MRM_SQLITE_BUSY_TIMEOUT_MS`).
+- **Default:** `stub` when no API key is present.
+- **`MRM_AI_PROVIDER=claude` with no key: the application refuses to start**, with a clear message. It
+  never falls back to the stub silently, because a stub answer presented as a real one would be a false
+  governance record.
+- The §60 provenance fields record which provider and model produced each result.
+
+**Why.** Tests and CI run offline with no key, so they need deterministic stub results. A customer demo
+needs the real model. Only option 3 serves both. Refusing to start, rather than falling back, keeps a
+misconfiguration from being mistaken for a working system.
+
+**Consequences.** Gate 5 builds the provider seam (`app/config.py` settings, a startup check, the stub
+and the Claude client behind one interface) before any extraction. Gate 6 reuses it. The stub is what
+the tests for DOC-16 and COP-01…COP-10 run against. `.env` holds the key and is never committed. No T12
+row and no `B_Inputs/` change.
+
+**Note.** §60's provenance fields (`provider`, `model_used`, `prompt_version`) record which provider
+produced each result, whichever option is chosen. Those fields sit on `document_extraction` (§48) for
+Gate 5, and in the Copilot's audit event (COP-06) for Gate 6.
+
+---
+
 ## Template
 
 ```

@@ -231,7 +231,7 @@ not uniform, so check it before assuming there is a placeholder to replace:
 deferred D12)", never as defects.
 
 Phase 6's decisions D1–D7 are recorded (2026-10-09), so nothing blocks it. Phase 7's criteria (D8) and
-Phase 9's (D11) are recorded too; Phase 9 still needs D13 for its AI provider. When adding these, follow the existing seams: new `app/monitoring/` service package,
+Phase 9's (D11) are recorded too, and so is the AI provider for Phases 5 and 9 (D13). When adding these, follow the existing seams: new `app/monitoring/` service package,
 new rules modules, new Alembic revision, new registry templates, replace the `PlannedPage` route.
 
 ## Review agents
@@ -4061,6 +4061,7 @@ outcome is copied into the Decision column below. A decision is not made until t
 | D10 | Finding statuses Accepted Risk, Deferred and Rejected are "additional recommended" in §11 — required or not? | §11, FND-03 | Required, because breaches already use Accepted Risk (§20) and can become findings (MON-09) | Any | **Required**, all six statuses. `Open`, `In Progress` and `Deferred` count as open for ageing and the remediation score; `Closed`, `Accepted Risk` and `Rejected` do not — so an accepted risk scores as remediated, confirmed deliberately. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
 | D11 | The Audit Copilot has no acceptance criteria | §61, §76A.13 | Write COP criteria as §76C | Phase 9 | **§76C, COP-01…COP-10.** Read-only, cited, role-bound, audited; no new permission. Provider is D13. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D12 | Is Phase 2A built now? | §12A, §55.10, §76D, §85, Part 0 | — | Gate 1 | **Phase 2A deferred, except the core Model Risk Report.** Gate 1 (§12A, REQ-REG-01 to 11) is not built until I say so. Exception: **REQ-REG-10A**, a core Model Risk Report built from existing data, is built now (§12A.2). When Phase 2A resumes, G1.12 extends that report with the §12A sections instead of creating a second one. D9 stands, and is met first by the core report. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
+| D13 | Which AI provider serves AI extraction (Gate 5) and the Audit Copilot (Gate 6)? | §37, §51, §60, §61, §76C | Options: **1** Claude API, key in `.env` (never committed); **2** an offline stub returning deterministic canned results, for demos and tests; **3** both, switchable by policy setting `ai_provider`, with the stub as the default when no key is present. §60's provenance fields (`provider`, `model_used`, `prompt_version`) record which one produced each result | Gate 5 | **Option 3, as environment settings, not T12 rows**: `MRM_AI_PROVIDER` (`stub` \| `claude`) and `MRM_AI_MODEL` in `app/config.py`. Defaults to `stub` when no API key is present; `claude` with no key **refuses to start** with a clear message and never falls back to the stub. §60 provenance records the provider and model behind each result. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 
 ---
 
