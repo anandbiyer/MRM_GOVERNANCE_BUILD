@@ -230,8 +230,8 @@ not uniform, so check it before assuming there is a placeholder to replace:
 **Phase 2A is deferred by D12.** Its criteria REG-01 to REG-14 are reported as "Not built (Phase 2A,
 deferred D12)", never as defects.
 
-Phase 6's decisions D1–D7 are recorded (2026-10-09), so nothing blocks it. Phase 7 still needs D8, and
-Phase 9 needs D11. When adding these, follow the existing seams: new `app/monitoring/` service package,
+Phase 6's decisions D1–D7 are recorded (2026-10-09), so nothing blocks it. Phase 7's criteria (D8) and
+Phase 9's (D11) are recorded too; Phase 9 still needs D13 for its AI provider. When adding these, follow the existing seams: new `app/monitoring/` service package,
 new rules modules, new Alembic revision, new registry templates, replace the `PlannedPage` route.
 
 ## Review agents
@@ -2187,6 +2187,18 @@ Generic many-to-many association between documents and:
 - monitoring results
 - DQ issues.
 
+### cde_model — D8
+Links a CDE to every model it feeds, so one CDE may feed several models (DQ-01). `cde` therefore
+carries no `model_id` of its own.
+- cde_id
+- model_id
+
+### dq_result — columns added by D8
+The thresholds in force on the run date are copied onto each result when it is evaluated, so a later
+threshold change never alters an earlier status (DQ-04, the MON-05 pattern).
+- pass_threshold_applied
+- warn_threshold_applied
+
 ### model_risk_report — REQ-REG-10A
 - report_id
 - business_date
@@ -3405,10 +3417,11 @@ By set: §76A **46/60** Proven (11 Weak, 3 Untested) · §76D **0/17** (14 defer
 `gate-1-core-report`) · §77 **0/12** (Phase 6) · §78 **17/20** (1 Weak, 1 Untested, 1 Phase 5) ·
 §79 **9/9**.
 
-**Total since 2026-10-09: 126 criteria.** D7 added **MON-13…MON-20** (§77 now 0/20), all *Not built
-(Phase 6)*, so the figures above read **72 of 126** proven — still **72 of 88** once the now **38**
-unbuilt criteria are excluded (20 monitoring, 17 regulatory, DOC-16). The next gate-exit report
-replaces this paragraph.
+**Total since 2026-10-09: 149 criteria.** D7 added **MON-13…MON-20** (§77 now 0/20), and §76B
+(**DQ-01…DQ-13**, D8) and §76C (**COP-01…COP-10**, D11) were added, all *Not built*. So the figures
+above read **72 of 149** proven — still **72 of 88** once the now **61** unbuilt criteria are excluded
+(20 monitoring, 13 Data Audit, 10 Copilot, 17 regulatory, DOC-16). The next gate-exit report replaces
+this paragraph.
 
 Gate 0's net movement over its whole span is **+4 Proven** from the 2026-10-02 baseline of 68:
 **APR-04** and **SEC-05** (G0.8, G0.9), **APR-03** (G0.26) and **GEN-05** (G0.22/G0.23). **CC-01**
@@ -3455,6 +3468,8 @@ Model Risk Report (plan G1.16–G1.18), being built on `gate-1-core-report`; on 
 |---|---|
 | DOC-16 | AI extraction cannot persist without confirmation — Phase 5; not yet built. |
 | MON-01…MON-20 | All monitoring criteria — Phase 6; not yet built. D1–D7 decided 2026-10-09, so nothing blocks Gate 3. |
+| DQ-01…DQ-13 | Data Audit — Phase 7; not yet built. D8 decided 2026-10-09. |
+| COP-01…COP-10 | Audit Copilot — Phase 9; not yet built. D11 decided 2026-10-09; provider is D13. |
 | REG-01…REG-14 | All regulatory alignment criteria — Phase 2A, **deferred (D12)**; report as "Not built (Phase 2A, deferred D12)". |
 | REG-15…REG-17 | Core Model Risk Report — Gate 1 (G1.16–G1.18), in build on `gate-1-core-report`; not built on `main`. |
 
@@ -3510,6 +3525,127 @@ broken implementation.
 
 The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text
 in its report. Update this section from that report rather than by hand.
+
+---
+
+# 76B. Acceptance Criteria — Data Audit (DQ)
+
+Criteria for §55.5, the `cde`, `dq_rule`, `dq_result` and `dq_issue` tables (§48) and templates T06 and
+T10 (§71). Decided under §81A **D8** (2026-10-09). Thresholds, severities,
+statuses and due periods are policy settings (T12), never code.
+
+### DQ-01 CDE registry
+A CDE records its source system, table and column (one of each) and is linked to every model it feeds.
+A CDE with an unknown model or data owner, a blank source field, or more than one table or column in a
+field is refused, with a message naming the field and the row; nothing is saved.
+
+### DQ-02 Rules and thresholds come from data
+Each DQ rule carries a pass threshold and a warn threshold, set through T06 or the screen. A rule
+without its own thresholds uses `dq_default_pass_pct` and `dq_default_warn_pct`. No threshold is held
+in code. A rule whose thresholds are outside 0–100, or whose warn threshold is above its pass
+threshold, is refused.
+
+### DQ-03 Result status
+For each result, pass rate = 1 − records_failed / records_tested. Pass if the pass rate is at or above
+the pass threshold, Warn if at or above the warn threshold, otherwise Fail. With 12,480 records tested
+and thresholds 98 / 95, 249, 250, 624 and 625 failed records give Pass, Warn, Warn and Fail.
+
+### DQ-04 Threshold in force is stored on the result
+Each result is evaluated against the rule's thresholds in force on its run date, and those thresholds
+are copied onto the result when it is evaluated. A later threshold change never changes an earlier
+result's status (the MON-05 pattern).
+
+### DQ-05 Result validation
+A result with `records_failed` greater than `records_tested`, `records_tested` of zero or less, an
+unknown rule, or a duplicate run and rule is refused, with a message naming the field and the row.
+
+### DQ-06 Issues are raised from failing results
+A Fail opens a DQ issue linked to its CDE, rule and result, with the CDE's data owner as owner, a due
+date and a severity from policy, and status Open. While an open issue exists for the same CDE and rule,
+a further Fail opens no second issue. Loading the same results file twice opens no new issue.
+
+### DQ-07 Issue statuses follow D10
+Issue statuses come from policy (the D10 pattern): Open, In Progress and Deferred count as open;
+Closed, Accepted Risk and Rejected do not. An invalid status is refused and the message lists the
+allowed values. Closing an issue writes an audit event and removes it from open counts and work queues.
+
+### DQ-08 T06 and T10 use the same service path as the screen
+T06 and T10 rows load through the same services as the screen, with partial acceptance (§44): an
+invalid row is reported with a message naming the field and the row, and valid rows still load. T10
+rows naming a rule that does not exist are rejected, not created.
+
+### DQ-09 Audit
+Every create, edit, result load and issue status change on CDEs, rules, results and issues writes an
+audit event in the same transaction as the change. A refused write leaves no audit event.
+
+### DQ-10 Authorization
+Only a role holding `dq:manage` may create or change CDEs, rules, results or issues. Auditor and
+Executive are refused by the API (403) and nothing is saved.
+
+### DQ-11 Data Audit and Model 360 agree
+For any model, the Data Audit screen filtered to that model and the Model 360 CDE/DQ tab show the same
+CDEs, the same counts by status, and the same open issues. Every Data Audit count equals the number of
+rows in the list it drills to.
+
+### DQ-12 Data Audit screen
+The CDE registry filters by model and status together. The DQ issue log shows severity, detected date,
+status and impact, newest first.
+
+### DQ-13 Insight
+An open Critical DQ issue raises a governance insight (§56) naming the model and CDE. Closing the issue
+removes the insight.
+
+---
+
+# 76C. Acceptance Criteria — Audit Copilot (COP)
+
+Criteria for §61, §60 and Principle 10. Decided under §81A **D11** (2026-10-09). Which AI provider
+answers is §81A **D13**.
+
+### COP-01 Read-only
+The Copilot never creates, changes or deletes a governance record: its tools only read. Asking it to
+change something (for example "Close finding F-0001") changes no record, and the answer says it cannot
+change records.
+
+### COP-02 Citations
+Every answer that states something about a model names the model IDs and the records (finding,
+validation, approval, document, monitoring run, CDE, DQ issue) it used. Every cited ID exists, and each
+citation opens that record's screen.
+
+### COP-03 Citations are correct
+Every cited model meets the question's condition on the business date — for example, every model in
+an answer to "Which high-risk models are overdue for revalidation?" is High tier and Overdue — and every
+count equals the figure the Command Center or the record's list shows for that date.
+
+### COP-04 No invented figures
+Every figure in an answer appears in the governed data the Copilot read for it. When the data does not
+answer the question — an unknown model such as M-9999, or a forecast such as next quarter's losses — the
+answer says so and gives no figure.
+
+### COP-05 Role respected
+The Copilot reads as the asking user, with the same server-side permission and record-level checks as
+the screens. An answer never contains or cites a record that user could not open on screen.
+
+### COP-06 Audit
+Every question and answer writes one audit event with the user, role, timestamp, question, answer,
+records cited, and the §60 provenance (provider, model, prompt version). This holds for refusals and
+"the data does not show it" answers too.
+
+### COP-07 Suggested questions
+The Copilot offers suggested questions from policy (default: the §61 list). Choosing one asks it, and on
+the seed data each suggested question returns an answer that meets COP-02.
+
+### COP-08 Who may ask
+Any role holding `read` may ask the Copilot. A request without a valid token is refused as
+unauthenticated, and no AI call is made.
+
+### COP-09 Data is not instruction
+Text inside documents and record fields is treated as data. An instruction embedded in such text does
+not change what the Copilot does, makes no write, and does not widen what it reads beyond COP-05.
+
+### COP-10 Failure is visible
+If the AI provider fails or times out, the user sees a readable message and no answer, partial or
+invented, is shown as complete. The failure is audited under COP-06.
 
 ---
 
@@ -3920,10 +4056,10 @@ outcome is copied into the Decision column below. A decision is not made until t
 | D5 | Escalation (§21) and repeated-breach (§22) rules must be configurable, but no policy keys are defined, and Part 0 requires a T12 row for every constant | §21, §22, §69 | T12 keys: `breach_severity_rules` (list), `repeat_breach_consecutive` = 2, `repeat_breach_count` = 3, `repeat_breach_window` = 4, `warn_escalation_periods` = 3 | Phase 6 | **Keep the three shipped key names**, drop the proposed renames; add `warning_escalation_periods` = 3 and `breach_severity_rules`. The latter uses `Condition=Severity` items separated by `;`, the same shape as `revalidation_frequencies`. Decided 2026-10-05; **amended 2026-10-09**: conditions are MON-14's and the highest severity wins. See `E_ProjectPlan/decision_log.md` |
 | D6 | Once monitoring exists, what feeds the Monitoring component of the governance score, and how are Not Available results treated? | §57 | Share of active metrics whose latest result is Pass. Not Applicable is excluded; Not Available is excluded and listed as missing information | Phase 6 | **Monitoring-phase models:** share of active metrics Pass in the latest signed-off (Approved, `signoff_date` set) non-backtest run, Not Applicable and Not Available excluded (Not Available listed as missing). Scores 0 with no active plan, no signed-off run, or only Not Available; all Not Applicable excludes the component. Other phases: excluded and reweighted. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D7 | §77 has no criteria for escalation rules (§21), repeated breaches (§22), backtest separation (§23), evidence links (§24) or T13–T16 import validation | §21–§24, §77 | Add MON-13 onwards to §77 before coding starts | Phase 6 | **MON-13…MON-20 added to §77** (escalation, severity, repeats, backtest separation, evidence before sign-off, T13–T16 validation, retired KPI templates, within range). Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
-| D8 | Data Audit has no acceptance criteria | §55.5, §76A.13 | Write DQ criteria as §76B | Phase 7 | — |
+| D8 | Data Audit has no acceptance criteria | §55.5, §76A.13 | Write DQ criteria as §76B | Phase 7 | **§76B, DQ-01…DQ-13.** One CDE may feed several models (`cde_model`); `dq_result` stores the thresholds applied. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D9 | The mock-up generates an MRC governance report (download, AI commentary), but no BRD section requires one | §55 | Decide whether it is in scope; if so, add a requirement and criteria | Any | In scope as the model risk report, §12A REQ-REG-10 and REG-13; AI commentary waits for Phase 9. **Met first by REQ-REG-10A (core report); full report deferred with D12** |
 | D10 | Finding statuses Accepted Risk, Deferred and Rejected are "additional recommended" in §11 — required or not? | §11, FND-03 | Required, because breaches already use Accepted Risk (§20) and can become findings (MON-09) | Any | **Required**, all six statuses. `Open`, `In Progress` and `Deferred` count as open for ageing and the remediation score; `Closed`, `Accepted Risk` and `Rejected` do not — so an accepted risk scores as remediated, confirmed deliberately. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
-| D11 | The Audit Copilot has no acceptance criteria | §61, §76A.13 | Write COP criteria as §76C | Phase 9 | — |
+| D11 | The Audit Copilot has no acceptance criteria | §61, §76A.13 | Write COP criteria as §76C | Phase 9 | **§76C, COP-01…COP-10.** Read-only, cited, role-bound, audited; no new permission. Provider is D13. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D12 | Is Phase 2A built now? | §12A, §55.10, §76D, §85, Part 0 | — | Gate 1 | **Phase 2A deferred, except the core Model Risk Report.** Gate 1 (§12A, REQ-REG-01 to 11) is not built until I say so. Exception: **REQ-REG-10A**, a core Model Risk Report built from existing data, is built now (§12A.2). When Phase 2A resumes, G1.12 extends that report with the §12A sections instead of creating a second one. D9 stands, and is met first by the core report. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
 
 ---

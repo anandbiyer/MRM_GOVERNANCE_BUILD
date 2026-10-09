@@ -368,6 +368,74 @@ in Gate 3 and listed in the plan's Gate 3 note, not on the documentation-only `d
 
 ---
 
+## D8 — Data Audit acceptance criteria
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §48 (`cde`, `cde_model`, `dq_rule`, `dq_result`, `dq_issue`), §55.5, §71 (T06, T10), §76B |
+| **Needed before** | Phase 7 (Gate 4) |
+| **Decided on** | 2026-10-09 |
+| **Decided by** | Anand |
+
+**Decision.** Adopt §76B, criteria **DQ-01 to DQ-13**, drafted 2026-10-09 from §55.5, the four DQ
+tables, T06 and T10, and the superseded `design.md` (REQ-CDE-01…03, REQ-DA-01/02, rule R7 and test
+conditions TC-CDE-*, TC-DA-*). They cover the CDE registry and its model links, thresholds from data with
+`dq_default_pass_pct`/`dq_default_warn_pct` as the fallback, result status with a boundary example, the
+threshold in force copied onto each result (the MON-05 pattern), result validation, issues raised from
+failing results without duplicates, D10-pattern issue statuses, T06/T10 through the service path,
+audit, `dq:manage` authorization, Data Audit and Model 360 agreeing, the screen's filters and ordering,
+and the Critical DQ issue insight.
+
+**Why.** Data Audit had no acceptance criteria (§76A.13 left `TC-CDE-*` and `TC-DA-*` unported), so
+Gate 4 could not be tested or reviewed.
+
+**Settled at approval (2026-10-09).**
+
+- **One CDE may feed several models.** §48 gains a `cde_model` link table, and `cde` carries no
+  `model_id` of its own. The superseded `design.md` gave each CDE a single model.
+- **`dq_result` stores the thresholds applied**: `pass_threshold_applied` and `warn_threshold_applied`,
+  added to §48 now (DQ-04).
+- **Policy keys for Gate 4** (in the plan's Gate 4 note): `dq_issue_statuses` and
+  `dq_issue_open_statuses` (the D10 pattern); `dq_issue_severity_rules` (Critical when the CDE feeds a
+  High-tier model, otherwise Medium); `dq_issue_due_days`. `dq_default_pass_pct` and
+  `dq_default_warn_pct` already ship and are kept.
+- **No new permissions**: writes need the existing `dq:manage`.
+
+**Consequences.** §76A.14 total 126 → 139 (149 with D11). Gate 4 rows G4.1–G4.6 go from `Blocked (D8)`
+to `Not started`.
+
+---
+
+## D11 — Audit Copilot acceptance criteria
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §60, §61, §76C, Principle 10 |
+| **Needed before** | Phase 9 (Gate 6) |
+| **Decided on** | 2026-10-09 |
+| **Decided by** | Anand |
+
+**Decision.** Adopt §76C, criteria **COP-01 to COP-10**, drafted 2026-10-09 from §60, §61, Principle 10
+and the superseded `design.md` (REQ-COP-01…03, TC-COP-*). They cover the following: read-only and
+refusing to act; citations that exist, open their record and meet the question; no figure outside the
+governed data; the user's role and record-level access respected; every question and answer audited
+with §60 provenance; suggested questions from policy; who may ask; embedded text treated as data, not
+instruction; and provider failure shown, not hidden.
+
+**Why.** The Copilot had no acceptance criteria (§76A.13 left `TC-COP-*` unported), so Gate 6 could not
+be tested or reviewed.
+
+**Settled at approval (2026-10-09).** COP-09 (embedded text is data, not instruction) and COP-10
+(provider failure is shown) are kept, although they go beyond the minimum asked for. There is no new
+permission: asking needs `read`.
+
+**Consequences.** §76A.14 total 139 → 149. Gate 6 rows G6.1–G6.4 go from `Blocked (D11)` to
+`Not started`; the provider remains D13. Gate 6 adds a policy key for the suggested questions.
+
+---
+
 ## D12 — Is Phase 2A built now?
 
 | | |
