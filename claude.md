@@ -2212,6 +2212,12 @@ Generic many-to-many association between documents and:
 - content_hash
 - storage_path
 - previous_report_id
+- is_seeded
+
+`is_seeded` marks the example a reset creates, so the report list and a reopened report can disclose
+it (**S11**, **S12**, the D12 addendum). It is a stored flag rather than a derivation from
+`generated_by IS NULL`, because "no user generated this" and "this is a shaped example" are different
+statements and only the second is safe to put on a screen.
 
 ---
 

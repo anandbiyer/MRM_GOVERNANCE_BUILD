@@ -385,13 +385,16 @@ def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
     """Store one earlier report so a demo's first "changes since" section has content.
 
     Without it the section is always empty: the earliest report a user can generate has no
-    predecessor, and two reports generated minutes apart differ in nothing. This writes a report as
-    it would have looked a month ago, by taking today's figures and removing a deterministic slice
-    of the baseline — the models, phases and findings that the next report then reports as changed.
+    predecessor, and two reports generated minutes apart differ in nothing. This writes one, by
+    taking the figures the service computes now and removing a deterministic slice of the
+    *baseline* — the models, phases and findings that the next report then reports as changed.
 
-    The *figures* in the seeded report are today's. That is honest for demo data and is the only
-    thing available: derived state is recomputed on read, so last month's portfolio cannot be
-    reconstructed (REQ-REG-10A). Only the baseline, which exists to be diffed, is shaped.
+    **Only the baseline is shaped** (spec issue S11, the D12 addendum). The figures are the
+    service's own, over the portfolio as it actually stands, which is why the reset runs this after
+    the seed evidence has loaded: run before, it saw an empty Document Centre and reported 0%
+    documentation and every model missing everything — real service output over a state no user
+    ever had (CR-41, MP-18). Derived state is recomputed on read, so last month's portfolio cannot
+    be reconstructed and this does not pretend to; `is_seeded` is what says so on screen.
     """
     with session_factory() as db:
         policy = Policy.load(db)
@@ -427,7 +430,8 @@ def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
             report_id=report_id, business_date=on, generated_by=None,
             generated_at=datetime.combine(on, time(9, 0)),
             framework_label=policy.text("regulatory_framework"),
-            content_hash=content_hash(content), storage_path=path, previous_report_id=None))
+            content_hash=content_hash(content), storage_path=path, previous_report_id=None,
+            is_seeded=True))
         audit.record(db, None, action="generate", entity="model_risk_report", entity_id=report_id,
                      after={"business_date": on.isoformat(), "seeded": True},
                      reason="Seeded earlier report so the demo has a comparison")

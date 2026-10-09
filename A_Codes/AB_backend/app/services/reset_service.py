@@ -197,14 +197,6 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
         loaded_status, batch.status = batch.status, "Processing"
         db.commit()
     try:
-        # One earlier model risk report, so a demo's first "changes since" section is not empty
-        # (REQ-REG-10A, plan G1.18). It is generated *before* the evidence analysis is handed over,
-        # because FT-04's rule is that the reset makes no database write after starting a background
-        # job — the write that broke it was exactly this kind of afterthought. The consequence is
-        # deliberate: the seeded previous report shows the portfolio without the evidence documents,
-        # which is right for a report dated 30 days earlier (they did not exist then) and keeps
-        # generation deterministic, which REG-16 requires.
-        report_service.seed_previous_report(session_factory)
         staged = stage_seed_documents(session_factory, get_settings().seed_dir / "documents")
     except BaseException as exc:
         # Not merely "restore the previous status": staging crashed, so the reset did not finish and
@@ -219,10 +211,26 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
             batch = db.get(ImportBatch, batch_id)
             batch.status = loaded_status
             db.commit()
-    if staged:
-        from app.documents import batch as doc_batch
+    # One job, doing the evidence and then the example report, in that order. Two rules pull
+    # against each other here and this is the only placement that satisfies both. **FT-04**: the
+    # reset makes no database write after submitting a job, so the report cannot be written above.
+    # **S11**: the example's figures must be a real portfolio state, so it cannot be written before
+    # the evidence loads. Inside a single job both hold, because FT-04's rule is about writes in
+    # `_reset_job` after handover, not about work done within a job it started.
+    runner.submit(_store_evidence_then_seed_report, session_factory, staged)
 
-        doc_batch.start_analysis_job(session_factory, staged, None)
+
+def _store_evidence_then_seed_report(session_factory: Callable[[], Session], batch_id: str | None) -> None:
+    """Analyse and store the seed evidence, then write the example report (see `_reset_job`).
+
+    If the analysis fails it re-raises, so `record_job_failure` marks the batch Failed (FT-05) and no
+    example is written — a report over a half-loaded portfolio would be worse than none.
+    """
+    from app.documents import batch as doc_batch
+
+    if batch_id:
+        doc_batch.analyse_job(session_factory, batch_id, None)
+    report_service.seed_previous_report(session_factory)
 
 
 def stage_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:

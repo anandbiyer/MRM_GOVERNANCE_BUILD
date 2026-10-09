@@ -544,10 +544,15 @@ def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(
         sa_event.remove(SASession, "after_commit", on_commit)
 
     assert resp.status_code == 202, resp.text
-    assert "submit:analyse_job" in events, f"the reset never handed the evidence over: {events}"
-    after = events[events.index("submit:analyse_job") + 1:]
+    # The *last* handover, found rather than named: G1.26 renamed the job the reset submits
+    # (`analyse_job` -> `_store_evidence_then_seed_report`) and this assertion failed on the name
+    # while the invariant it exists for still held. The invariant is what matters — whatever the
+    # reset still has to write, it writes before it starts anything else writing.
+    submits = [i for i, e in enumerate(events) if e.startswith("submit:") and e != "submit:_reset_job"]
+    assert submits, f"the reset never handed the evidence over: {events}"
+    after = events[submits[-1] + 1:]
     assert after == [], (
-        f"the reset committed {after.count('commit')} time(s) after submitting the evidence analysis; "
+        f"the reset committed {after.count('commit')} time(s) after {events[submits[-1]]}; "
         f"in thread mode those writes race the job and lose the evidence (FT-04)"
     )
 

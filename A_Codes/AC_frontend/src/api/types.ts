@@ -467,6 +467,8 @@ export interface ModelRiskReport {
   framework_label: string;
   content_hash: string;
   previous_report_id: string | null;
+  /** True only for the example a reset seeds (S11, S12). */
+  is_seeded: boolean;
 }
 
 /**

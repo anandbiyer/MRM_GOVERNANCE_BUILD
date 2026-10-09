@@ -390,6 +390,9 @@ class ModelRiskReportOut(ORMModel):
     framework_label: str
     content_hash: str
     previous_report_id: str | None
+    #: True only for the example a reset seeds. The screens label it, because its baseline is shaped
+    #: so the next report has something to compare against (S11, S12 / the D12 addendum).
+    is_seeded: bool
 
 
 class ModelRiskReportDetail(ModelRiskReportOut):

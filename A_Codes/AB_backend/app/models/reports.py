@@ -1,7 +1,8 @@
 """Stored model risk reports (BRD §48 `model_risk_report`, §12A REQ-REG-10A)."""
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, func
+from sqlalchemy import false as sa_false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -29,3 +30,8 @@ class ModelRiskReport(Base):
     storage_path: Mapped[str] = mapped_column(String(400))
     previous_report_id: Mapped[str | None] = mapped_column(
         String(40), ForeignKey("model_risk_report.report_id"))
+    # The example a reset seeds, so the screens can say so (S11, S12 / the D12 addendum). Its
+    # *figures* are the service's, like any other report; what is shaped is its baseline, which
+    # exists to be diffed and is not a reported figure. The flag is what discloses that.
+    is_seeded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
+                                            server_default=sa_false())
