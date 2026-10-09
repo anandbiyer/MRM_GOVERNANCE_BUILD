@@ -199,6 +199,68 @@ does not apply.
 
 ---
 
+## D12 addendum — the content hash, and what a stored report may claim
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A REQ-REG-10A, criteria REG-16 and REG-17, §76A.14 |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-09 |
+| **Decided by** | Anand |
+
+Three spec issues raised by the Gate 1 exit review (`D_Reviews/20261008_summary.md`), decided
+together because they are one question seen from three sides: what is a stored report a statement
+*about*?
+
+**S10 — the predecessor is not part of "the same data".** `changes_since` is excluded from the content
+hash, and REG-16 is reworded to say so: *"Generating twice from the same data and business date gives
+the same content hash over the report's figures; the changes-since section is excluded from the
+hash."*
+
+*Why.* The old wording could not be satisfied once any predecessor existed. The first generation of a
+day diffs the previous stored report; the second diffs the first. The change lists therefore differ by
+construction, so a hash covering them differs too — review finding **FT-09**, which failed REG-16 in
+production terms, not only in a demo. The code already held the right principle and then contradicted
+it four lines later: it excluded `previous_report_id` and `previous_generated_at` as "provenance, not
+content" while keeping the lists derived *solely* from that predecessor. If the predecessor's identity
+is provenance, so is everything computed from it.
+
+*What the hash still covers.* Every figure about the portfolio: inventory by tier and stage,
+revalidation, findings, approvals, score, documentation, and the baseline. So two reports that say
+different things about the portfolio still hash differently; two reports that say the same thing about
+it no longer differ because one happened to be second.
+
+**S11 — a stored report never holds a figure that was not real.** Every stored report is produced by
+the report service from the portfolio as it stood at generation, and no figure is shaped by hand. The
+seeded example is generated the same way and **after the seed evidence is loaded**, so its figures are
+a real portfolio state. Its baseline stays shaped — that is diff input, not a reported figure, and it
+is what gives the next report a non-empty "changes since".
+
+*Why.* The seeded report was being generated before the evidence loaded, so `completeness` returned
+`score=0` rather than `None` and the 25%-weight documentation component scored zero for every model.
+On screen that read as **0% documentation, 250 of 256 models missing documents, portfolio score 64.5**
+against today's 92.9, with every other section showing today's numbers — a credible-looking governance
+collapse that "recovered" with nothing in the section whose job is to explain it (**CR-41**, **MP-18**).
+
+**S12 — a reopened report states what was true at generation.** The footer reads *"Figures reconciled
+with the Command Center at generation, &lt;timestamp&gt;"*, and the seeded example is labelled
+**"Seeded example"** wherever reports are listed or reopened.
+
+*Why.* The footer was rendered at page level, outside the report view, so it asserted
+*"Figures reconcile with the Command Center for the same business date"* over whichever report was
+open. For a historical report that is false, and **unverifiable by construction**: the Command Center
+has no as-of control and always renders `app.clock.today()`, so no Command Center for an earlier
+business date can be produced at all. A governance tool asserting a reconciliation it cannot
+demonstrate is worse than one saying nothing.
+
+**Consequences.** Plan rows **G1.21** (S10) and **G1.22** (S11, S12). REG-16's rewording is in
+§76D; REQ-REG-10A carries the stored-report rules. REG-17 is unaffected in wording but needs
+**G1.23** to reach Proven. The §76A.14 note that REG-16 is *Failing* is replaced by the Gate 1 re-run.
+
+*Recorded as an addendum to **D12** rather than a new ID, because all three sit inside the core
+report D12 scoped.*
+
 ## Template
 
 ```
