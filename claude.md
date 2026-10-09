@@ -221,7 +221,7 @@ not uniform, so check it before assuming there is a placeholder to replace:
 |---|---|---|---|
 | 0 | **Close Gate 0** — the open findings from the first review (`E_ProjectPlan/project_plan.md` §3) | — | Mostly done; see the plan for what remains |
 | 1 | **Core Model Risk Report** — §12A REQ-REG-10A, criteria REG-15…REG-17. Built from data the system already holds, ahead of the rest of §12A (**D12**) | 2A (Gate 1) | Nothing yet — no `model_risk_report` table, no route; but every figure it needs is already computed by `app/services/governance_view.py` and `dashboard_service.py` |
-| 2 | **Monitoring** — templates T13–T16 and T07–T09 | 6 | Registry entries (`available=False`), the Monitoring Dashboard `PlannedPage`, the Model 360 Monitoring tab, and the score's not-available component |
+| 2 | **Monitoring** — templates T13–T16 and T09 (T07/T08 retired, D1) | 6 | Registry entries (`available=False`), the Monitoring Dashboard `PlannedPage`, the Model 360 Monitoring tab, and the score's not-available component |
 | 3 | **Data Audit / CDE-DQ** — templates T06 and T10 | 7 | Registry entries (`available=False`), the Data Audit `PlannedPage`, the Model 360 CDE/DQ tab |
 | 4 | **AI extraction** | 5 | `document.extraction_status` defaults to "Not started"; the documentation score names the dependency |
 | 5 | **Audit Copilot**, then hardening (Phase 10) | 9 | **Nothing yet** — no route, nav entry or placeholder |
@@ -230,8 +230,8 @@ not uniform, so check it before assuming there is a placeholder to replace:
 **Phase 2A is deferred by D12.** Its criteria REG-01 to REG-14 are reported as "Not built (Phase 2A,
 deferred D12)", never as defects.
 
-**Do not start Phase 6 until decisions D1–D7 in §81A are recorded.** Phase 7 also needs D8, and Phase 9
-needs D11. When adding these, follow the existing seams: new `app/monitoring/` service package,
+Phase 6's decisions D1–D7 are recorded (2026-10-09), so nothing blocks it. Phase 7 still needs D8, and
+Phase 9 needs D11. When adding these, follow the existing seams: new `app/monitoring/` service package,
 new rules modules, new Alembic revision, new registry templates, replace the `PlannedPage` route.
 
 ## Review agents
@@ -1138,6 +1138,8 @@ Threshold changes shall be versioned and audited.
 
 Historical results shall continue to use the threshold applicable at the time of the monitoring run.
 
+*Governed by §81A **D2** (within-range bounds `range_lower`/`range_upper`, copied onto each result).*
+
 ---
 
 # 17. Monitoring Run
@@ -1265,6 +1267,9 @@ The system shall support:
 
 A monitoring breach may optionally generate a formal model-risk finding.
 
+*Governed by §81A **D3** (breaches created only by the rules; T16 updates a matched breach; separate
+`breach_severities` vocabulary).*
+
 ---
 
 # 21. Monitoring Escalation
@@ -1280,6 +1285,9 @@ Severity may be determined by configurable rules such as:
 These rules must be configurable rather than hard-coded.
 
 The system shall record the rule that generated the escalation.
+
+*Governed by §81A **D5** (policy keys) and **D7** (criteria MON-13, MON-14). The allowed conditions are
+MON-14's; the data-quality example returns with Gate 4 (condition `data_quality_fail`, reserved).*
 
 ---
 
@@ -1321,6 +1329,9 @@ Each backtest shall contain:
 - Supporting evidence.
 
 Backtesting shall be shown separately from routine monitoring.
+
+*Governed by §81A **D4** (a backtest is a `monitoring_run` with `monitoring_type` = Backtest; criterion
+MON-16).*
 
 ---
 
@@ -1962,9 +1973,9 @@ Core existing tables:
 - dq_rule
 - dq_result
 - dq_issue
-- kpi
-- kpi_result
-- performance_point
+- kpi — **not created (D1)**; `monitoring_metric` is the system of record
+- kpi_result — **not created (D1)**; `monitoring_result` is the system of record
+- performance_point — gains `monitoring_run_id` (FK to `monitoring_run`, D1), so every curve belongs to a run
 - audit_event
 
 Additional tables recommended:
@@ -1991,6 +2002,8 @@ Additional tables recommended:
 - threshold
 - warning_threshold
 - breach_threshold
+- range_lower — D2; required, with `range_upper`, when `direction` = within range, otherwise unused
+- range_upper — D2
 - unit
 - frequency
 - active
@@ -2002,7 +2015,8 @@ Additional tables recommended:
 - model_id
 - monitoring_plan_id
 - model_version
-- monitoring_type
+- monitoring_type — includes Backtest (D4)
+- methodology — D4; the backtest methodology, recorded on the run
 - period
 - data_period
 - run_date
@@ -2023,11 +2037,14 @@ Additional tables recommended:
 - warning_threshold_applied
 - breach_threshold_applied
 - direction_applied
+- range_lower_applied — D2
+- range_upper_applied — D2
 - status
 - commentary
 
 The thresholds in force on the run date are copied onto each result when it is evaluated, so a later
-threshold change never alters a historical outcome (§16, MON-05, Principle 5).
+threshold change never alters a historical outcome (§16, MON-05, Principle 5). The within-range bounds
+are copied the same way (D2, MON-20).
 
 ### monitoring_breach
 - breach_id
@@ -2524,6 +2541,8 @@ For every score the system shall display:
 - Missing information.
 - Last recalculation time.
 
+*The Monitoring component is governed by §81A **D6**.*
+
 ---
 
 # 58. Audit Trail
@@ -2842,9 +2861,9 @@ Existing templates shall remain supported:
 - T04 Findings.
 - T05 Approvals.
 - T06 CDE/DQ Rules.
-- T07 KPI Definitions.
-- T08 KPI Results.
-- T09 Performance Curves.
+- T07 KPI Definitions — **retired (D1)**; not offered. Metrics load through T14.
+- T08 KPI Results — **retired (D1)**; not offered. Results load through T15.
+- T09 Performance Curves — loads `performance_point`; every row requires a `monitoring_run_id` (D1).
 - T10 DQ Results.
 - T11 Documents.
 - T12 Policy Settings.
@@ -2931,6 +2950,13 @@ Columns:
 - root_cause
 - impact
 - management_response
+- resolution
+
+A T16 row never creates a breach (D3). It must match an existing rule-created breach: on `breach_id`
+when given, otherwise on `monitoring_run_id` + `metric_id`; a row whose `breach_id` disagrees with its
+run + metric is rejected. It may update status, owner, due date, root cause, impact, management
+response and resolution. It never changes severity: a supplied `severity` is ignored with a warning
+naming the row. An unmatched row is rejected with a message naming the row and its keys.
 
 ## T17 Document Manifest
 
@@ -3379,6 +3405,11 @@ By set: §76A **46/60** Proven (11 Weak, 3 Untested) · §76D **0/17** (14 defer
 `gate-1-core-report`) · §77 **0/12** (Phase 6) · §78 **17/20** (1 Weak, 1 Untested, 1 Phase 5) ·
 §79 **9/9**.
 
+**Total since 2026-10-09: 126 criteria.** D7 added **MON-13…MON-20** (§77 now 0/20), all *Not built
+(Phase 6)*, so the figures above read **72 of 126** proven — still **72 of 88** once the now **38**
+unbuilt criteria are excluded (20 monitoring, 17 regulatory, DOC-16). The next gate-exit report
+replaces this paragraph.
+
 Gate 0's net movement over its whole span is **+4 Proven** from the 2026-10-02 baseline of 68:
 **APR-04** and **SEC-05** (G0.8, G0.9), **APR-03** (G0.26) and **GEN-05** (G0.22/G0.23). **CC-01**
 stayed Proven but its new severity drill-down went from non-discriminating to the most tightly
@@ -3423,7 +3454,7 @@ Model Risk Report (plan G1.16–G1.18), being built on `gate-1-core-report`; on 
 | Criterion | Reason |
 |---|---|
 | DOC-16 | AI extraction cannot persist without confirmation — Phase 5; not yet built. |
-| MON-01…MON-12 | All monitoring criteria — Phase 6; not yet built, blocked on D1–D7. |
+| MON-01…MON-20 | All monitoring criteria — Phase 6; not yet built. D1–D7 decided 2026-10-09, so nothing blocks Gate 3. |
 | REG-01…REG-14 | All regulatory alignment criteria — Phase 2A, **deferred (D12)**; report as "Not built (Phase 2A, deferred D12)". |
 | REG-15…REG-17 | Core Model Risk Report — Gate 1 (G1.16–G1.18), in build on `gate-1-core-report`; not built on `main`. |
 
@@ -3574,7 +3605,7 @@ previous stored report.
 Given a KPI threshold, the system calculates Pass/Warn/Fail correctly.
 
 ### MON-02
-A failed critical KPI creates a monitoring breach.
+Any Fail result creates a monitoring breach (D3).
 
 ### MON-03
 A monitoring breach is linked to its monitoring run and model.
@@ -3605,6 +3636,46 @@ The monitoring dashboard correctly aggregates Pass/Warn/Fail.
 
 ### MON-12
 The governance score changes when the monitoring component changes.
+
+### MON-13 Escalation
+When a metric is Warn in `warning_escalation_periods` consecutive non-backtest runs, a breach is created
+for the latest of those runs. Fewer consecutive Warns create no breach.
+
+### MON-14 Breach severity
+A breach's severity comes from `breach_severity_rules` (D5's `Condition=Severity` format). The allowed
+conditions are exactly `metric_fail`, `warn_escalated`, `repeated_breach`, `high_tier_metric_fail` and
+`regulatory_metric_fail` (`data_quality_fail` is reserved for Gate 4). When several apply, the highest
+severity wins. Policy validation refuses an unknown condition, or a severity outside
+`breach_severities`; this replaces D5's provisional shape-only check.
+
+### MON-15 Repeated breach
+A breach is marked Repeat when its metric has Failed in `repeated_breach_consecutive_periods`
+consecutive non-backtest runs, or in `repeated_breach_window_fails` of the last
+`repeated_breach_window_periods` non-backtest runs. A Repeat raises an insight and applies the
+`repeated_breach` severity rule.
+
+### MON-16 Backtest separation
+Backtest runs and their results appear only in backtest views and the MUP-18 grid. They never appear in
+monitoring trends, completion figures or the monitoring score.
+
+### MON-17 Evidence before sign-off
+A run cannot be signed off while any document type listed in policy key `monitoring_required_evidence`
+is missing from its evidence. The refusal names the run and the missing document types; nothing is saved
+and no audit event is written.
+
+### MON-18 Template validation (T13–T16)
+T13–T16 rows load through the same services as the UI. An unknown model, plan, metric or run rejects the
+row with a message naming the field and the row. T15 accepts a `status` of Not Applicable only. T16 rows
+follow D3. The thresholds and bounds in force are copied onto each result when it is evaluated.
+
+### MON-19 Retired KPI templates (D1)
+T07 and T08 are not offered: they are absent from the template list and an upload naming them is
+refused. T09 rows require a `monitoring_run_id` naming an existing run. No `kpi` or `kpi_result` table
+exists.
+
+### MON-20 Within range (D2)
+A within-range metric without both bounds is refused. A value inside the bounds, inclusive, is Pass; a
+value outside is Fail. A later change to the bounds does not change earlier results.
 
 ---
 
@@ -3842,13 +3913,13 @@ outcome is copied into the Decision column below. A decision is not made until t
 
 | ID | Decision needed | Sections | Proposed default | Needed before | Decision |
 |---|---|---|---|---|---|
-| D1 | T07/T08 (KPI definitions and results) and T14/T15 (monitoring metrics and results) describe the same data, and §48 keeps both `kpi`/`kpi_result` and `monitoring_metric`/`monitoring_result`. Which is the system of record? | §48, §71, §72 | `monitoring_metric` and `monitoring_result` only. T07 and T08 stay as import aliases that write to them, so older files still load. T09 curves link to `monitoring_run`. `kpi` and `kpi_result` are not created | Phase 6 | — |
-| D2 | The "within range" direction (§16) needs a lower and an upper bound, but a metric has one threshold, one warning and one breach value | §16, §48, T14 | Add `range_lower` and `range_upper`, used only when direction is within range | Phase 6 | — |
-| D3 | §20 says the system creates a breach when a threshold is violated; T16 also imports breaches. How do the two meet? | §20, T16 | Breaches are created only by the rules. A T16 row must match an existing breach on run and metric and updates its status, root cause and response; an unmatched row is rejected | Phase 6 | — |
-| D4 | Backtests (§23) have fields but no table and no template | §23, §48, §71 | A backtest is a `monitoring_run` with `monitoring_type` = Backtest; methodology is recorded on the run; screens filter it separately | Phase 6 | — |
-| D5 | Escalation (§21) and repeated-breach (§22) rules must be configurable, but no policy keys are defined, and Part 0 requires a T12 row for every constant | §21, §22, §69 | T12 keys: `breach_severity_rules` (list), `repeat_breach_consecutive` = 2, `repeat_breach_count` = 3, `repeat_breach_window` = 4, `warn_escalation_periods` = 3 | Phase 6 | **Keep the three shipped key names**, drop the proposed renames; add `warning_escalation_periods` = 3 and `breach_severity_rules`. The latter uses `Condition=Severity` items separated by `;`, the same shape as `revalidation_frequencies`. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
-| D6 | Once monitoring exists, what feeds the Monitoring component of the governance score, and how are Not Available results treated? | §57 | Share of active metrics whose latest result is Pass. Not Applicable is excluded; Not Available is excluded and listed as missing information | Phase 6 | — |
-| D7 | §77 has no criteria for escalation rules (§21), repeated breaches (§22), backtest separation (§23), evidence links (§24) or T13–T16 import validation | §21–§24, §77 | Add MON-13 onwards to §77 before coding starts | Phase 6 | — |
+| D1 | T07/T08 (KPI definitions and results) and T14/T15 (monitoring metrics and results) describe the same data, and §48 keeps both `kpi`/`kpi_result` and `monitoring_metric`/`monitoring_result`. Which is the system of record? | §48, §71, §72 | `monitoring_metric` and `monitoring_result` only. T07 and T08 stay as import aliases that write to them, so older files still load. T09 curves link to `monitoring_run`. `kpi` and `kpi_result` are not created | Phase 6 | **`monitoring_metric` and `monitoring_result` only**; `kpi`/`kpi_result` not created. T07/T08 retired from the registry (no aliases); T09 loads `performance_point`, whose rows require `monitoring_run_id`. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
+| D2 | The "within range" direction (§16) needs a lower and an upper bound, but a metric has one threshold, one warning and one breach value | §16, §48, T14 | Add `range_lower` and `range_upper`, used only when direction is within range | Phase 6 | **`range_lower`/`range_upper`**, both required for within range; inside (inclusive) Pass, outside Fail, no Warn this release; copied onto each result as `range_*_applied`. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
+| D3 | §20 says the system creates a breach when a threshold is violated; T16 also imports breaches. How do the two meet? | §20, T16 | Breaches are created only by the rules. A T16 row must match an existing breach on run and metric and updates its status, root cause and response; an unmatched row is rejected | Phase 6 | **Breaches created only by the rules** (Fail, or Warn escalated under `warning_escalation_periods`). T16 updates a breach matched on run + metric, never creates one or changes severity; unmatched rows rejected. T16 matches on `breach_id` when given, ignores `severity` with a warning, gains `resolution`. New `breach_severities` (Low–Critical), `breach_to_finding_severity`, `breach_statuses`, `breach_open_statuses`; Accepted Risk and Closed are not open. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
+| D4 | Backtests (§23) have fields but no table and no template | §23, §48, §71 | A backtest is a `monitoring_run` with `monitoring_type` = Backtest; methodology is recorded on the run; screens filter it separately | Phase 6 | **Backtest = `monitoring_run` with `monitoring_type` = Backtest**, methodology and `data_period` on the run, results against Backtest-category metrics; shown separately, feeds the MUP-18 grid, never the monitoring score. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
+| D5 | Escalation (§21) and repeated-breach (§22) rules must be configurable, but no policy keys are defined, and Part 0 requires a T12 row for every constant | §21, §22, §69 | T12 keys: `breach_severity_rules` (list), `repeat_breach_consecutive` = 2, `repeat_breach_count` = 3, `repeat_breach_window` = 4, `warn_escalation_periods` = 3 | Phase 6 | **Keep the three shipped key names**, drop the proposed renames; add `warning_escalation_periods` = 3 and `breach_severity_rules`. The latter uses `Condition=Severity` items separated by `;`, the same shape as `revalidation_frequencies`. Decided 2026-10-05; **amended 2026-10-09**: conditions are MON-14's and the highest severity wins. See `E_ProjectPlan/decision_log.md` |
+| D6 | Once monitoring exists, what feeds the Monitoring component of the governance score, and how are Not Available results treated? | §57 | Share of active metrics whose latest result is Pass. Not Applicable is excluded; Not Available is excluded and listed as missing information | Phase 6 | **Monitoring-phase models:** share of active metrics Pass in the latest signed-off (Approved, `signoff_date` set) non-backtest run, Not Applicable and Not Available excluded (Not Available listed as missing). Scores 0 with no active plan, no signed-off run, or only Not Available; all Not Applicable excludes the component. Other phases: excluded and reweighted. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
+| D7 | §77 has no criteria for escalation rules (§21), repeated breaches (§22), backtest separation (§23), evidence links (§24) or T13–T16 import validation | §21–§24, §77 | Add MON-13 onwards to §77 before coding starts | Phase 6 | **MON-13…MON-20 added to §77** (escalation, severity, repeats, backtest separation, evidence before sign-off, T13–T16 validation, retired KPI templates, within range). Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D8 | Data Audit has no acceptance criteria | §55.5, §76A.13 | Write DQ criteria as §76B | Phase 7 | — |
 | D9 | The mock-up generates an MRC governance report (download, AI commentary), but no BRD section requires one | §55 | Decide whether it is in scope; if so, add a requirement and criteria | Any | In scope as the model risk report, §12A REQ-REG-10 and REG-13; AI commentary waits for Phase 9. **Met first by REQ-REG-10A (core report); full report deferred with D12** |
 | D10 | Finding statuses Accepted Risk, Deferred and Rejected are "additional recommended" in §11 — required or not? | §11, FND-03 | Required, because breaches already use Accepted Risk (§20) and can become findings (MON-09) | Any | **Required**, all six statuses. `Open`, `In Progress` and `Deferred` count as open for ageing and the remediation score; `Closed`, `Accepted Risk` and `Rejected` do not — so an accepted risk scores as remediated, confirmed deliberately. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
