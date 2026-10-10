@@ -125,8 +125,20 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
    files that *are* snapshotted, and snapshotting them per regeneration would restore exactly the
    churn G0.15 removed. Snapshot the generator and the bootstrap CSVs; not their output.
 
+   **The build enforces this** (plan G3.0, from 2026-10-09). `A_Codes/AZ_tools/check_snapshots.py`
+   runs as the `snapshots` CI job and checks, for every non-merge commit, that each hand-edited file
+   it modified has its pre-change content somewhere in `_OLD/` — matched by content, not by filename.
+   Run `python A_Codes/AZ_tools/test_check_snapshots.py` after changing the checker; it is a build
+   control, so a defect in it fails open. Two limits are deliberate and worth knowing before you rely
+   on it: it proves the *committed* parent state is recoverable, so a snapshot taken at an
+   **uncommitted** intermediate state matches nothing and cannot be verified by any post-hoc check;
+   and commits authored before 2026-10-09 are reported but not failed, because some of those gaps are
+   unrecoverable in principle for exactly that reason.
+
    A snapshot may also be recovered retrospectively with `git show <commit>^:<path>`, which is how
-   CR-22's three missing versions were restored. A recovered file is named for the date of the edit
+   CR-22's three missing versions were restored — and CR-29's two, CR-40's twelve and CR-54's four.
+   Recovery is an accepted remedy, which is why the check asks whether the content is recoverable
+   *now* rather than whether the commit itself did the snapshotting. A recovered file is named for the date of the edit
    it precedes, so `_OLD/` is ordered by *when the content was current*, not by when it was written
    down — `schemas/governance_v2_20261003.py` is therefore older than `governance_v1_20261004.py`.
 2. **Do not create files outside the repository folder** (no desktop shortcuts, no system temp output

@@ -17,7 +17,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # `main` plus the gate branches: the snapshot check is per-commit, so it wants to see a gate's
+    # commits as they land rather than only in one lump at the merge (its R2 checkpoint, TR-53).
+    branches: [main, "gate-*", review-agents]
   pull_request:
   workflow_dispatch:
 
@@ -136,17 +138,41 @@ jobs:
       # broken and repaired at five consecutive reviews - CR-22, CR-29, CR-40 twice and CR-54 - every
       # time found by someone reading `git log`. Plan row G3.0, pulled into Gate 1 so it guards that
       # gate's own fixes. Standard library only, so there is nothing to install.
+      # The control's own tests first: a defect in it fails *open*, so an untested build control is
+      # no control at all (its R2 checkpoint, TR-51). Stdlib only, nothing to install.
+      - name: Test the checker
+        run: python A_Codes/AZ_tools/test_check_snapshots.py
+
       - name: Every edited file has its pre-change content in _OLD/
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base='${{ github.event.pull_request.base.sha }}'
-            head='${{ github.event.pull_request.head.sha }}'
-          else
-            base='${{ github.event.before }}'
-            head='${{ github.sha }}'
-            # A branch's first push reports an all-zero "before"; nothing to compare against.
-            case "$base" in *[!0]*) ;; *) echo "First push on this ref - nothing to diff."; exit 0 ;; esac
-          fi
+          set -eu
+          head='${{ github.sha }}'
+          case '${{ github.event_name }}' in
+            pull_request)
+              # The merge base, not base.sha: base.sha is where the base branch happened to be when
+              # the PR opened, so a base that has moved since would charge this PR with other
+              # people's commits (its R2 checkpoint, TR-54).
+              head='${{ github.event.pull_request.head.sha }}'
+              base="$(git merge-base '${{ github.event.pull_request.base.sha }}' "$head")"
+              ;;
+            push)
+              base='${{ github.event.before }}'
+              # A branch's first push reports an all-zero "before". Fall back to the merge base with
+              # the default branch rather than exiting 0: "nothing to diff" was a silent pass, which
+              # is how a control stops controlling (TR-52).
+              case "$base" in
+                *[!0]*) ;;
+                *) base="$(git merge-base origin/${{ github.event.repository.default_branch }} "$head")" ;;
+              esac
+              ;;
+            *)
+              # workflow_dispatch and anything else: `github.event.before` is empty, which used to
+              # fall into the all-zero branch and pass vacuously on every manual run (TR-52).
+              base="$(git merge-base origin/${{ github.event.repository.default_branch }} "$head")"
+              ;;
+          esac
+          echo "Range: $base..$head  (event ${{ github.event_name }})"
+          test -n "$base"
           python A_Codes/AZ_tools/check_snapshots.py "$base" "$head"
 
   frontend:
