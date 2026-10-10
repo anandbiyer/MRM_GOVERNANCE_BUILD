@@ -119,6 +119,36 @@ jobs:
             exit 1
           fi
 
+  snapshots:
+    name: Snapshot convention
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history, because the check diffs against the base of the change set.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Part 0's first convention, enforced by the build instead of by a reviewer's eye. It has been
+      # broken and repaired at five consecutive reviews - CR-22, CR-29, CR-40 twice and CR-54 - every
+      # time found by someone reading `git log`. Plan row G3.0, pulled into Gate 1 so it guards that
+      # gate's own fixes. Standard library only, so there is nothing to install.
+      - name: Every edited file has its pre-change content in _OLD/
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+            head='${{ github.event.pull_request.head.sha }}'
+          else
+            base='${{ github.event.before }}'
+            head='${{ github.sha }}'
+            # A branch's first push reports an all-zero "before"; nothing to compare against.
+            case "$base" in *[!0]*) ;; *) echo "First push on this ref - nothing to diff."; exit 0 ;; esac
+          fi
+          python A_Codes/AZ_tools/check_snapshots.py "$base" "$head"
+
   frontend:
     name: Frontend typecheck and build
     runs-on: ubuntu-latest

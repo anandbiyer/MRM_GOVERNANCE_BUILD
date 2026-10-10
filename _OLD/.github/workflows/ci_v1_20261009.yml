@@ -1,0 +1,142 @@
+# Continuous integration for the Model Governance MIS.
+#
+# Enforces the two gates the project already uses by hand (A_Codes/README.md, "Tests"):
+#   backend           .venv\Scripts\python -m pytest            SQLite, no infrastructure
+#   frontend          npm run build                             tsc -b + vite build
+# plus the PostgreSQL suite, which is the only coverage for the Alembic migrations, schema drift and
+# the append-only audit trigger, and which self-skips locally unless MRM_TEST_POSTGRES_URL is set.
+#
+# This file sits at .github/workflows/ because GitHub requires that exact path; it is the one
+# exception to the A_/B_/C_ prefix convention in README.md.
+#
+# Jobs run on ubuntu-latest: that is the Docker deployment target (A_Codes/AA_infra), and running on
+# Linux also catches any Windows-only path assumption. To gate the Windows development environment as
+# well, add `windows-latest` to the backend job's matrix — `runs-on` already follows it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the run it superseded.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Matches the Python the dependency lock was generated on (requirements-lock.txt header).
+  PYTHON_VERSION: "3.14"
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    defaults:
+      run:
+        working-directory: A_Codes/AB_backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: A_Codes/AB_backend/requirements-lock.txt
+
+      # The lock is the gate, with no fallback to requirements.txt: a lock that no longer installs is
+      # itself a failure worth seeing, not something to paper over (setup_first_time.ps1 falls back
+      # because a developer needs a working machine; CI needs the truth).
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements-lock.txt
+
+      # Tests build their own in-memory SQLite engines (tests/conftest.py); this only keeps the
+      # module-level engine in app/db.py off PostgreSQL, and touches no file.
+      - name: Run unit and API tests
+        env:
+          MRM_DATABASE_URL: "sqlite://"
+        run: python -m pytest -q
+
+  backend-postgres:
+    name: Migrations and PostgreSQL integration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: A_Codes/AB_backend
+    services:
+      postgres:
+        image: postgres:16
+        # Credentials match A_Codes/AA_infra/.env.example — development values, never production.
+        env:
+          POSTGRES_DB: mrm
+          POSTGRES_USER: mrm
+          POSTGRES_PASSWORD: mrm_dev_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mrm -d mrm"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      MRM_DATABASE_URL: postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm
+      MRM_TEST_POSTGRES_URL: postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: A_Codes/AB_backend/requirements-lock.txt
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements-lock.txt
+
+      - name: Apply migrations
+        run: python -m alembic upgrade head
+
+      # tests/test_postgres.py carries a module-level skipif on MRM_TEST_POSTGRES_URL, so a variable
+      # that failed to reach pytest would leave this job green while asserting nothing. Treat any
+      # skip as a failure rather than trusting the exit code alone.
+      - name: Run PostgreSQL tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest tests/test_postgres.py -q -ra | tee "$RUNNER_TEMP/pytest-postgres.log"
+          if grep -qi "skipped" "$RUNNER_TEMP/pytest-postgres.log"; then
+            echo "::error::PostgreSQL tests were skipped — MRM_TEST_POSTGRES_URL did not take effect."
+            exit 1
+          fi
+
+  frontend:
+    name: Frontend typecheck and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: A_Codes/AC_frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: A_Codes/AC_frontend/package-lock.json
+
+      - name: Install packages
+        run: npm ci --no-fund --no-audit
+
+      # `npm run build` is `tsc -b && vite build`: the type gate and the bundle in one step.
+      - name: Typecheck and build
+        run: npm run build
