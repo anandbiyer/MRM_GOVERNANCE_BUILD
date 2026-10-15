@@ -550,11 +550,29 @@ has no as-of control and always renders `app.clock.today()`, so no Command Cente
 business date can be produced at all. A governance tool asserting a reconciliation it cannot
 demonstrate is worse than one saying nothing.
 
-**Consequences.** Plan rows **G1.21** (S10) and **G1.22** (S11, S12). REG-16's rewording is in
-§76D; REQ-REG-10A carries the stored-report rules. REG-17 is unaffected in wording but needs
-**G1.23** to reach Proven. The §76A.14 note that REG-16 is *Failing* is replaced by the Gate 1 re-run.
+**Consequences.** Plan rows **G1.25** (S10) and **G1.26** (S11, S12). REG-16's rewording is in
+§76D; REQ-REG-10A carries the stored-report rules. REG-17 is unaffected in wording but needed
+**G1.27** to reach Proven. The §76A.14 note that REG-16 is *Failing* is replaced by the Gate 1 re-run.
+*(Corrected 2026-10-15: this paragraph first named G1.21–G1.23, the IDs proposed before the rows were
+renumbered; the work landed as G1.25–G1.28, as the plan's 2026-10-09 change log records.)*
 
-*Recorded as an addendum to **D12** rather than a new ID, because all three sit inside the core
+**S13 — every predecessor-derived figure lives in the changes section** (decided 2026-10-15, review
+finding **CR-52**). G1.25 excluded `changes_since` from the hash, but one more figure derived solely
+from the previous report, `approvals.decisions_since_previous`, sat in the `approvals` section and so
+stayed inside it: record one approval, generate twice, and identical data gives two hashes. Two fixes
+were on the table — hash an explicit allowlist of figure keys, or move every "since the previous
+report" figure into the changes section. **The second is chosen**: the decisions recorded since the
+previous report become part of `changes_since`, the approvals section keeps only conditional approvals
+with open conditions, and the single rule "the changes section is out of the hash" stays the whole rule.
+
+*Why.* S10's principle is "if the predecessor's identity is provenance, so is everything computed from
+it". An allowlist would enforce that in the hash function while leaving predecessor-derived figures
+scattered across sections; moving them puts the principle in the report's *shape*, where a reader can
+see it, and makes the next such figure's correct home obvious. REQ-REG-10A now says so in its section
+list. Plan row **G1.29**; regression test: record an approval between two generations and assert the
+hashes agree while the changes section differs.
+
+*Recorded as an addendum to **D12** rather than a new ID, because all four sit inside the core
 report D12 scoped.*
 
 ---
@@ -600,6 +618,67 @@ row and no `B_Inputs/` change.
 **Note.** §60's provenance fields (`provider`, `model_used`, `prompt_version`) record which provider
 produced each result, whichever option is chosen. Those fields sit on `document_extraction` (§48) for
 Gate 5, and in the Copilot's audit event (COP-06) for Gate 6.
+
+---
+
+## D14 — What the seeded example report discloses, and whether the PDF must carry it
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A REQ-REG-10A, REG-15, REG-17; extends S11 and S12 (D12 addendum) |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** The seeded example is stored with a business date one month before the seed's
+(`SEED_REPORT_AGE_DAYS`), while S11 requires its figures to be computed from the portfolio as it is —
+so it reads "Business date 2026-08-31" over 2026-09-30 figures, and nothing says so (**TR-48**). And
+S12's disclosures are on the screen only: the downloaded PDF carries neither the "Seeded example" label
+nor the reconciliation line, although it is the artefact that leaves the system (**CR-55**).
+
+**Options.** (a) Date the seeded report on its generation date and move the "a month earlier" framing
+into the label. (b) Keep the earlier business date and disclose both dates.
+
+**Decision.** Option (b). The seeded example keeps its earlier business date and is labelled
+*"Seeded example: figures computed from current seed data on &lt;generation date&gt;, dated
+&lt;business date&gt; for illustration."* **The PDF counts as a surface**: it carries that label on the
+seeded report, and the line *"Figures reconciled with the Command Center at generation,
+&lt;timestamp&gt;"* on every report.
+
+**Why.** The earlier date is what makes the seeded example useful — the first real report shows a month
+of "changes since" — so (a) would remove the reason the example exists. What was wrong was the silence,
+not the date. The PDF is the copy a board reader holds; a disclosure that stops at the screen does not
+reach the person S12 was written for.
+
+**Consequences.** Plan row **G1.31**: the label on the screen, in the list and in the PDF, with the
+reconciliation line in the PDF header; tests assert the label's two dates and the PDF's text.
+REQ-REG-10A carries the wording.
+
+---
+
+## D15 — Acceptance criteria for platform and build controls
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | Part 0 (snapshot convention), §64, §76A.14; new §76E |
+| **Needed before** | Any |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** The snapshot control (G3.0), the merge hook and the UTC-timestamp invariant (BL.31) have
+no acceptance criteria, so they appear in no §76A.14 row and their coverage has no signal that can go
+stale (**TR-56**). The snapshot convention was broken and found by eye at five consecutive reviews for
+exactly that reason.
+
+**Decision.** Add **§76E "Platform and build controls"** with **PLT-01** (every API timestamp is UTC,
+from BL.31), **PLT-02** (every hand-edited file's pre-change content is recoverable from `_OLD/`) and
+**PLT-03** (the snapshot control cannot pass vacuously). §76A.14's total goes 149 → **152**.
+
+**Consequences.** BL.31 cites PLT-01. The tests in `A_Codes/AZ_tools/test_check_snapshots.py` are
+tagged PLT-02/PLT-03 when that file is next edited, and the Gate 1 exit review grades all three. The
+merge hook is not given a criterion here; it can join §76E when it next changes.
 
 ---
 
