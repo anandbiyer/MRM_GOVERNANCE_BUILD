@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.schemas.core import Utc
 
@@ -393,6 +393,19 @@ class ModelRiskReportOut(ORMModel):
     #: True only for the example a reset seeds. The screens label it, because its baseline is shaped
     #: so the next report has something to compare against (S11, S12 / the D12 addendum).
     is_seeded: bool
+    #: The business date the figures were computed for (D14). Equal to `business_date` except on the
+    #: seeded example. Null on reports stored before migration 0009.
+    figures_as_of: date | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def seeded_label(self) -> str | None:
+        """D14's disclosure, worded once here so the list, the reopened report and the PDF agree."""
+        if not self.is_seeded:
+            return None
+        computed = f" on {self.figures_as_of.isoformat()}" if self.figures_as_of else ""
+        return (f"Seeded example: figures computed from current seed data{computed}, "
+                f"dated {self.business_date.isoformat()} for illustration.")
 
 
 class ModelRiskReportDetail(ModelRiskReportOut):

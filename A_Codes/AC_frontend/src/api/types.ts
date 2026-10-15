@@ -469,6 +469,10 @@ export interface ModelRiskReport {
   previous_report_id: string | null;
   /** True only for the example a reset seeds (S11, S12). */
   is_seeded: boolean;
+  /** The business date the figures were computed for (D14); equals business_date except on the seeded example. */
+  figures_as_of: string | null;
+  /** D14's disclosure, worded by the API so the list, the reopened report and the PDF agree; null unless seeded. */
+  seeded_label: string | null;
 }
 
 /**

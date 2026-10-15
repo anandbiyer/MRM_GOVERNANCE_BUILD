@@ -113,9 +113,10 @@ function ReportView({ report }: { report: ModelRiskReportDetail }) {
               Command Center has no as-of control and always renders today. */}
           <br />Figures reconciled with the <Link to="/">Command Center</Link> at generation,{" "}
           {formatDateTime(report.generated_at)}.
-          {report.is_seeded && <>
-            {" "}This is a <b>seeded example</b>: its figures are the service's own, but its
-            comparison baseline was shaped so the next report has changes to show.
+          {report.seeded_label && <>
+            {/* D14: both dates, in the API's wording, so this matches the list and the PDF. */}
+            <br /><b>{report.seeded_label}</b> Its comparison baseline was shaped so the next report
+            has changes to show.
           </>}
         </p>
         <button className="btn sm" onClick={() => void downloadFile(
@@ -253,7 +254,8 @@ export function ModelRiskReportPage() {
                 {reports.data?.map((r) => (
                   <tr key={r.report_id} className={r.report_id === selected ? "on" : undefined}>
                     <td className="mono">{r.report_id}{r.is_seeded &&
-                      <> <Pill value="Seeded example" /></>}</td>
+                      <> <Pill value="Seeded example" /></>}
+                      {r.seeded_label && <div className="note">{r.seeded_label}</div>}</td>
                     <td className="mono">{formatDate(r.business_date)}</td>
                     <td>{formatDateTime(r.generated_at)}</td>
                     <td className="mono">{r.generated_by ?? "system"}</td>

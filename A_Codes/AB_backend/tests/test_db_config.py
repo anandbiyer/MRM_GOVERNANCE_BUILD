@@ -88,3 +88,28 @@ def test_settings_are_cached_once_per_process():
     settings are read once and reused, so a leaked override would apply to every later test."""
     assert get_settings() is get_settings()
     assert hasattr(get_settings, "cache_clear"), "the teardown above depends on this"
+
+
+def test_a_dev_database_gains_a_nullable_column_a_newer_build_added(tmp_path):
+    """§64, G1.31: the launcher keeps a `create_all` dev database usable across a column addition.
+
+    `create_all` adds missing tables but never missing columns, so after G1.31 added
+    `model_risk_report.figures_as_of`, an existing `dev.db` would fail on its first report read
+    (CR-62's class). `add_missing_columns` adds nullable columns the ORM has and SQLite lacks, and
+    nothing else: it never alters, drops, or adds a NOT NULL column it could not fill.
+    """
+    from app.db import add_missing_columns
+    from app.models import Base
+
+    engine = create_engine(f"sqlite:///{(tmp_path / 'old.db').as_posix()}")
+    configure_sqlite(engine)
+    Base.metadata.create_all(engine)
+    with engine.begin() as conn:  # make the table look like it did before G1.31
+        conn.execute(text("ALTER TABLE model_risk_report DROP COLUMN figures_as_of"))
+
+    added = add_missing_columns(engine)
+    assert added == ["model_risk_report.figures_as_of"]
+    with engine.connect() as conn:
+        cols = {row[1] for row in conn.execute(text("PRAGMA table_info(model_risk_report)"))}
+    assert "figures_as_of" in cols
+    assert add_missing_columns(engine) == [], "and a second run finds nothing to add"

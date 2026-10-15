@@ -378,6 +378,7 @@ def generate(db: Session, principal: Principal | None) -> tuple[ModelRiskReport,
     report = ModelRiskReport(
         report_id=report_id,
         business_date=on,
+        figures_as_of=on,  # D14: a generated report's figures are as of its own business date
         generated_by=principal.user_id if principal else None,
         # No explicit value: `generated_at` takes the same `func.now()` the `created_at` and
         # `updated_at` columns use, so "changed since the previous report" compares one clock.
@@ -458,7 +459,9 @@ def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
             generated_at=datetime.combine(on, time(9, 0)),
             framework_label=policy.text("regulatory_framework"),
             content_hash=content_hash(content), storage_path=path, previous_report_id=None,
-            is_seeded=True))
+            is_seeded=True,
+            # D14: the figures are the seed's as it stands today, while the report is dated `on`.
+            figures_as_of=today()))
         audit.record(db, None, action="generate", entity="model_risk_report", entity_id=report_id,
                      after={"business_date": on.isoformat(), "seeded": True},
                      reason="Seeded earlier report so the demo has a comparison")

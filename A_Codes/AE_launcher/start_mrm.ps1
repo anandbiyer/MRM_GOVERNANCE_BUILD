@@ -60,7 +60,7 @@ if (Test-Port 8000) {
     # reset_lock, for one) to an existing dev database, and never alters or drops anything.
     Push-Location $backend
     try {
-        & $python -c "from app.db import engine; from app.models import Base; Base.metadata.create_all(engine)"
+        & $python -c "from app.db import engine, add_missing_columns; from app.models import Base; Base.metadata.create_all(engine); add_missing_columns(engine)"
         if ($LASTEXITCODE -ne 0) { throw "Database schema update failed." }
     } catch { Pop-Location; Fail $_ }
     Pop-Location

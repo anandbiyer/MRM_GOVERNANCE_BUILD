@@ -35,3 +35,9 @@ class ModelRiskReport(Base):
     # exists to be diffed and is not a reported figure. The flag is what discloses that.
     is_seeded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
                                             server_default=sa_false())
+    # The business date the figures were computed for (D14, decided 2026-10-15). Equal to
+    # `business_date` for every report a user generates; only the seeded example differs, because it
+    # is dated a month earlier for illustration while its figures are the seed's as it stands. Stored,
+    # not derived from the seeding offset, so a later change to that offset cannot misdate a report
+    # already stored. Nullable: reports stored before migration 0009 have no value.
+    figures_as_of: Mapped[date | None] = mapped_column(Date)

@@ -49,6 +49,39 @@ def get_db() -> Iterator[Session]:
         db.close()
 
 
+def add_missing_columns(bind) -> list[str]:
+    """Add to a `create_all` SQLite database the nullable columns a newer build declares. Dev only.
+
+    `create_all` creates missing tables but never adds a column to an existing one, so a dev database
+    made before a column was added fails on its first read of that table (G1.31's `figures_as_of`;
+    review finding CR-62 records the class). Alembic manages PostgreSQL and is not involved here.
+    Only nullable columns without a server default are added — they need no value for existing rows —
+    and nothing is altered or dropped. Returns `table.column` for each column added.
+    """
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy.schema import CreateColumn
+
+    from app.models import Base
+
+    if bind.dialect.name != "sqlite":
+        return []
+    added: list[str] = []
+    inspector = sa_inspect(bind)
+    existing_tables = set(inspector.get_table_names())
+    with bind.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if table.name not in existing_tables:
+                continue
+            present = {c["name"] for c in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in present or not column.nullable or column.server_default is not None:
+                    continue
+                ddl = CreateColumn(column).compile(dialect=bind.dialect)
+                conn.exec_driver_sql(f'ALTER TABLE "{table.name}" ADD COLUMN {ddl}')
+                added.append(f"{table.name}.{column.name}")
+    return added
+
+
 def get_session_factory() -> Callable[[], Session]:
     """Background jobs open their own sessions from this factory (overridden in tests)."""
     return SessionLocal

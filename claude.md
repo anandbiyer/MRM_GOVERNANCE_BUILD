@@ -982,7 +982,11 @@ is what discloses it.
 The seeded example keeps a business date one month earlier than the seed's, while its figures are
 computed from the current seed data. Its label therefore says both dates: **"Seeded example: figures
 computed from current seed data on &lt;generation date&gt;, dated &lt;business date&gt; for
-illustration."** (**D14**, decided 2026-10-15.)
+illustration."** (**D14**, decided 2026-10-15.) **&lt;generation date&gt; means the business date the
+figures were computed for** — the owner's clarification of D14, the same day — stored as
+`model_risk_report.figures_as_of` (§48, migration 0009). For every report a user generates it equals
+`business_date`; only the seeded example differs. It is not the wall-clock date, and not `generated_at`,
+which on the seeded example is itself set to the earlier illustrative date.
 
 A reopened report states what was true when it was generated, not what is true now, so the footer
 reads **"Figures reconciled with the Command Center at generation, &lt;timestamp&gt;"** (**S12**,
@@ -2264,11 +2268,18 @@ threshold change never alters an earlier status (DQ-04, the MON-05 pattern).
 - storage_path
 - previous_report_id
 - is_seeded
+- figures_as_of
 
 `is_seeded` marks the example a reset creates, so the report list and a reopened report can disclose
 it (**S11**, **S12**, the D12 addendum). It is a stored flag rather than a derivation from
 `generated_by IS NULL`, because "no user generated this" and "this is a shaped example" are different
 statements and only the second is safe to put on a screen.
+
+`figures_as_of` is the business date the figures were computed for (**D14**, migration 0009). It equals
+`business_date` for every report a user generates; only the seeded example differs, being dated a month
+earlier for illustration while its figures are the seed's as it stands. It is stored rather than
+derived from the seeding offset, so changing that offset can never misdate a report already stored.
+Nullable: reports stored before 0009 have none, and their label omits the date.
 
 ### reset_lock — the reset's explicit lock (plan G1.32, GEN-04, GEN-05)
 - lock_id (always 1; one row, inserted by migration 0008)
@@ -4193,7 +4204,7 @@ outcome is copied into the Decision column below. A decision is not made until t
 | D11 | The Audit Copilot has no acceptance criteria | §61, §76A.13 | Write COP criteria as §76C | Phase 9 | **§76C, COP-01…COP-10.** Read-only, cited, role-bound, audited; no new permission. Provider is D13. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D12 | Is Phase 2A built now? | §12A, §55.10, §76D, §85, Part 0 | — | Gate 1 | **Phase 2A deferred, except the core Model Risk Report.** Gate 1 (§12A, REQ-REG-01 to 11) is not built until I say so. Exception: **REQ-REG-10A**, a core Model Risk Report built from existing data, is built now (§12A.2). When Phase 2A resumes, G1.12 extends that report with the §12A sections instead of creating a second one. D9 stands, and is met first by the core report. Decided 2026-10-05; see `E_ProjectPlan/decision_log.md` |
 | D13 | Which AI provider serves AI extraction (Gate 5) and the Audit Copilot (Gate 6)? | §37, §51, §60, §61, §76C | Options: **1** Claude API, key in `.env` (never committed); **2** an offline stub returning deterministic canned results, for demos and tests; **3** both, switchable by policy setting `ai_provider`, with the stub as the default when no key is present. §60's provenance fields (`provider`, `model_used`, `prompt_version`) record which one produced each result | Gate 5 | **Option 3, as environment settings, not T12 rows**: `MRM_AI_PROVIDER` (`stub` \| `claude`) and `MRM_AI_MODEL` in `app/config.py`. Defaults to `stub` when no API key is present; `claude` with no key **refuses to start** with a clear message and never falls back to the stub. §60 provenance records the provider and model behind each result. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
-| D14 | The seeded example report is dated one month before the seed's business date while its figures are computed from the current seed data. What must it disclose, and is the downloaded PDF a surface S12's disclosures must reach? | §12A REQ-REG-10A, REG-15, REG-17, S11, S12 | (a) date the seeded report on its generation date and move the "a month earlier" framing into the label; (b) keep the earlier date and disclose both dates | Gate 1 merging to `main` | **Option (b).** The seeded example keeps its earlier business date and is labelled "Seeded example: figures computed from current seed data on <generation date>, dated <business date> for illustration." The PDF **is** a surface: it carries that label and the "Figures reconciled with the Command Center at generation, <timestamp>" line. Built as plan **G1.31**. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
+| D14 | The seeded example report is dated one month before the seed's business date while its figures are computed from the current seed data. What must it disclose, and is the downloaded PDF a surface S12's disclosures must reach? | §12A REQ-REG-10A, REG-15, REG-17, S11, S12 | (a) date the seeded report on its generation date and move the "a month earlier" framing into the label; (b) keep the earlier date and disclose both dates | Gate 1 merging to `main` | **Option (b).** The seeded example keeps its earlier business date and is labelled "Seeded example: figures computed from current seed data on <generation date>, dated <business date> for illustration." The PDF **is** a surface: it carries that label and the "Figures reconciled with the Command Center at generation, <timestamp>" line. Built as plan **G1.31**. *Clarified the same day:* "<generation date>" is the business date the figures were computed for, stored as `figures_as_of` (migration 0009); equal to `business_date` except on the seeded example. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
 | D15 | Build controls (the snapshot check, the merge hook) and the UTC-timestamp invariant have no acceptance criteria, so no coverage signal can go stale for them | Part 0, §64, §76A.14 | Add §76E | Any | **Add §76E "Platform and build controls"** with **PLT-01** (every API timestamp is UTC), **PLT-02** and **PLT-03** (the snapshot control). §76A.14's total becomes 152. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
 
 ---

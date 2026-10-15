@@ -48,6 +48,18 @@
       "tree": "9f0d010638d3275a86e922c95e60033591ad77cf",
       "report": "D_Reviews/DB_test_review/20261015_G1.32_risk_rerun.md",
       "summary": "Re-run after the TR-70 fix: 0 Critical, 0 High. TR-70, TR-72, TR-74, TR-76 closed; GEN-04 Weak -> Proven with residuals, GEN-05 Proven. New: TR-79 (Medium), TR-80..TR-82 (Low), held for the Gate 1 exit triage. First run: D_Reviews/DB_test_review/20261015_G1.32_risk.md (TR-70 High)."
+    },
+    "G1.31": {
+      "date": "2026-10-15",
+      "tree": "37b9f21471bc02debacf76fa1cf0b85bfbfd6022",
+      "report": "D_Reviews/DA_code_review/20261015_G1.31_schema.md",
+      "summary": "Pass: 0 Critical/High/Medium; CR-63..CR-65 Low held for the Gate 1 exit triage; CR-66 (the D14 clarification recorded nowhere) fixed before commit."
+    },
+    "G1.31:risk": {
+      "date": "2026-10-15",
+      "tree": "82b3945c0290aca1df648a913d5a8d9190764965",
+      "report": "D_Reviews/DB_test_review/20261015_G1.31_risk.md",
+      "summary": "0 Critical, 0 High; TR-83 (Medium, owner decision: the seeded reconciliation line carries the shaped generated_at), TR-84..TR-86 Low, held for the Gate 1 exit triage. REG-15, REG-16, REG-17 Proven; 8 of 10 mutants killed."
     }
   },
   "gates": {

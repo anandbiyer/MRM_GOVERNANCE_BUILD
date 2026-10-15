@@ -655,6 +655,15 @@ reach the person S12 was written for.
 reconciliation line in the PDF header; tests assert the label's two dates and the PDF's text.
 REQ-REG-10A carries the wording.
 
+**Clarified 2026-10-15 (owner), before G1.31 was built.** The wording left "&lt;generation date&gt;"
+open between the wall-clock date the reset ran, `generated_at` (which on the seeded example is itself
+set to the earlier illustrative date), and the business date the figures belong to. **It is the business
+date the figures were computed for**, stored as a new column `model_risk_report.figures_as_of`
+(migration 0009) rather than derived from the seeding offset, so changing that offset can never misdate
+a report already stored. For every report a user generates it equals `business_date`; only the seeded
+example differs. Recorded here after the G1.31 schema checkpoint found the clarification written
+nowhere (CR-66).
+
 ---
 
 ## D15 — Acceptance criteria for platform and build controls

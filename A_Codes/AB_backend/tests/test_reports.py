@@ -833,3 +833,85 @@ def test_reg_17_a_retirement_is_reported_once_not_twice(loaded_client):
     assert phase_changed == [victim["model_id"]], (
         "a retirement is currently reported in both lists; if that changes, change this assertion "
         "deliberately rather than deleting it")
+
+
+# --- D14: the seeded example states both dates, on every surface (G1.31; TR-48, CR-55) ------------
+
+def _pdf_text(data: bytes) -> str:
+    """The text a ReportLab PDF draws on its pages.
+
+    ReportLab writes each page's content stream ASCII85-encoded over Flate, with the text as literal
+    strings shown by `Tj`. Decoding those is enough to assert what a reader of the PDF sees, without a
+    PDF parser dependency. Wrapped lines become separate strings, joined here with a space.
+    """
+    import base64
+    import re
+    import zlib
+
+    parts = []
+    for m in re.finditer(rb"stream\r?\n(.*?)endstream", data, re.S):
+        raw = m.group(1).strip()
+        if raw.endswith(b"~>"):
+            raw = raw[:-2]
+        try:
+            body = zlib.decompress(base64.a85decode(raw, ignorechars=b" \t\n\r\x0b"))
+        except Exception:  # noqa: BLE001 - not a page stream (fonts, images)
+            continue
+        parts += re.findall(rb"\(((?:[^()\\]|\\.)*)\)\s*Tj", body)
+    return " ".join(part.decode("latin-1") for part in parts)
+
+
+SEEDED_LABEL = ("Seeded example: figures computed from current seed data on {figures}, dated {business} "
+                "for illustration.")
+
+
+def test_d14_the_seeded_example_states_the_date_of_its_figures_and_its_illustrative_date(client, test_settings):
+    """REG-15, REG-17, D14 (TR-48): the seeded example keeps its earlier date and says so.
+
+    Its figures are computed from the seed as it stands on the reset's business date, while it is
+    dated a month earlier so the first real report has a month of changes to show. TR-48 found the two
+    dates silently disagreeing: "Business date 2026-08-31" over 2026-09-30 figures. D14 keeps the
+    earlier date and discloses both, using the figures' date stored on the row (`figures_as_of`).
+    """
+    h = login(client, *ADMIN)
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+    h = login(client, *ADMIN)
+
+    seeded = next(r for r in _get(client, h, "/api/reports/model-risk") if r["is_seeded"])
+    assert seeded["figures_as_of"] == "2026-09-30", "the figures are the seed's, on the reset's business date"
+    assert seeded["business_date"] == "2026-08-31", "while the example keeps its illustrative earlier date"
+    label = SEEDED_LABEL.format(figures="2026-09-30", business="2026-08-31")
+    assert seeded["seeded_label"] == label, "the list states both dates"
+    reopened = _get(client, h, f"/api/reports/model-risk/{seeded['report_id']}")
+    assert reopened["seeded_label"] == label, "and so does the reopened report"
+
+
+def test_d14_a_generated_report_is_as_of_its_business_date_and_carries_no_label(loaded_client):
+    """D14: for every report a user generates the two dates are the same, and nothing is disclosed."""
+    report = _generate(loaded_client, login(loaded_client, *MRC))
+    assert report["figures_as_of"] == report["business_date"] == "2026-09-30"
+    assert report["seeded_label"] is None
+
+
+def test_d14_the_pdf_carries_the_label_and_the_reconciliation_line(client, test_settings):
+    """REG-17, S12, D14 (CR-55): the PDF is a surface too - the copy that leaves the system.
+
+    Every PDF carries "Figures reconciled with the Command Center at generation, <timestamp>"; the
+    seeded example's also carries its label with both dates. Asserted on the page text, not on
+    metadata, because the page is what a board reader holds.
+    """
+    h = login(client, *ADMIN)
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+    h = login(client, *ADMIN)
+    seeded = next(r for r in _get(client, h, "/api/reports/model-risk") if r["is_seeded"])
+    generated = _generate(client, h)
+
+    seeded_pdf = _pdf_text(client.get(f"/api/reports/model-risk/{seeded['report_id']}/pdf", headers=h).content)
+    generated_pdf = _pdf_text(client.get(f"/api/reports/model-risk/{generated['report_id']}/pdf",
+                                         headers=h).content)
+
+    assert "Figures reconciled with the Command Center at generation" in seeded_pdf
+    assert "Figures reconciled with the Command Center at generation" in generated_pdf
+    assert "Seeded example: figures computed from current seed data on 2026-09-30" in seeded_pdf
+    assert "dated 2026-08-31 for illustration" in seeded_pdf
+    assert "Seeded example" not in generated_pdf, "a report a user generated is not labelled an example"
