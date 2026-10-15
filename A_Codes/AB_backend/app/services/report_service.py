@@ -67,9 +67,11 @@ def content_hash(sections: dict) -> str:
     differs too. If the predecessor's identity is provenance, so is everything derived from it.
 
     What remains covered is every figure the report states about the portfolio — inventory by tier
-    and stage, revalidation, findings, approvals, score, documentation, and the baseline. Two reports
-    that say different things about the portfolio still hash differently; two that say the same thing
-    no longer differ because one happened to run second.
+    and stage, revalidation, findings, approvals, score, documentation, and the baseline. That is
+    sufficient only because every predecessor-derived figure lives in `changes_since` (S13): CR-52
+    found `decisions_since_previous` still in `approvals`, splitting the hash on one recorded
+    approval. Two reports that say different things about the portfolio still hash differently; two
+    that say the same thing no longer differ because one happened to run second.
     """
     content = {k: v for k, v in sections.items() if k != "changes_since"}
     canonical = json.dumps(_plain(content), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -136,12 +138,12 @@ def _findings(db: Session, summary: dict, policy: Policy) -> dict:
     }
 
 
-def _approvals(db: Session, rows: list[tuple[Model, Any]], seen_before: set[str] | None) -> dict:
-    """Conditional approvals with open conditions, and decisions since the previous report.
+def _approvals(rows: list[tuple[Model, Any]]) -> dict:
+    """Conditional approvals with open conditions.
 
-    "Since" is which approvals the previous stored report had already seen, not a timestamp window —
-    the same reason as `_baseline`: one-second timestamps lose anything recorded in the same second
-    as the report.
+    Decisions recorded since the previous report are **not** here: they are derived from the
+    predecessor, so they live in `changes_since` (S13, CR-52). A predecessor-derived list in this
+    section would put the predecessor back inside the content hash.
     """
     conditional = sorted(
         ({"model_id": m.model_id, "model_name": m.model_name, "tier": m.effective_tier,
@@ -149,15 +151,22 @@ def _approvals(db: Session, rows: list[tuple[Model, Any]], seen_before: set[str]
          for m, s in rows if s.open_conditions),
         key=lambda r: r["model_id"],
     )
-    decisions: list[dict] = []
-    if seen_before is not None:
-        decisions = sorted(
-            ({"approval_id": a.approval_id, "model_id": a.model_id, "decision": a.decision,
-              "decision_type": a.decision_type, "forum": a.forum, "decision_date": a.decision_date}
-             for a in db.scalars(select(Approval)) if a.approval_id not in seen_before),
-            key=lambda r: (str(r["decision_date"]), r["approval_id"]),
-        )
-    return {"conditional_open": conditional, "decisions_since_previous": decisions}
+    return {"conditional_open": conditional}
+
+
+def _decisions_recorded(db: Session, seen_before: set[str]) -> list[dict]:
+    """Approval decisions the previous stored report had not seen.
+
+    "Since" is which approvals the previous report's baseline held, not a timestamp window — the
+    same reason as `_baseline`: one-second timestamps lose anything recorded in the same second as
+    the report.
+    """
+    return sorted(
+        ({"approval_id": a.approval_id, "model_id": a.model_id, "decision": a.decision,
+          "decision_type": a.decision_type, "forum": a.forum, "decision_date": a.decision_date}
+         for a in db.scalars(select(Approval)) if a.approval_id not in seen_before),
+        key=lambda r: (str(r["decision_date"]), r["approval_id"]),
+    )
 
 
 def _score(summary: dict, rows: list[tuple[Model, Any]], policy: Policy) -> dict:
@@ -223,14 +232,19 @@ def _baseline(rows: list[tuple[Model, Any]], findings: dict[str, str],
 
 
 def _changes_since(previous_content: dict | None, previous: ModelRiskReport | None,
-                   baseline: dict, policy: Policy) -> dict:
+                   baseline: dict, policy: Policy, decisions_recorded: list[dict]) -> dict:
     """The difference between this report's baseline and the previous stored report's.
+
+    **Every figure derived from the previous report belongs here and nowhere else** (S13, the D12
+    addendum): this section is excluded from the content hash as a whole, so a predecessor-derived
+    figure anywhere else would make two generations from the same data hash differently (CR-52).
 
     With no predecessor the section is present and empty: the first report has nothing to compare
     against, which is not the same as having nothing to report.
     """
     empty = {"previous_report_id": None, "previous_generated_at": None, "models_added": [],
-             "models_retired": [], "phase_changes": [], "findings_opened": [], "findings_closed": []}
+             "models_retired": [], "phase_changes": [], "findings_opened": [], "findings_closed": [],
+             "decisions_recorded": []}
     if previous is None or not previous_content:
         return empty
 
@@ -267,6 +281,7 @@ def _changes_since(previous_content: dict | None, previous: ModelRiskReport | No
         "phase_changes": phase_changes,
         "findings_opened": [{"finding_id": f} for f in opened],
         "findings_closed": [{"finding_id": f} for f in closed],
+        "decisions_recorded": decisions_recorded,
     }
 
 
@@ -304,14 +319,15 @@ def sections(db: Session, previous: ModelRiskReport | None) -> dict:
     baseline = _baseline(rows, statuses, approval_ids)
     seen_before = (set((previous_content.get("baseline") or {}).get("approvals") or [])
                    if previous_content else None)
+    decisions = _decisions_recorded(db, seen_before) if seen_before is not None else []
     return {
         "inventory": _inventory(summary),
         "validation": _validation(summary, rows),
         "findings": _findings(db, summary, policy),
-        "approvals": _approvals(db, rows, seen_before),
+        "approvals": _approvals(rows),
         "score": _score(summary, rows, policy),
         "documentation": _documentation(summary, rows),
-        "changes_since": _changes_since(previous_content, previous, baseline, policy),
+        "changes_since": _changes_since(previous_content, previous, baseline, policy, decisions),
         "baseline": baseline,
     }
 

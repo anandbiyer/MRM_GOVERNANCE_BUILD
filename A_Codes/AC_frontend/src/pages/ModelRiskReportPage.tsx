@@ -69,6 +69,8 @@ function ChangesSince({ changes }: { changes: ReportSections["changes_since"] })
     ["Phase changes", changes.phase_changes],
     ["Findings opened", changes.findings_opened],
     ["Findings closed", changes.findings_closed],
+    // S13: decisions recorded since the previous report belong to this section, not to Approvals.
+    ["Approval decisions recorded", changes.decisions_recorded ?? []],
   ];
   return (
     <>
@@ -83,7 +85,7 @@ function ChangesSince({ changes }: { changes: ReportSections["changes_since"] })
                 <td className="mono">{items.length}</td>
                 <td className="mono">
                   {items.length === 0 ? "—" : items
-                    .map((r) => String(r.model_id ?? r.finding_id ?? ""))
+                    .map((r) => String(r.approval_id ?? r.model_id ?? r.finding_id ?? ""))
                     .filter(Boolean).join(", ")}
                 </td>
               </tr>
@@ -154,9 +156,6 @@ function ReportView({ report }: { report: ModelRiskReportDetail }) {
         <h5>Conditional with open conditions ({s.approvals.conditional_open.length})</h5>
         <RowList rows={s.approvals.conditional_open}
                  columns={["model_id", "model_name", "open_conditions", "latest_decision"]} />
-        <h5>Decisions since the previous report ({s.approvals.decisions_since_previous.length})</h5>
-        <RowList rows={s.approvals.decisions_since_previous}
-                 columns={["approval_id", "model_id", "decision", "decision_type", "decision_date"]} />
       </section>
 
       <section className="panel">

@@ -121,10 +121,6 @@ def render(report: dict, sections: dict) -> bytes:
         flow.append(_table(rows, [22 * mm, 56 * mm, 28 * mm, 34 * mm]))
     else:
         flow.append(Paragraph("No approvals with open conditions.", styles["Normal"]))
-    flow.append(Spacer(1, 6))
-    flow.append(Paragraph(
-        f"Decisions since the previous report: "
-        f"{_count_or_none(apr['decisions_since_previous'], 'decision', 'decisions')}.", styles["Normal"]))
 
     sc = sections["score"]
     flow.append(Paragraph(f"Governance score — portfolio {sc['portfolio_score']}", styles["Sec"]))
@@ -158,7 +154,10 @@ def render(report: dict, sections: dict) -> bytes:
                 ["Models retired", str(len(ch["models_retired"]))],
                 ["Phase changes", str(len(ch["phase_changes"]))],
                 ["Findings opened", str(len(ch["findings_opened"]))],
-                ["Findings closed", str(len(ch["findings_closed"]))]]
+                ["Findings closed", str(len(ch["findings_closed"]))],
+                # S13: decisions recorded since the previous report live in this section. A report
+                # stored before S13 has no such key; it is reopened as it was, so read it with a default.
+                ["Approval decisions recorded", str(len(ch.get("decisions_recorded", [])))]]
         flow.append(_table(rows, [70 * mm, 25 * mm]))
         flow.append(Paragraph(f"Compared against {ch['previous_report_id']}.", styles["Note"]))
 

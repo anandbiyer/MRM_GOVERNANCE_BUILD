@@ -24,6 +24,12 @@
       "tree": "7114ef417befce253798ca62fa8da45207c60104",
       "open_critical_high": 0,
       "note": "Re-run after the five fixes. REG-15 and REG-16 Proven; REG-17 Proven once TR-06 was closed in-row. Six remaining Medium/Low triaged to BL.7 and BL.8."
+    },
+    "G1.29:risk": {
+      "date": "2026-10-15",
+      "tree": "00acd08b823984f4be1852b537815b21c34e3472",
+      "report": "D_Reviews/DB_test_review/20261015_G1.29_risk.md",
+      "summary": "0 Critical, 0 High; 3 Medium (TR-60, TR-61, TR-62), 2 Low (TR-63, TR-64). REG-16 and REG-17 Proven. Reviewed at scope digest 3860887a; TR-64 (a line-join artefact in report_service.py:320) fixed in-row before commit, which is the only difference from the recorded tree."
     }
   },
   "gates": {

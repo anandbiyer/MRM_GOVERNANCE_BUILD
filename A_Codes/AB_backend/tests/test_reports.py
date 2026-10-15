@@ -151,7 +151,7 @@ def test_reg_15_changes_since_lists_exactly_the_differences(loaded_client):
     assert changes["models_added"] == [] and changes["models_retired"] == []
     assert changes["phase_changes"] == []
     assert changes["findings_opened"] == [] and changes["findings_closed"] == []
-    assert third["sections"]["approvals"]["decisions_since_previous"] == []
+    assert changes["decisions_recorded"] == []
 
     # A phase change and a new decision both show up in the next report.
     model = _get(loaded_client, h, "/api/models/M-9001")
@@ -165,7 +165,7 @@ def test_reg_15_changes_since_lists_exactly_the_differences(loaded_client):
     fourth = _generate(loaded_client, h)["sections"]
     assert [c["model_id"] for c in fourth["changes_since"]["phase_changes"]] == ["M-9001"]
     assert fourth["changes_since"]["phase_changes"][0]["to_phase"] == "Validation"
-    assert [a["approval_id"] for a in fourth["approvals"]["decisions_since_previous"]] == ["A-9001"]
+    assert [a["approval_id"] for a in fourth["changes_since"]["decisions_recorded"]] == ["A-9001"]
 
 
 def test_reg_16_the_same_data_gives_the_same_content_hash(loaded_client):
@@ -582,6 +582,57 @@ def test_reg_16_the_hash_ignores_which_report_came_before(loaded_client, loaded_
         "q_materiality": 3, "q_complexity": 3, "q_reliance": 3, "q_regulatory_use": 3}).status_code == 201
     assert _generate(loaded_client, h)["content_hash"] != first["content_hash"], (
         "a change to the portfolio must still change the hash")
+
+
+def test_reg_16_an_approval_between_generations_does_not_split_the_hash(loaded_client):
+    """REG-16, CR-52, S13: no figure outside the changes section depends on the previous report.
+
+    G1.25 took `changes_since` out of the digest but left `approvals.decisions_since_previous` — a
+    list computed solely from the predecessor's baseline — inside the `approvals` section, so one
+    ordinary action split the hash: record an approval, generate (the list holds it), generate again
+    (the new predecessor has already seen it, so the list is empty). Identical data, two hashes.
+
+    The test above could not see it: its seeded predecessor shapes only models and findings, so every
+    approval is already in the baseline and the list is empty in all three generations. This one
+    records the approval *between* generations, which is the only way to exercise that path.
+
+    Decided by **S13** (the D12 addendum): every predecessor-derived figure lives in the changes
+    section, so excluding that one section is the whole rule.
+    """
+    h = login(loaded_client, *MRC)
+    _generate(loaded_client, h)
+    assert loaded_client.post("/api/approvals", headers=login(loaded_client, *ADMIN), json={
+        "approval_id": "A-9052", "model_id": "M-0012", "decision_date": "2026-09-30",
+        "forum": "MRC", "decision_type": "Initial approval", "decision": "Approved"}).status_code == 201
+
+    sees_it, after_it = _generate(loaded_client, h), _generate(loaded_client, h)
+    assert [d["approval_id"] for d in sees_it["sections"]["changes_since"]["decisions_recorded"]] \
+        == ["A-9052"], "the report after the approval must list it as recorded since the previous one"
+    assert after_it["sections"]["changes_since"]["decisions_recorded"] == [], \
+        "and the next one, with nothing recorded in between, must not"
+    assert sees_it["content_hash"] == after_it["content_hash"], (
+        "the same data on the same business date must give the same hash, whatever the previous "
+        "report had already seen (CR-52)")
+
+
+def test_s13_only_the_changes_section_depends_on_the_previous_report(loaded_client):
+    """S13, REG-16: every section but `changes_since` is identical with and without a predecessor.
+
+    The structural form of CR-52. Rather than probe one figure, compare a report whose predecessor
+    has seen nothing with one whose predecessor has seen everything: any figure outside the changes
+    section that differs between them was derived from the predecessor and would split the hash.
+    """
+    h = login(loaded_client, *MRC)
+    first, second = _generate(loaded_client, h), _generate(loaded_client, h)
+    assert first["sections"]["changes_since"]["previous_report_id"] is None
+    assert second["sections"]["changes_since"]["previous_report_id"] == first["report_id"]
+    for name in SECTIONS:
+        if name != "changes_since":
+            assert first["sections"][name] == second["sections"][name], (
+                f"section {name!r} changed only because a previous report now exists; a "
+                f"predecessor-derived figure belongs in changes_since (S13)")
+    assert set(first["sections"]["approvals"]) == {"conditional_open"}, \
+        "the approvals section holds no 'since the previous report' list any more (S13)"
 
 
 # --- the seeded example: real figures, labelled as an example (S11, S12 / D12 addendum) ------------

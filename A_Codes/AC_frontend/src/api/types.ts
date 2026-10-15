@@ -491,7 +491,7 @@ export interface ReportSections {
   inventory: { total: number; by_tier: ReportCount[]; by_stage: ReportCount[] };
   validation: { by_status: ReportCount[]; overdue: Record<string, unknown>[] };
   findings: { open_by_severity: ReportCount[]; overdue_by_severity: ReportCount[]; critical_overdue: Record<string, unknown>[] };
-  approvals: { conditional_open: Record<string, unknown>[]; decisions_since_previous: Record<string, unknown>[] };
+  approvals: { conditional_open: Record<string, unknown>[] };
   score: { by_band: ReportCount[]; portfolio_score: number | null; scored_models: number; lowest: Record<string, unknown>[] };
   documentation: { completeness_pct: number; models_missing_documents: Record<string, unknown>[] };
   changes_since: {
@@ -501,6 +501,8 @@ export interface ReportSections {
     phase_changes: Record<string, unknown>[];
     findings_opened: Record<string, unknown>[];
     findings_closed: Record<string, unknown>[];
+    /** S13: every predecessor-derived figure lives in this section. Absent on reports stored before S13. */
+    decisions_recorded?: Record<string, unknown>[];
   };
 }
 
