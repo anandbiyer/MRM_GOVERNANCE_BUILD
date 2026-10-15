@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 from sqlalchemy import delete as sa_delete
 
 from app.auth.security import Principal
+from app.db import get_session_factory
 from app.models import ImportBatch
 from app.services import reset_service
 from app.services.errors import ForbiddenError
@@ -502,6 +503,73 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
     with db_session() as db:
         assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
         assert reset_service.reset_in_progress(db) is None
+
+
+def test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written(
+        client, db_session, test_settings, monkeypatch):
+    """GEN-05, GEN-04 (CR-53): the reset is not finished until the example report is written.
+
+    G1.26 moved the example report after the evidence load (S11), into the job that stores the
+    evidence. By the time it ran, that job had already committed the documents batch `Completed` and
+    the seed batch had been restored to `Completed` before the handover — so for the length of a full
+    portfolio recompute both reset batches were terminal, `reset/status` said finished, and a second
+    reset would have been accepted with its deletes racing the report's write. This observes the
+    status at the moment the report is written, the only point where that window can be checked.
+    """
+    from app.services import report_service
+
+    real = report_service.seed_previous_report
+    observed = {}
+
+    def spy(session_factory):
+        with session_factory() as db:
+            running = reset_service.reset_in_progress(db)
+            observed["batch_id"] = running.batch_id if running else None
+        return real(session_factory)
+
+    monkeypatch.setattr(report_service, "seed_previous_report", spy)
+    resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    assert observed, "the example report was never written"
+    assert observed["batch_id"] == batch_id, (
+        "while the example report is written the reset must still be in flight, or a second reset "
+        "is accepted and its deletes race the write (CR-53)")
+    with db_session() as db:
+        assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
+        assert reset_service.reset_in_progress(db) is None, "and once it is written, the reset is over"
+
+
+def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+                                                                           monkeypatch):
+    """GEN-05 (CR-57, FT-05's class): a crash in the example report's write is recorded, not lost.
+
+    The report is written by a background job after the documents batch is already `Completed`, so
+    `record_job_failure` was never reached for it and `runner.submit` only logs: the reset read as
+    fully successful with no example and no reason anywhere a user could see.
+    """
+    from app.services import report_service
+
+    h = login(client, *ADMIN)
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    def boom(_session_factory):
+        raise RuntimeError("report write exploded")
+
+    # Driven directly, as in the FT-05 tests: inline job mode would otherwise surface the exception as
+    # an HTTP 500 rather than as the batch state this criterion is about.
+    monkeypatch.setattr(report_service, "seed_previous_report", boom)
+    with pytest.raises(RuntimeError):
+        reset_service._reset_job(client.app.dependency_overrides[get_session_factory](), batch_id, None)
+
+    batch = client.get(f"/api/imports/batches/{batch_id}", headers=h).json()
+    assert batch["status"] == "Failed", batch
+    assert "report write exploded" in (batch["error_message"] or ""), batch
+    assert client.get("/api/admin/reset/status", headers=h).json()["in_progress"] is False, \
+        "Failed is terminal, so the failure must not latch the reset guard (FT-05)"
 
 
 def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(

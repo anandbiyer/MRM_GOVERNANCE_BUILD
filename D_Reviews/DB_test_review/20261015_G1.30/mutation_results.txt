@@ -1,0 +1,38 @@
+== control
+18 passed, 68 deselected, 1 warning in 115.45s (0:01:55)
+== m1_restore_before_submit
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m1_restore_before_submit.py
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+1 failed, 17 passed, 68 deselected, 1 warning in 104.88s (0:01:44)
+== m2_drop_final_restore
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m2_drop_final_restore.py
+FAILED tests/test_imports.py::test_tc_gen_01_reset_to_seed - AssertionError: ...
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+FAILED tests/test_imports.py::test_ft_04_a_reset_leaves_the_seed_batch_terminal_and_the_evidence_loaded
+FAILED tests/test_reports.py::test_gen_01_a_reset_clears_the_report_history_and_reseeds_it
+6 failed, 12 passed, 68 deselected, 1 warning in 94.06s (0:01:34)
+== m3_drop_failure_wrapper
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m3_drop_failure_wrapper.py
+___ test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed ____
+    def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+FAILED tests/test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed
+1 failed, 17 passed, 68 deselected, 1 warning in 110.61s (0:01:50)
+== m4_restore_after_submit
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m4_restore_after_submit.py
+        # (`analyse_job` -> `_store_evidence_then_seed_report`) and this assertion failed on the name
+FAILED tests/test_imports.py::test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis
+1 failed, 17 passed, 68 deselected, 1 warning in 110.42s (0:01:50)
+== m5_wrap_report_only
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m5_wrap_report_only.py
+18 passed, 68 deselected, 1 warning in 110.96s (0:01:50)
+== m6_stage_label_frozen
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m6_stage_label_frozen.py
+18 passed, 68 deselected, 1 warning in 111.26s (0:01:51)
+== m7_restore_between_analysis_and_report
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut/m7_restore_between_analysis_and_report.py
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+1 failed, 17 passed, 68 deselected, 1 warning in 111.36s (0:01:51)
+
+[exited with code 0]

@@ -204,33 +204,51 @@ def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal:
         # keeps `reset_in_progress` from latching — Failed is terminal, Processing is not (FT-05).
         import_service.record_job_failure(session_factory, batch_id, "Seed evidence staging", exc)
         raise
-    else:
-        # Restore the status the seed load concluded with (Completed or Partially Completed). This
-        # write is why the order matters: it must happen before the analysis starts (FT-04).
-        with session_factory() as db:
-            batch = db.get(ImportBatch, batch_id)
-            batch.status = loaded_status
-            db.commit()
-    # One job, doing the evidence and then the example report, in that order. Two rules pull
-    # against each other here and this is the only placement that satisfies both. **FT-04**: the
-    # reset makes no database write after submitting a job, so the report cannot be written above.
-    # **S11**: the example's figures must be a real portfolio state, so it cannot be written before
-    # the evidence loads. Inside a single job both hold, because FT-04's rule is about writes in
-    # `_reset_job` after handover, not about work done within a job it started.
-    runner.submit(_store_evidence_then_seed_report, session_factory, staged)
+    # The seed batch is **left `Processing`** and handed to the job, which restores it as its last
+    # write. Two rules pull against each other here, and a third arrived with G1.26:
+    #
+    # * **FT-04**: the reset makes no database write after submitting a job — in thread mode such a
+    #   write races the job for SQLite's write lock and the job loses (1,116 documents, once). So the
+    #   status cannot be restored *here*, after the submit.
+    # * **S11**: the example report's figures must be a real portfolio state, so it is written after
+    #   the evidence loads, inside the job.
+    # * **GEN-05 / CR-53**: the reset must read as in progress until its last write. Restoring the
+    #   status *before* the submit (as G1.26 did) satisfied FT-04 but left both reset batches terminal
+    #   while the job was still writing the report — a second reset would have been accepted and its
+    #   deletes would have raced that write.
+    #
+    # Handing the restore to the job satisfies all three: nothing is written here after the submit,
+    # and the seed batch stays non-terminal until the job's own final write.
+    runner.submit(_store_evidence_then_seed_report, session_factory, staged, batch_id, loaded_status)
 
 
-def _store_evidence_then_seed_report(session_factory: Callable[[], Session], batch_id: str | None) -> None:
-    """Analyse and store the seed evidence, then write the example report (see `_reset_job`).
+def _store_evidence_then_seed_report(session_factory: Callable[[], Session], documents_batch_id: str | None,
+                                     seed_batch_id: str, loaded_status: str) -> None:
+    """Analyse and store the seed evidence, write the example report, then end the reset.
 
-    If the analysis fails it re-raises, so `record_job_failure` marks the batch Failed (FT-05) and no
-    example is written — a report over a half-loaded portfolio would be worse than none.
+    The seed batch arrives `Processing` and stays so until this job's last write, which is what keeps
+    `reset_in_progress` true for the whole reset (GEN-05, CR-53). On success it is restored to the
+    status the seed load concluded with. On any failure it is marked `Failed` with the stage and the
+    reason (CR-57, FT-05's class) — terminal, so the reset guard cannot latch — and the exception is
+    re-raised so the runner still logs it. If the *analysis* fails, `analyse_job` has already marked
+    the documents batch `Failed`, and no example is written: a report over a half-loaded portfolio
+    would be worse than none.
     """
     from app.documents import batch as doc_batch
 
-    if batch_id:
-        doc_batch.analyse_job(session_factory, batch_id, None)
-    report_service.seed_previous_report(session_factory)
+    stage = "Seed evidence analysis"
+    try:
+        if documents_batch_id:
+            doc_batch.analyse_job(session_factory, documents_batch_id, None)
+        stage = "Seeded example report"
+        report_service.seed_previous_report(session_factory)
+    except BaseException as exc:
+        import_service.record_job_failure(session_factory, seed_batch_id, stage, exc)
+        raise
+    with session_factory() as db:
+        batch = db.get(ImportBatch, seed_batch_id)
+        batch.status = loaded_status
+        db.commit()
 
 
 def stage_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:

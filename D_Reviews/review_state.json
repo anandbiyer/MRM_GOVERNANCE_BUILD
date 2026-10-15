@@ -30,6 +30,12 @@
       "tree": "00acd08b823984f4be1852b537815b21c34e3472",
       "report": "D_Reviews/DB_test_review/20261015_G1.29_risk.md",
       "summary": "0 Critical, 0 High; 3 Medium (TR-60, TR-61, TR-62), 2 Low (TR-63, TR-64). REG-16 and REG-17 Proven. Reviewed at scope digest 3860887a; TR-64 (a line-join artefact in report_service.py:320) fixed in-row before commit, which is the only difference from the recorded tree."
+    },
+    "G1.30:risk": {
+      "date": "2026-10-15",
+      "tree": "bb0f2c19a438a2dd6dcda8387571517b8884a94a",
+      "report": "D_Reviews/DB_test_review/20261015_G1.30_risk.md",
+      "summary": "0 Critical, 1 High (TR-65, pre-existing: engine.run commits the seed batch Completed before _reset_job re-holds it, a millisecond window outside G1.30's diff), 2 Medium (TR-66, TR-67), 2 Low (TR-68, TR-69). G1.30's own change judged correct; GEN-05 Weak. Row left Not started pending triage. Digest per /review-checkpoint: git ls-files -s -- <scope> | git hash-object --stdin."
     }
   },
   "gates": {
