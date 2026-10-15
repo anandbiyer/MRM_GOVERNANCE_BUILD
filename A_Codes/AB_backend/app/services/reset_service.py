@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import delete, func, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.audit import service as audit
@@ -237,6 +237,29 @@ def recover_interrupted_reset(db: Session) -> bool:
     return True
 
 
+def _readable(db: Session) -> bool:
+    """Whether a read of the lock can be made now (it can, unless the session is in a failed state)."""
+    try:
+        reset_in_progress(db)
+        return True
+    except OperationalError:
+        db.rollback()
+        return False
+
+
+def _already_running(lock: ResetLock | None) -> ConflictError:
+    """The 409 for a reset refused because another is running, naming it where it can be read."""
+    if lock is None:
+        return ConflictError("A reset is already running. Wait for it to finish and try again "
+                             "(GET /api/admin/reset/status).")
+    started = lock.acquired_at.strftime("%Y-%m-%d %H:%M:%S UTC") if lock.acquired_at else "earlier"
+    return ConflictError(
+        f"A reset is already running: batch {lock.batch_id or '(being created)'}, "
+        f"stage {lock.stage or 'unknown'}, started {started}. "
+        f"Wait for it to finish and try again (GET /api/admin/reset/status)."
+    )
+
+
 def _failure(stage: str, exc: BaseException) -> str:
     """The reason recorded on the lock, worded like `record_job_failure`'s on the batch."""
     return f"{stage} failed: {type(exc).__name__}: {exc}"
@@ -255,15 +278,26 @@ def start_reset(db: Session, session_factory: Callable[[], Session], principal: 
     # governance table and reloads it, so two overlapping runs would interleave one's deletes with
     # the other's inserts. After the permission checks, so an unauthorised caller still gets 403 and
     # learns nothing about whether a reset is running (GEN-04).
+    #
+    # Two steps, and the order matters (TR-70). The claim is a *write*, and while a reset is running
+    # it holds SQLite's write lock, so a claim tried then fails with "database is locked" instead of
+    # matching zero rows — which reached the client as an HTTP 500 for most second attempts in thread
+    # mode. So: answer from a plain read when the lock is visibly held, which needs no write lock; and
+    # if the claim itself still meets a database lock (a reset started between the read and the
+    # claim), that means the same thing and gets the same 409. Never a 500 for "a reset is running".
+    running = reset_in_progress(db)
+    if running is not None:
+        raise _already_running(running)
     holder = uuid.uuid4().hex
-    if not acquire_reset_lock(db, holder, principal.user_id if principal else None):
-        running = reset_in_progress(db)
-        started = running.acquired_at.strftime("%Y-%m-%d %H:%M:%S UTC") if running and running.acquired_at else "earlier"
-        raise ConflictError(
-            f"A reset is already running: batch {(running.batch_id if running else None) or '(being created)'}, "
-            f"stage {(running.stage if running else None) or 'unknown'}, started {started}. "
-            f"Wait for it to finish and try again (GET /api/admin/reset/status)."
-        )
+    try:
+        claimed = acquire_reset_lock(db, holder, principal.user_id if principal else None)
+    except OperationalError as exc:
+        db.rollback()
+        if "locked" not in str(exc).lower() and "busy" not in str(exc).lower():
+            raise  # a real database failure, not contention, is not a conflict
+        claimed = False
+    if not claimed:
+        raise _already_running(reset_in_progress(db) if _readable(db) else None)
     stage = "Seed preparation"
     try:
         set_reset_stage(session_factory, holder, stage)

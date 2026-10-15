@@ -2286,8 +2286,9 @@ none"), holds it to its very end, and releases it in a `finally` that records th
 (Completed, Failed or Interrupted) and, on failure, the stage and reason. "Is a reset running?" is
 answered by this row alone — not by any import batch's status, which is what the guard inferred from
 until that inference failed twice (review findings CR-53 and TR-65). The table is outside the set a
-reset deletes, and `batch_id` and `acquired_by` are plain ids with no foreign key, because the rows
-they name are deleted and reloaded by the reset itself. A lock left held by a process that died
+reset deletes. `acquired_by` has no foreign key because the `app_user` row it names is deleted and
+reloaded by the reset; `batch_id` has none, although a reset keeps `import_batch`, so that releasing
+the lock — done in a `finally` — can never be refused by a referential check (CR-59). A lock left held by a process that died
 mid-reset is released, with the reason, when the application next starts. Holding and releasing the
 lock is processing state and is not audited; the reset itself is.
 

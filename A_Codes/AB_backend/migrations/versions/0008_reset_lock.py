@@ -8,8 +8,10 @@ in a `finally` that records the outcome and, on failure, the stage.
 
 One row, inserted here, so the claim is always an UPDATE of an existing row — an atomic compare-and-
 set on both SQLite and PostgreSQL, which also closes BL.12 (the old read-then-proceed guard could
-interleave two resets on PostgreSQL). No foreign keys: `batch_id` and `acquired_by` point at rows the
-reset itself deletes and reloads, the same reasoning as `import_batch.uploaded_by`.
+interleave two resets on PostgreSQL). No foreign keys, for two reasons (corrected by CR-59):
+`acquired_by` points at an `app_user` row the reset deletes and reloads, the reasoning of
+`import_batch.uploaded_by`; `batch_id` points at an `import_batch` row the reset keeps, and has no
+foreign key so that releasing the lock, which happens in a `finally`, can never fail a referential check.
 
 Revision ID: 0008_reset_lock
 Revises: 0007_model_risk_report

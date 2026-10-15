@@ -1,0 +1,82 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32r/N6_read_first_does_not_name_batch.py
+......F...................F...............                               [100%]
+================================== FAILURES ===================================
+_____________ test_a_second_reset_is_refused_while_one_is_running _____________
+
+client = <starlette.testclient.TestClient object at 0x000002247F404E90>
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-588/test_a_second_reset_is_refused0/demo'), today_override=datetime.date(2026, 9, 30))
+
+    def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test_settings):
+        """GEN-04, GEN-02 (FT-02, G1.32): a reset clears every governance table and reloads it, so two
+        overlapping runs would interleave one run's deletes with the other's inserts.
+    
+        The signal is the reset lock (G1.32), not any batch's status: batch statuses were what the guard
+        used to infer from, and that inference failed twice (CR-53, TR-65). The refusal names the batch
+        and the stage the running reset is at.
+        """
+        h = login(client, *ADMIN)
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, "running", "U-001")
+            reset_service.set_reset_stage(db_session, "running", "Seed load", batch_id="B-TEST-reset")
+    
+        resp = client.post("/api/admin/reset", headers=h)
+        assert resp.status_code == 409
+>       assert "B-TEST-reset" in resp.json()["detail"], "the message must name the batch to watch"
+E       AssertionError: the message must name the batch to watch
+E       assert 'B-TEST-reset' in 'A reset is already running. Wait for it to finish and try again (GET /api/admin/reset/status).'
+
+tests\test_imports.py:398: AssertionError
+______ test_g1_32_a_second_reset_during_the_report_write_is_refused_409 _______
+
+client = <starlette.testclient.TestClient object at 0x000002247FC19D00>
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-588/test_g1_32_a_second_reset_duri0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000224013C2750>
+
+    def test_g1_32_a_second_reset_during_the_report_write_is_refused_409(client, test_settings, monkeypatch):
+        """GEN-04 (TR-69): refused, not merely reported as running — at the last stage, where CR-53 was."""
+        factory = _factory(client)
+        real = report_service.seed_previous_report
+        refusal = {}
+    
+        def spy(session_factory):
+            with factory() as db:
+                # TR-76: if the lock were not held, `start_reset` would begin a nested reset and recurse
+                # into this spy without end; record the failure instead, so the test fails and returns.
+                if reset_service.reset_in_progress(db) is None:
+                    refusal["status"], refusal["message"] = None, "the lock was not held during the report write"
+                    return real(session_factory)
+                with pytest.raises(ConflictError) as err:
+                    reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+                refusal["status"], refusal["message"] = err.value.status_code, err.value.message
+            return real(session_factory)
+    
+        monkeypatch.setattr(report_service, "seed_previous_report", spy)
+        resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+        assert resp.status_code == 202, resp.text
+        assert refusal["status"] == 409
+>       assert resp.json()["batch_id"] in refusal["message"], "the refusal names the reset in flight"
+E       AssertionError: the refusal names the reset in flight
+E       assert 'B-20260930-001' in 'A reset is already running. Wait for it to finish and try again (GET /api/admin/reset/status).'
+
+tests\test_reset_lock.py:116: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_imports.py::test_a_second_reset_is_refused_while_one_is_running
+FAILED tests/test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409
+2 failed, 40 passed, 62 deselected, 1 warning in 261.68s (0:04:21)

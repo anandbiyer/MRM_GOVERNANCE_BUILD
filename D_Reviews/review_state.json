@@ -45,9 +45,9 @@
     },
     "G1.32:risk": {
       "date": "2026-10-15",
-      "tree": "dd3e4083f0e464aeaffb1b5d513c1b0bc6f615de",
-      "report": "D_Reviews/DB_test_review/20261015_G1.32_risk.md",
-      "summary": "0 Critical, 1 High (TR-70: the claim is a write, so in thread mode a refused second reset mostly gets 500 'database is locked' instead of 409; introduced by G1.32). Medium TR-71..TR-74, Low TR-75..TR-78. GEN-05 Proven; GEN-04 Weak. TR-65..TR-69 closed. Row left Not started pending triage."
+      "tree": "9f0d010638d3275a86e922c95e60033591ad77cf",
+      "report": "D_Reviews/DB_test_review/20261015_G1.32_risk_rerun.md",
+      "summary": "Re-run after the TR-70 fix: 0 Critical, 0 High. TR-70, TR-72, TR-74, TR-76 closed; GEN-04 Weak -> Proven with residuals, GEN-05 Proven. New: TR-79 (Medium), TR-80..TR-82 (Low), held for the Gate 1 exit triage. First run: D_Reviews/DB_test_review/20261015_G1.32_risk.md (TR-70 High)."
     }
   },
   "gates": {

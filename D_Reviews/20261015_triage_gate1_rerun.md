@@ -52,3 +52,18 @@ Approved by the owner after the G1.30 checkpoint returned a High.
 | Hash moves on only one composite probe; `SECTIONS` omits `baseline` | TR-62, TR-63 | Medium, Low | Backlog | **BL.30** |
 | A non-raising total evidence failure still writes the example and reads Completed | OS-1 | Low | Backlog | **BL.37** |
 | Stray `test_zz_*.pyc` files | OS-2 | — | Not a defect: untracked and ignored, left by earlier probes | — |
+
+## Addendum 2 — the G1.32 checkpoints (2026-10-15)
+
+Approved by the owner after the G1.32 risk checkpoint returned a High introduced by the row itself.
+
+| Item | Source IDs | Severity | Disposition | Where |
+|---|---|---|---|---|
+| A refused second reset gets HTTP 500 "database is locked" instead of 409 in thread mode | TR-70 | High | **Fix within G1.32**: read the lock first; a claim meeting a database lock answers 409 | **G1.32** |
+| Two releases (baseline path, pre-submit failure) unguarded by tests | TR-72 | Medium | Folded into G1.32 | **G1.32** |
+| GEN-04's "nothing deleted, no second job submitted" unasserted | TR-74 | Medium | Folded into G1.32 | **G1.32** |
+| The 409-during-report test recurses instead of failing when the lock is not held | TR-76 | Low | Folded into G1.32 | **G1.32** |
+| Stated reason for no FK on `batch_id` wrong | CR-59 | Low | Folded into G1.32 | **G1.32** |
+| Claim atomicity unshown on either engine; `submit` raising; one-commit allowance; holder check untested | TR-73, TR-75, TR-77, TR-78 | Medium, Low | Backlog | **BL.38** |
+| Users 401 for ~3 s during every reset | TR-71 | Medium | Backlog | **BL.1** |
+| Singleton constraint; PostgreSQL row assertion; `uvicorn`-only dev DB lacks the table | CR-60, CR-61, CR-62 | Low | Backlog | **BL.39** |

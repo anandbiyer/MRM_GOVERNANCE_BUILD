@@ -51,7 +51,7 @@ def file_client(tmp_path, test_settings):
         load_bootstrap(db, test_settings.bootstrap_dir)
     probe_engine = create_engine(url, connect_args={"check_same_thread": False})
     configure_sqlite(probe_engine)
-    yield _client_for(factory), sessionmaker(bind=probe_engine)
+    yield _client_for(factory), sessionmaker(bind=probe_engine), factory
     probe_engine.dispose()
     engine.dispose()
 
@@ -64,7 +64,7 @@ def test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_releas
     during an inline reset is observed, and after each one an independent connection asks the same
     question `start_reset` asks. Only the final commit, the release, may answer "not running".
     """
-    client, probe = file_client
+    client, probe, _ = file_client
     seen: list[bool] = []
 
     def after_commit(_session):
@@ -99,6 +99,11 @@ def test_g1_32_a_second_reset_during_the_report_write_is_refused_409(client, tes
 
     def spy(session_factory):
         with factory() as db:
+            # TR-76: if the lock were not held, `start_reset` would begin a nested reset and recurse
+            # into this spy without end; record the failure instead, so the test fails and returns.
+            if reset_service.reset_in_progress(db) is None:
+                refusal["status"], refusal["message"] = None, "the lock was not held during the report write"
+                return real(session_factory)
             with pytest.raises(ConflictError) as err:
                 reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
             refusal["status"], refusal["message"] = err.value.status_code, err.value.message
@@ -119,6 +124,7 @@ def _fail(monkeypatch, target, name):
 
 
 @pytest.mark.parametrize("stage, patch", [
+    ("Seed preparation", lambda mp: _fail(mp, reset_service, "seed_files")),
     ("Seed load", lambda mp: _fail(mp, reset_service.engine, "run")),
     ("Seed evidence staging", lambda mp: _fail(mp, reset_service, "stage_seed_documents")),
     ("Seed evidence analysis", lambda mp: _fail(mp, __import__("app.documents.batch", fromlist=["x"]),
@@ -222,3 +228,120 @@ def test_g1_32_starting_the_application_releases_an_interrupted_lock(db_session,
     with db_session() as db:
         assert reset_service.reset_in_progress(db) is None
         assert db.get(ResetLock, reset_service.LOCK_ID).last_outcome == "Interrupted"
+
+
+def test_g1_32_a_missing_baseline_releases_the_lock_as_failed(client, test_settings, monkeypatch):
+    """GEN-05 (TR-72): the one stage that ends the reset without raising still releases the lock."""
+    factory = _factory(client)
+    monkeypatch.setattr(reset_service, "missing_baseline_settings", lambda _db: ["probe_setting"])
+    with factory() as db:
+        reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)  # completes: the failure is recorded, not raised
+    with factory() as db:
+        assert reset_service.reset_in_progress(db) is None, "the baseline path must release the lock"
+        lock = db.get(ResetLock, reset_service.LOCK_ID)
+        assert lock.last_outcome == "Failed" and lock.last_reason.startswith("Baseline check failed")
+
+
+def test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing(
+        client, db_session, test_settings, monkeypatch):
+    """GEN-04 (TR-74): "nothing is deleted and no second job is submitted" - the clause no test held.
+
+    Moving `regenerate_seed` ahead of the claim used to pass every test, although rewriting the seed
+    folder under a running reset is exactly what the in-flight check exists to prevent.
+    """
+    from app.models import Model
+    from app.workers import runner
+
+    h = login(client, *ADMIN)
+    with db_session() as db:
+        assert reset_service.acquire_reset_lock(db, "running", "U-001")
+        before = (db.scalar(select(func.count()).select_from(ImportBatch)),
+                  db.scalar(select(func.count()).select_from(Model)))
+
+    calls = []
+    monkeypatch.setattr(reset_service, "regenerate_seed", lambda *a: calls.append("regenerate"))
+    monkeypatch.setattr(reset_service, "seed_files", lambda *a: calls.append("seed_files") or [])
+    monkeypatch.setattr(runner, "submit", lambda fn, *a: calls.append(f"submit:{fn.__name__}"))
+
+    assert client.post("/api/admin/reset", headers=h).status_code == 409
+    assert calls == [], f"a refused reset did {calls}; it must do nothing at all"
+    with db_session() as db:
+        after = (db.scalar(select(func.count()).select_from(ImportBatch)),
+                 db.scalar(select(func.count()).select_from(Model)))
+        assert after == before, "no batch created and nothing deleted"
+        assert reset_service.reset_in_progress(db).holder == "running", \
+            "and the running reset still holds the lock"
+
+
+def test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500(client, db_session, test_settings, monkeypatch):
+    """GEN-04 (TR-70): a claim that cannot get SQLite's write lock means a reset is running.
+
+    The claim is a write, so while a reset holds the write lock it fails with "database is locked"
+    rather than matching zero rows. That reached the client as an HTTP 500 in 65% of second attempts
+    in thread mode. It is the same answer as a refused claim, and gets the same 409.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    def locked(*_a, **_k):
+        raise OperationalError("UPDATE reset_lock ...", {}, Exception("database is locked"))
+
+    monkeypatch.setattr(reset_service, "acquire_reset_lock", locked)
+    resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+    assert resp.status_code == 409, resp.text
+    assert "already running" in resp.json()["detail"]
+
+
+def test_g1_32_a_held_lock_is_answered_from_a_read_without_claiming(client, db_session, test_settings,
+                                                                    monkeypatch):
+    """GEN-04 (TR-70): when the lock is visibly held, the refusal is a plain read - no write is tried."""
+    with db_session() as db:
+        assert reset_service.acquire_reset_lock(db, "running", "U-001")
+
+    def must_not_claim(*_a, **_k):
+        raise AssertionError("a held lock must be answered from a read, before any claim is attempted")
+
+    monkeypatch.setattr(reset_service, "acquire_reset_lock", must_not_claim)
+    assert client.post("/api/admin/reset", headers=login(client, *ADMIN)).status_code == 409
+
+
+def test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409(file_client, test_settings):
+    """GEN-04 (TR-70): the regression in the mode the product runs in, which CI's inline mode hides.
+
+    One reset runs in background threads on a file-backed database while this test keeps trying to
+    start another, through the same service call the API makes. Every attempt must be refused with a
+    conflict - never accepted, never an unexpected error. Called at the service rather than over HTTP
+    because a reset deletes and reloads users, so authenticated requests 401 for a moment (TR-71,
+    BL.1) - a separate issue that would mask this one.
+    """
+    import time
+
+    client, probe, factory = file_client
+    test_settings.job_mode = "thread"  # restored by the test_settings fixture
+    with factory() as db:
+        reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+
+    refused, unexpected, accepted = 0, [], 0
+    deadline = time.time() + 600
+    while time.time() < deadline:
+        with probe() as db:
+            if reset_service.reset_in_progress(db) is None:
+                break
+        with factory() as db:
+            try:
+                reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+                accepted += 1
+            except ConflictError as exc:
+                assert exc.status_code == 409
+                refused += 1
+            except Exception as exc:  # noqa: BLE001 - collected, so the assertion can name them
+                unexpected.append(f"{type(exc).__name__}: {exc}"[:200])
+        time.sleep(0.01)
+    else:
+        pytest.fail("the background reset did not finish within 10 minutes")
+
+    assert accepted == 0, f"{accepted} second reset(s) were accepted while one was running"
+    assert unexpected == [], f"{len(unexpected)} attempt(s) failed with an error instead of 409: {unexpected[:3]}"
+    assert refused > 10, f"only {refused} attempts were made while the reset ran; the test proved little"
+    with probe() as db:
+        lock = db.get(ResetLock, reset_service.LOCK_ID)
+        assert lock.last_outcome == "Completed", lock.last_reason
