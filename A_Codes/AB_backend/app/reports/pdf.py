@@ -155,9 +155,9 @@ def render(report: dict, sections: dict) -> bytes:
                 ["Phase changes", str(len(ch["phase_changes"]))],
                 ["Findings opened", str(len(ch["findings_opened"]))],
                 ["Findings closed", str(len(ch["findings_closed"]))],
-                # S13: decisions recorded since the previous report live in this section. A report
-                # stored before S13 has no such key; it is reopened as it was, so read it with a default.
-                ["Approval decisions recorded", str(len(ch.get("decisions_recorded", [])))]]
+                # S13: decisions recorded since the previous report live in this section. A pre-S13
+                # stored copy is carried to this shape by `report_service.read_sections` (TR-61).
+                ["Approval decisions recorded", str(len(ch["decisions_recorded"]))]]
         flow.append(_table(rows, [70 * mm, 25 * mm]))
         flow.append(Paragraph(f"Compared against {ch['previous_report_id']}.", styles["Note"]))
 

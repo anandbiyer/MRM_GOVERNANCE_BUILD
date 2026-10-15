@@ -616,23 +616,93 @@ def test_reg_16_an_approval_between_generations_does_not_split_the_hash(loaded_c
 
 
 def test_s13_only_the_changes_section_depends_on_the_previous_report(loaded_client):
-    """S13, REG-16: every section but `changes_since` is identical with and without a predecessor.
+    """S13, REG-16 (CR-52, TR-60): a report differs from the next one only in its changes section.
 
-    The structural form of CR-52. Rather than probe one figure, compare a report whose predecessor
-    has seen nothing with one whose predecessor has seen everything: any figure outside the changes
-    section that differs between them was derived from the predecessor and would split the hash.
+    Generate, make one change of every kind a report's baseline tracks — a model added, a phase
+    changed, a finding opened, a finding closed, an approval recorded — then generate twice. The
+    first of those two sees every change against its predecessor; the second, with nothing in
+    between, sees none. The portfolio is identical, so every section except `changes_since` must be
+    identical too, and so must the baseline and the hash. Any figure outside `changes_since` that
+    was derived from the predecessor differs between the two and fails here.
+
+    TR-60: the first version compared a report with no predecessor against one whose predecessor had
+    seen everything. Every "since" list was empty on both sides, so the comparison could not fail —
+    restoring CR-52's defect left it passing on everything but a hard-coded key check.
     """
-    h = login(loaded_client, *MRC)
-    first, second = _generate(loaded_client, h), _generate(loaded_client, h)
-    assert first["sections"]["changes_since"]["previous_report_id"] is None
-    assert second["sections"]["changes_since"]["previous_report_id"] == first["report_id"]
-    for name in SECTIONS:
+    admin, h = login(loaded_client, *ADMIN), login(loaded_client, *MRC)
+
+    def new_model(model_id):
+        return {"model_id": model_id, "model_name": "S13 probe", "model_type": "Credit Risk",
+                "model_subtype": "PD", "purpose": "S13 probe.", "business_line": "Business Banking",
+                "owner_id": "U-003", "developer_id": "U-021", "validator_id": "U-014",
+                "lifecycle_phase": "Development", "version": "v1.0",
+                "q_materiality": 2, "q_complexity": 2, "q_reliance": 2, "q_regulatory_use": 2}
+
+    # M-9013 exists before the first report, so its transition is a phase change, not an addition.
+    assert loaded_client.post("/api/models", headers=admin, json=new_model("M-9013")).status_code == 201
+    _generate(loaded_client, h)
+
+    assert loaded_client.post("/api/models", headers=admin, json=new_model("M-9014")).status_code == 201
+    row = _get(loaded_client, admin, "/api/models/M-9013")["model"]["row_version"]
+    assert loaded_client.post("/api/models/M-9013/transition", headers=admin, json={
+        "to_phase": "Validation", "reason": "S13 probe", "row_version": row}).status_code == 200
+    created = loaded_client.post("/api/findings", headers=admin, json={
+        "model_id": "M-9013", "title": "S13 probe", "description": "S13 probe.",
+        "severity": "Low", "category": "Documentation", "due_date": "2026-12-31"})
+    assert created.status_code == 201, created.text
+    open_finding = next(f for f in _get(loaded_client, admin, "/api/findings", model_id="M-0012")
+                        if f["status"] == "Open")
+    assert loaded_client.patch(f"/api/findings/{open_finding['finding_id']}", headers=admin, json={
+        "status": "Closed", "row_version": open_finding["row_version"],
+        "reason": "S13 probe"}).status_code == 200
+    assert loaded_client.post("/api/approvals", headers=admin, json={
+        "approval_id": "A-9013", "model_id": "M-9013", "decision_date": "2026-09-30",
+        "forum": "MRC", "decision_type": "Initial approval", "decision": "Approved"}).status_code == 201
+
+    sees, after = _generate(loaded_client, h), _generate(loaded_client, h)
+    changes = sees["sections"]["changes_since"]
+    for key in ("models_added", "phase_changes", "findings_opened", "findings_closed", "decisions_recorded"):
+        assert changes[key], f"the probe must exercise {key}, or this comparison proves nothing (TR-60)"
+        assert after["sections"]["changes_since"][key] == [], f"and the next report must not repeat {key}"
+
+    for name in [*SECTIONS, "baseline"]:
         if name != "changes_since":
-            assert first["sections"][name] == second["sections"][name], (
-                f"section {name!r} changed only because a previous report now exists; a "
-                f"predecessor-derived figure belongs in changes_since (S13)")
-    assert set(first["sections"]["approvals"]) == {"conditional_open"}, \
-        "the approvals section holds no 'since the previous report' list any more (S13)"
+            assert sees["sections"][name] == after["sections"][name], (
+                f"section {name!r} differs between two reports of the same portfolio; a figure "
+                f"derived from the previous report belongs in changes_since (S13)")
+    assert sees["content_hash"] == after["content_hash"]
+
+
+def test_tr_61_a_report_stored_before_s13_reopens_with_its_decisions(loaded_client):
+    """REG-17, S12, TR-61: a stored report reopens as what it said at generation, whatever its shape.
+
+    Reports stored before S13 hold their decisions under `approvals.decisions_since_previous`. The
+    stored copy is never rewritten, so reading it is where the old key is carried to the new one;
+    without that, a reopened pre-S13 report showed "0 decisions recorded" on screen and in the PDF
+    when it had listed some — misstating what it said.
+    """
+    import json
+
+    from app.storage import get_store
+
+    h = login(loaded_client, *MRC)
+    report = _generate(loaded_client, h)
+    decision = {"approval_id": "A-0001", "model_id": "M-0012", "decision": "Approved",
+                "decision_type": "Initial approval", "forum": "MRC", "decision_date": "2026-08-01"}
+    legacy = json.loads(json.dumps(report["sections"]))
+    legacy["approvals"]["decisions_since_previous"] = [decision]
+    del legacy["changes_since"]["decisions_recorded"]
+    from app.db import get_session_factory
+    from app.models import ModelRiskReport
+    with loaded_client.app.dependency_overrides[get_session_factory]()() as db:
+        storage_path = db.get(ModelRiskReport, report["report_id"]).storage_path
+    get_store().put(storage_path, json.dumps(legacy).encode("utf-8"), "application/json")
+
+    reopened = _get(loaded_client, h, f"/api/reports/model-risk/{report['report_id']}")["sections"]
+    assert reopened["changes_since"]["decisions_recorded"] == [decision],         "the decisions a pre-S13 report listed must still be shown when it is reopened"
+    assert "decisions_since_previous" not in reopened["approvals"], "and shown once, in their new place"
+    pdf = loaded_client.get(f"/api/reports/model-risk/{report['report_id']}/pdf", headers=h)
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF-")
 
 
 # --- the seeded example: real figures, labelled as an example (S11, S12 / D12 addendum) ------------

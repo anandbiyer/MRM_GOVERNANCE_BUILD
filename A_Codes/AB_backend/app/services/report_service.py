@@ -333,8 +333,19 @@ def sections(db: Session, previous: ModelRiskReport | None) -> dict:
 
 
 def read_sections(report: ModelRiskReport) -> dict:
-    """The stored copy, so a report reopens as what it said at the time (REQ-REG-10A)."""
-    return json.loads(get_store().get(report.storage_path).decode("utf-8"))
+    """The stored copy, so a report reopens as what it said at the time (REQ-REG-10A).
+
+    A copy stored before **S13** holds its decisions under `approvals.decisions_since_previous`;
+    S13 moved them to `changes_since.decisions_recorded`. The stored object is never rewritten, so
+    the old key is carried to the new place here, on read: the content is what the report said, only
+    its location follows the current shape. Without this a reopened pre-S13 report showed no
+    decisions on screen and in the PDF when it had listed some (TR-61, owner's option (a)).
+    """
+    content = json.loads(get_store().get(report.storage_path).decode("utf-8"))
+    approvals, changes = content.get("approvals") or {}, content.get("changes_since") or {}
+    if "decisions_since_previous" in approvals and "decisions_recorded" not in changes:
+        changes["decisions_recorded"] = approvals.pop("decisions_since_previous")
+    return content
 
 
 def _next_report_id(db: Session, on) -> str:

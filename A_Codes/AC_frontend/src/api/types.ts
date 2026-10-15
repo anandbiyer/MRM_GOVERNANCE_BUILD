@@ -501,8 +501,8 @@ export interface ReportSections {
     phase_changes: Record<string, unknown>[];
     findings_opened: Record<string, unknown>[];
     findings_closed: Record<string, unknown>[];
-    /** S13: every predecessor-derived figure lives in this section. Absent on reports stored before S13. */
-    decisions_recorded?: Record<string, unknown>[];
+    /** S13: every predecessor-derived figure lives in this section. Pre-S13 copies are carried here on read (TR-61). */
+    decisions_recorded: Record<string, unknown>[];
   };
 }
 

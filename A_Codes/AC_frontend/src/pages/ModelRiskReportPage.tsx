@@ -70,7 +70,7 @@ function ChangesSince({ changes }: { changes: ReportSections["changes_since"] })
     ["Findings opened", changes.findings_opened],
     ["Findings closed", changes.findings_closed],
     // S13: decisions recorded since the previous report belong to this section, not to Approvals.
-    ["Approval decisions recorded", changes.decisions_recorded ?? []],
+    ["Approval decisions recorded", changes.decisions_recorded],
   ];
   return (
     <>
