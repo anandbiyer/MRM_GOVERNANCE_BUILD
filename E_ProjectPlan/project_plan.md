@@ -1,6 +1,6 @@
 # MRM/MIS — Project Plan
 
-**Status as at:** 2026-10-08 · **Branch:** `gate-1-core-report` (Gate 0 closed and merged to `main`)
+**Status as at:** 2026-10-15 · **Branch:** `gate-1-core-report` (`main` carries Gate 0 and the Gate 2 decisions, merged in; `origin` is `github.com/anandbiyer/MRM_GOVERNANCE_BUILD`)
 
 *(No commit hash here on purpose: a hash written into a tracked file is stale the moment it is
 committed. Evidence columns cite test names and settings, which stay valid.)*
@@ -47,10 +47,10 @@ referenced in commits and reviews.
 |---|---|---|
 | BRD phases (§81) | 1, 2, 3, 4 + core of 8 | 2A (deferred, D12, except core report), 5, 6, 7, 9, 10 |
 | Screens (§55) | 7 of 11 | 2 placeholders (Monitoring, Data Audit) + 2 absent (Model Risk Report, Copilot) |
-| Database tables | 21 | ~18 — monitoring (6), CDE/DQ (4), KPI/performance (3), `document_extraction`, `model_risk_report` (core report, next), §12A (3, deferred D12) |
-| Import templates | 8 of 21 — T01–T05, T12, T17, T18 | 10 registered but disabled (T06–T11, T13–T16) + T19–T21 not registered |
+| Database tables | 21 | ~16 — monitoring (6), CDE/DQ (4), `performance_point` (1; `kpi`/`kpi_result` not created, D1), `document_extraction`, `model_risk_report` (core report, next), §12A (3, deferred D12) |
+| Import templates | 8 of 19 — T01–T05, T12, T17, T18 | 8 registered but disabled (T06, T09–T11, T13–T16) + T19–T21 not registered. T07 and T08 are retired by D1 and leave the registry in G3.14 |
 | API groups (§54) | ~11 | 8 — monitoring (5), cde, dq, copilot |
-| Acceptance criteria | 72 of 118 proven | 16 open in built scope (4 untested, 12 partly proven) + 30 unbuilt |
+| Acceptance criteria | 72 of 149 proven | 16 open in built scope (4 untested, 12 partly proven) + 61 unbuilt (MON-13…MON-20 by D7, DQ-01…DQ-13 by D8, COP-01…COP-10 by D11) |
 | Mock-up parity | 23 Match, 3 Partial, 0 Missing of 38 items | 10 not built (MUP-29 next, with the core report); MUP-04, MUP-05 and MUP-08 are accepted differences |
 | Roles / permissions | 10 × 15, enforced server-side | `REPORT_GENERATE` (core report, next); `REG_CLASSIFY`, `OVERLAY_APPROVE` (Phase 2A, deferred D12) |
 
@@ -175,60 +175,86 @@ Deferred by **D12** except the core Model Risk Report, which is built next. Rows
 
 **Delivers MUP-29 (core report) now; MUP-30 (MRC report pack) is partial until Phase 2A resumes.**
 
-## 5. Gate 2 — record decisions D1–D7 ⛔ blocks Gate 3
+## 5. Gate 2 — record decisions D1–D7 — Closed 2026-10-09
 
 Not an engineering task. Can and should run in parallel with Gate 1.
 
-| ID | Decision | Subject | Status |
+| ID | Decision | Subject | Status / Evidence |
 |---|---|---|---|
-| G2.1 | **D1** | KPI vs monitoring tables — which is the system of record | Not started |
-| G2.2 | **D2** | Bounds for the "within range" direction | Not started |
-| G2.3 | **D3** | Rules-created breaches vs T16 import | Not started |
-| G2.4 | **D4** | Backtests as a `monitoring_run` type | Not started |
+| G2.1 | **D1** | KPI vs monitoring tables — which is the system of record | **Decided** 2026-10-09 — [`decision_log.md`](decision_log.md) |
+| G2.2 | **D2** | Bounds for the "within range" direction | **Decided** 2026-10-09 — [`decision_log.md`](decision_log.md) |
+| G2.3 | **D3** | Rules-created breaches vs T16 import | **Decided** 2026-10-09 — [`decision_log.md`](decision_log.md) |
+| G2.4 | **D4** | Backtests as a `monitoring_run` type | **Decided** 2026-10-09 — [`decision_log.md`](decision_log.md) |
 | G2.5 | **D5** | Escalation / repeated-breach policy keys (see G0.10) | **Decided** 2026-10-05 |
-| G2.6 | **D6** | What feeds the Monitoring score component; treatment of Not Available | Not started |
-| G2.7 | **D7** | Missing MON criteria for §21–§24 and T13–T16 validation | Not started |
+| G2.6 | **D6** | What feeds the Monitoring score component; treatment of Not Available | **Decided** 2026-10-09 — [`decision_log.md`](decision_log.md) |
+| G2.7 | **D7** | Missing MON criteria for §21–§24 and T13–T16 validation | **Decided** 2026-10-09 — [`decision_log.md`](decision_log.md) |
 
 ## 6. Gate 3 — Phase 6, Monitoring (largest block)
 
-Blocked by Gate 2. Also requires G0.6.
+Unblocked: Gate 2 closed 2026-10-09 and G0.6 is Done. Nothing now blocks this gate.
+
+**New policy keys to add in Gate 3 (T12 bootstrap and seed, paired):** `breach_severities`,
+`breach_to_finding_severity`; and tighten `breach_severity_rules` validation to the MON-14 conditions.
+
+Also in Gate 3, from the stage 1 review of D1–D7:
+
+- `breach_statuses` (the six §20 statuses) and `breach_open_statuses` (New, Acknowledged, Under
+  Investigation, Action Required) — the D10 pattern.
+- `metric_categories` — the §15 categories plus **Backtest** (D4).
+- `monitoring_required_evidence` — document types each run needs before sign-off, default Monitoring
+  Report (MON-17).
+- **Rewrite the seeded `breach_severity_rules` value** to `metric_fail=Medium; warn_escalated=Low;
+  repeated_breach=High; high_tier_metric_fail=High; regulatory_metric_fail=High`, and correct its T12
+  description from "first match from the most specific wins" to "the highest severity wins".
+  Deliberately not done on `decisions-d1-d7`: it changes `B_Inputs/`, which this documentation session
+  must not touch and which the merge hook would treat as an unreviewed product change.
 
 | ID | Activity | Criteria | Status |
 |---|---|---|---|
-| G3.1 | Migration: `monitoring_plan`, `monitoring_metric`, `monitoring_run`, `monitoring_result`, `monitoring_breach`, `monitoring_evidence` with effective dating | — | Blocked (G2) |
-| G3.2 | Monitoring plans, versioned, with owner/reviewer and review calendar | — | Blocked (G2) |
-| G3.3 | Configurable metrics and thresholds; direction incl. within-range (D2) | MON-01 | Blocked (G2) |
-| G3.4 | Runs and results; **threshold snapshot onto each result** so history never changes | MON-01, MON-05 | Blocked (G2) |
-| G3.5 | Breach creation, severity rules, escalation, repeated-breach detection (D3, D5) | MON-02, MON-03, MON-08 | Blocked (G2) |
-| G3.6 | Run completeness check before sign-off | MON-04 | Blocked (G2) |
-| G3.7 | Backtesting as a run type (D4) | — | Blocked (G2) |
-| G3.8 | Trends: ≥4 periods, chart drill-down to the result | MON-06, MON-07 | Blocked (G2) |
-| G3.9 | Evidence attachment to runs and metrics | MON-10 | Blocked (G2) |
-| G3.10 | Breach → finding conversion by authorised action only | MON-09 | Blocked (G2) |
-| G3.11 | Monitoring Dashboard screen (§25), replacing the placeholder | MON-11 | Blocked (G2) |
-| G3.12 | Model 360 Monitoring tab (§26) | — | Blocked (G2) |
-| G3.13 | Monitoring score component (D6) | MON-12 | Blocked (G2) |
-| G3.14 | Templates T13–T16 and T07–T09 | — | Blocked (G2) |
-| G3.15 | MON-01…MON-12 plus whatever D7 adds | — | Blocked (G2) |
+| G3.1 | Migration: `monitoring_plan`, `monitoring_metric`, `monitoring_run`, `monitoring_result`, `monitoring_breach`, `monitoring_evidence` with effective dating | — | Not started |
+| G3.2 | Monitoring plans, versioned, with owner/reviewer and review calendar | — | Not started |
+| G3.3 | Configurable metrics and thresholds; direction incl. within-range (D2) | MON-01 | Not started |
+| G3.4 | Runs and results; **threshold snapshot onto each result** so history never changes | MON-01, MON-05 | Not started |
+| G3.5 | Breach creation, severity rules, escalation, repeated-breach detection (D3, D5) | MON-02, MON-03, MON-08 | Not started |
+| G3.6 | Run completeness check before sign-off | MON-04 | Not started |
+| G3.7 | Backtesting as a run type (D4) | — | Not started |
+| G3.8 | Trends: ≥4 periods, chart drill-down to the result | MON-06, MON-07 | Not started |
+| G3.9 | Evidence attachment to runs and metrics | MON-10 | Not started |
+| G3.10 | Breach → finding conversion by authorised action only | MON-09 | Not started |
+| G3.11 | Monitoring Dashboard screen (§25), replacing the placeholder | MON-11 | Not started |
+| G3.12 | Model 360 Monitoring tab (§26) | — | Not started |
+| G3.13 | Monitoring score component (D6) | MON-12 | Not started |
+| G3.14 | Templates T13–T16 and T09 (every T09 row requires `monitoring_run_id`); **retire T07 and T08 from the registry** (D1) | MON-18, MON-19 | Not started |
+| G3.15 | MON-01…MON-20 tests | MON-01…MON-20 | Not started |
 | G3.16 | **Schema checkpoint (R1)** after G3.1 — the six monitoring tables against §48 and T13–T16 | — | Blocked (G3.1) |
-| G3.17 | **Gate 3 exit review (R3)** — all four agents; MUP-18, MUP-19 | MON-01…MON-12 | Blocked (G3.15) |
+| G3.17 | **Gate 3 exit review (R3)** — all four agents; MUP-18, MUP-19 | MON-01…MON-20 | Blocked (G3.15) |
 
 **Delivers MUP-18, MUP-19.** Note: every model's governance score shifts when this lands — the 15%
 monitoring weight stops being rescaled away. Expect the seeded portfolio figures to change.
 
 ## 7. Gate 4 — Phase 7, Data Audit
 
-Blocked by **D8** (write DQ criteria as §76B).
+Unblocked: **D8** decided 2026-10-09 — criteria DQ-01…DQ-13 in §76B, `cde_model` and the
+threshold-applied `dq_result` columns in §48.
+
+**Policy keys for Gate 4 (T12 bootstrap and seed, paired):**
+
+- `dq_issue_statuses` and `dq_issue_open_statuses` — the D10 pattern (DQ-07).
+- `dq_issue_severity_rules` — Critical when the CDE feeds a High-tier model, otherwise Medium (DQ-06).
+- `dq_issue_due_days` — due period for a new DQ issue (DQ-06).
+- `dq_default_pass_pct` and `dq_default_warn_pct` — **already shipped** (98 / 95); kept, and now the
+  DQ-02 fallback.
+- `data_quality_fail` returns to `breach_severity_rules` as an allowed condition (D3 amendment).
 
 | ID | Activity | Status |
 |---|---|---|
-| G4.1 | Migration: `cde`, `dq_rule`, `dq_result`, `dq_issue` | Blocked (D8) |
-| G4.2 | CDE registry, DQ rules and thresholds, results by run, issue log | Blocked (D8) |
-| G4.3 | Templates T06 and T10 | Blocked (D8) |
-| G4.4 | Data Audit screen (§55.5), replacing the placeholder | Blocked (D8) |
-| G4.5 | Model 360 CDE/DQ tab | Blocked (D8) |
-| G4.6 | §76B criteria and tests | Blocked (D8) |
-| G4.7 | **Schema checkpoint (R1)** after G4.1 — `cde`, `dq_rule`, `dq_result`, `dq_issue` against §48 and T06/T10 | Blocked (G4.1) |
+| G4.1 | Migration: `cde`, `cde_model`, `dq_rule`, `dq_result` (with threshold-applied columns), `dq_issue` | Not started |
+| G4.2 | CDE registry, DQ rules and thresholds, results by run, issue log | Not started |
+| G4.3 | Templates T06 and T10 | Not started |
+| G4.4 | Data Audit screen (§55.5), replacing the placeholder | Not started |
+| G4.5 | Model 360 CDE/DQ tab | Not started |
+| G4.6 | §76B criteria DQ-01…DQ-13 and tests | Not started |
+| G4.7 | **Schema checkpoint (R1)** after G4.1 — `cde`, `cde_model`, `dq_rule`, `dq_result`, `dq_issue` against §48 and T06/T10 | Blocked (G4.1) |
 | G4.8 | **Gate 4 exit review (R3)** — all four agents; MUP-20, MUP-27, MUP-28 | Blocked (G4.6) |
 
 **Delivers MUP-20, MUP-27, MUP-28.**
@@ -247,16 +273,24 @@ Blocked by **D8** (write DQ criteria as §76B).
 
 **Delivers MUP-26.**
 
+**AI provider (D13, decided 2026-10-09).** G5.1 also builds the provider seam: environment settings
+`MRM_AI_PROVIDER` (`stub` | `claude`) and `MRM_AI_MODEL` in `app/config.py` — not T12 rows — with
+`stub` the default when no API key is present. `claude` with no key **refuses to start** with a clear
+message and never falls back to the stub. Tests run against the stub. The §60 provenance fields record
+the provider and model behind every extraction.
+
 ## 9. Gate 6 — Phase 9, Audit Copilot
 
-Blocked by **D11** (write COP criteria as §76C).
+Unblocked: **D11** decided 2026-10-09 — COP-01…COP-10 in §76C. **D13** decided the same day: the
+Copilot uses Gate 5's provider seam (`MRM_AI_PROVIDER`, `MRM_AI_MODEL`; stub by default, refuses to start
+if `claude` is chosen with no key), and COP-06's audit event records the provider and model.
 
 | ID | Activity | Status |
 |---|---|---|
-| G6.1 | Read-only query tools over governed data | Blocked (D11) |
-| G6.2 | Answers cite model IDs and underlying records; refuse to act | Blocked (D11) |
-| G6.3 | Suggested questions; Copilot screen and route | Blocked (D11) |
-| G6.4 | §76C criteria and tests | Blocked (D11) |
+| G6.1 | Read-only query tools over governed data | Not started |
+| G6.2 | Answers cite model IDs and underlying records; refuse to act | Not started |
+| G6.3 | Suggested questions; Copilot screen and route | Not started |
+| G6.4 | §76C criteria COP-01…COP-10 and tests | Not started |
 | G6.5 | **Gate 6 exit review (R3)** — all four agents; MUP-31, MUP-32 | Blocked (G6.4) |
 
 **Delivers MUP-31, MUP-32.**
@@ -331,11 +365,10 @@ without a reproduction is a guess.
 
 ## 11. Critical path and risks
 
-1. **Gate 2 is now the critical path.** With Phase 2A deferred, the core report is the only work that
-   runs alongside the D1–D7 decisions. Once it is done, nothing but Gate 5 (AI extraction) can be
-   built until D1–D7 are recorded.
-2. **Gate 2 is a decision bottleneck, not an engineering one.** It gates the largest block of work
-   (Gate 3). Start it now, alongside the core report. If it slips, Gate 3 slips with it.
+1. Gate 2 closed 2026-10-09. Gate 3 is the largest remaining block, and nothing now blocks it.
+2. **Gate 3 starts with configuration.** Its policy keys (the note under Gate 3) must land in the T12
+   bootstrap and the seed together, paired, before the services that read them — the GR.9 baseline
+   test fails if the two diverge.
 3. **G0.6 must precede Gate 3.** Adding `model_version` to documents after monitoring evidence is
    attached means migrating live associations.
 4. **Scores move when Gate 3 lands.** Anything quoting today's governance scores — seed expectations,
@@ -357,6 +390,9 @@ without a reproduction is a guess.
 | 2026-10-08 | **BL.24 Done — §10's revalidation list is complete.** Owner, Last validation and Latest outcome are on the Command Center's revalidation timeline, so "show me this owner's models due for revalidation" can be answered from a list for the first time. Frontend only: `GET /api/dashboard/summary` had returned `owner_id`, `last_validation_date` and `latest_decision` on every row all along. Regression test **FS-28**, shown failing first on the missing Owner column. The change immediately broke **FS-26**, which located the Due cell at `.nth(2)` — a positional locator two columns upstream of the insert. It failed loudly rather than silently, which was luck: the values differed. Both that and its replacement are recorded in the test, because the next person to add a column deserves the warning. Gates: backend 206 pass / 4 skip, frontend build green. |
 | 2026-10-08 | **`main` merged into `gate-1-core-report`** (Part 0's recorded exception: this branch was cut from `review-agents` before Gate 0 closed). Twelve conflicts, none trivial. The one that mattered: `_reset_job` had to combine G1.18's seeded previous report with G0.22's FT-04 ordering rule, and the report **moved before** the evidence handover — the reset may make no database write after starting a background job, and a report generated afterwards is precisely the kind of afterthought that caused FT-04. The consequence is deliberate and documented in the code: the seeded previous report shows the portfolio without the evidence documents, which is right for a report dated 30 days earlier and keeps generation deterministic (REG-16). **Four `_OLD/` collisions** where both branches had written different history under the same filenames — both sides kept, this branch's re-filed as `claude_v12`–`v14` and `review_gate_v2`, because `_OLD` is never cleaned up. The seed's T12 was regenerated from the auto-merged bootstrap at the committed reference date (**72 settings**: gate-1's two plus main's three). §76A.14 carries main's recalculated table, except GEN-01, where this branch's entry is *newer* — the second-reset comparison it names exists here — and a note that the headline counts are main's and exclude the core report until the Gate 1 exit review recounts them. Gates on the merged branch: backend **206 pass / 4 skip**, frontend build green, hook tests 27/27. |
 | 2026-10-03 | Plan created. Records GR.1–GR.10 as Done from the current session; Gates 0–7 opened with all activities `Not started` or `Blocked`. |
+| 2026-10-09 | **D13 decided — every §81A decision is now recorded.** Option 3: both a stub and the Claude API, switched by the environment settings `MRM_AI_PROVIDER` (`stub` \| `claude`) and `MRM_AI_MODEL` in `app/config.py` rather than T12 rows. The stub is the default when no key is present; choosing `claude` without a key refuses to start rather than falling back silently. Noted under Gates 5 and 6. Documentation only; `decisions-d1-d7` merges to `main`. |
+| 2026-10-09 | **D8 and D11 decided: Data Audit and Copilot have acceptance criteria.** §76B adds **DQ-01…DQ-13** (CDE registry, thresholds from data, status with a boundary example, the threshold in force stored on each result, issues raised from failures without duplicates, D10-pattern statuses, T06/T10 through the service path, audit, `dq:manage`, Data Audit agreeing with Model 360, the Critical DQ insight). §76C adds **COP-01…COP-10** (read-only, citations that exist and are correct, no invented figures, the user's role respected, every exchange audited with §60 provenance, suggested questions, embedded text treated as data, provider failure shown). §48 gains `cde_model`, so one CDE may feed several models, and threshold-applied columns on `dq_result`. Gate 4 gets its policy-key note. G4.1–G4.6 and G6.1–G6.4 move from `Blocked` to `Not started`; Gate 6's provider waits on D13. Criteria total 126 → 149. No new permissions. Documentation only. |
+| 2026-10-09 | **Gate 2 closed: D1, D2, D3, D4, D6 and D7 decided** and recorded in [`decision_log.md`](decision_log.md) and §81A. D1: `monitoring_metric`/`monitoring_result` are the system of record, `kpi`/`kpi_result` are not created, T07/T08 are aliases of T14/T15, `performance_point` gains `monitoring_run_id`. D2: `range_lower`/`range_upper`, inclusive Pass, no Warn, copied onto results. D3: breaches only from the rules; T16 updates a matched breach; new `breach_severities` and `breach_to_finding_severity`. D4: backtests are runs of type Backtest. D6: Monitoring-phase models score the share of Pass metrics in the latest signed-off non-backtest run; no plan scores 0. D7: **MON-13…MON-20** added to §77, so the criteria total goes 118 → 126. Amended in review the same day: T07/T08 **retired** rather than aliased (MON-19 reworded), MON-14's conditions fixed and highest severity wins, MON-02 is any Fail, T16 matches on `breach_id` and ignores severity, D6's edge cases settled, MON-17 reads `monitoring_required_evidence`; template total 21 → 19. G2.1–G2.4, G2.6, G2.7 Decided; G3.1–G3.15 `Blocked (G2)` → `Not started`; Gate 3 note lists the new policy keys, which are added in Gate 3, not now. Specification and plan only — no product code, tests, seed, `B_Inputs` or T12 files. |
 | 2026-10-07 | **Gate 0 merged to `main`** (fast-forward, 44 commits). Both CI gates re-run green on `main`: backend 184 pass / 4 skip, frontend build. Two things worth recording about the merge itself. The hook's rule as specified could not evaluate a merge at all — on `git merge X` from main, HEAD is main's tip and main is behind by definition, so "the reviewed commit is an ancestor of HEAD" is false for every merge; the hook now judges the commit arriving, with five more tests covering it. And **the merge went through with no gate present**, because `main` predated `.claude/` and the hook lives in the working tree — the control is absent exactly when you are on the branch it protects. Recorded in Part 0 as a known weakness rather than quietly fixed. The recorded head was moved forward from `c8deaaf` to `69f867f` so the gate could merge, with `reviewed_head` and a `head_note` in `review_state.json` stating why: nine protected files changed after the review and **none is product code** — the diff over `app/`, `src/`, `AD_seed/` and `B_Inputs/` is empty — they are the hook and its tests, six docstring-only criterion tags, FS-27, and four harness files the parity tester wrote as its own deliverables. That is my judgement and it is reversible by re-running the gate review at that commit. |
 | 2026-10-07 | **Post-gate decisions: the merge hook, SEC-07, MP-17 and the grep contract.** The hook rule is relaxed to what it actually protects — the reviewed commit must be an **ancestor** of HEAD and nothing under `A_Codes/`, `B_Inputs/`, `.claude/` or `.github/` may have changed between them — so a review can record itself while any change to the product, the inputs, the controls or CI still demands a fresh one. CLAUDE.md is deliberately unprotected, because a gate review writes its own findings into it. **16 scratch-branch checks, now a committed file** (`.claude/hooks/test_review_gate.py`) rather than ad hoc, covering the two cases asked for — `D_Reviews/`-only allowed, `.claude/` denied — plus the other three protected paths, the non-ancestor case, an unknown recorded head, a missing state file, and the four non-git commands that must pass straight through. Writing them cost a lesson: the first version set `HOOK = Path(__file__)`, so every simulated hook invocation copied the **test** into the clone and ran the whole suite again inside it — about a thousand recursive temp clones and 600 stuck processes before I understood why it "hung". The file now asserts it is pointing at the hook. **SEC-07 narrowed** (S9/CR-32) to what the code does, and **FS-27** added to prove it: a role switch through the picker with no navigation, asserting the audit-gated nav item appears and `GET /api/audit` goes 403 → 200, with a `window` marker so a reload cannot make it vacuous. Shown failing against the restored G0.21 defect. **The grep contract is true again** — GEN-04 and GEN-05 are tagged on the six tests that prove them, and the §76A.14 prose that claimed GEN-04 was already tagged is corrected; GEN-04 stays partly proven, because the tag was the easy half. §76A.14 replaced from the test reviewer's report (72 of 118). **MP-17 → BL.24**, to be picked up on `gate-1-core-report` before any demo. The rest of the re-run's 5 Medium and 14 Low are BL.25–BL.27. |
 | 2026-10-07 | **Gate 0 closed: the exit review re-ran Ready.** All four agents at `779e3de`/`c8deaaf`; three CI gates green, functional **25/25** (was 18/6), parity **0 Missing · 0 Partial** across 38 IDs, 72 of 118 criteria proven. Every one of the previous run's seven Critical and High findings is closed, and — the part worth recording — each was re-verified by the agent that raised it, with its own mutations or its own measurements rather than by reading the fix. Two agents corrected themselves in the process: **TR-24 was withdrawn** (the mutation fails 8 tests, so the headline did not reproduce; the gap under it does, with a narrower one, and stays BL.13), and the requirements reviewer confirmed its own CR-21 advice had been wrong about `CONTEXT_KEYS`. **Five of my own claims were wrong and are corrected here**, which is the honest cost of this run: the `effective_weight` assertion is not what catches CR-21 (TR-35); §76A.14 says GEN-04 is tagged and no test names it (TR-31); FS-21 carried the GEN-04 tag without testing it, which the functional tester fixed by adding the real probe; FT-04's guard covers Session commits only (TR-34); and my `mockup-parity.md` entry for MP-08 claimed the app shows all of §10's revalidation list when Owner, Last validation and Latest outcome appear on no revalidation view at all — so that part cannot be an accepted difference and is carried as **MP-17** for a decision. One new High, **CR-29**, was a missing `_OLD/` snapshot of my own in G0.23 — CR-22's failure mode inside the commits convened to close CR-22 — closed in `c8deaaf`. **Gate 0 is Ready; the merge is blocked by the hook, not by the build:** `review_gate.py:123` demands the recorded head equal HEAD, which recording the verdict necessarily breaks. |
