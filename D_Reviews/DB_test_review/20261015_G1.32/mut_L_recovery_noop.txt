@@ -1,0 +1,58 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32/L_recovery_noop.py
+..................................FF                                     [100%]
+================================== FAILURES ===================================
+_ test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason __
+
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+
+    def test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason(db_session):
+        """GEN-05: the `finally` cannot run if the process itself dies mid-reset.
+    
+        Jobs run in the application's own process (`app.workers.runner`), so when it starts again no reset
+        of its own can be running: a lock still held was left by an interrupted run. Startup releases it
+        and records that, rather than leaving the product unresettable — FT-05's failure mode one level
+        up.
+        """
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, "dead", "U-001")
+            reset_service.set_reset_stage(db_session, "dead", "Seed load")
+>           assert reset_service.recover_interrupted_reset(db) is True
+E           assert False is True
+E            +  where False = <function recover_interrupted_reset at 0x00000243932749E0>(<sqlalchemy.orm.session.Session object at 0x0000024397F94050>)
+E            +    where <function recover_interrupted_reset at 0x00000243932749E0> = reset_service.recover_interrupted_reset
+
+tests\test_reset_lock.py:203: AssertionError
+______ test_g1_32_starting_the_application_releases_an_interrupted_lock _______
+
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024398AC3E90>
+
+    def test_g1_32_starting_the_application_releases_an_interrupted_lock(db_session, monkeypatch):
+        """GEN-05: the recovery above is wired to startup, not merely available."""
+        from fastapi.testclient import TestClient
+    
+        import app.db
+        from app.main import create_app
+    
+        monkeypatch.setattr(app.db, "SessionLocal", db_session)
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, "dead", "U-001")
+        with TestClient(create_app()):  # entering the client runs the application's startup
+            pass
+        with db_session() as db:
+>           assert reset_service.reset_in_progress(db) is None
+E           assert <app.models.reset_lock.ResetLock object at 0x0000024398A56F30> is None
+E            +  where <app.models.reset_lock.ResetLock object at 0x0000024398A56F30> = <function reset_in_progress at 0x00000243932745C0>(<sqlalchemy.orm.session.Session object at 0x0000024398660180>)
+E            +    where <function reset_in_progress at 0x00000243932745C0> = reset_service.reset_in_progress
+
+tests\test_reset_lock.py:223: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_reset_lock.py::test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason
+FAILED tests/test_reset_lock.py::test_g1_32_starting_the_application_releases_an_interrupted_lock
+2 failed, 34 passed, 62 deselected, 1 warning in 203.51s (0:03:23)

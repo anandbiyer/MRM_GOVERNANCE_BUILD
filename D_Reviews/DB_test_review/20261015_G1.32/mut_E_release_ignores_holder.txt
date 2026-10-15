@@ -1,0 +1,27 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32/E_release_ignores_holder.py
+.................................F..                                     [100%]
+================================== FAILURES ===================================
+_______________ test_g1_32_only_the_holder_can_release_the_lock _______________
+
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+
+    def test_g1_32_only_the_holder_can_release_the_lock(db_session):
+        """GEN-04: a late or repeated release by a finished reset cannot free someone else's lock."""
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, "current", "U-001")
+        reset_service.release_reset_lock(db_session, "stale", "Completed")
+        with db_session() as db:
+>           assert reset_service.reset_in_progress(db).holder == "current"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'holder'
+
+tests\test_reset_lock.py:186: AttributeError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_reset_lock.py::test_g1_32_only_the_holder_can_release_the_lock
+1 failed, 35 passed, 62 deselected, 1 warning in 184.06s (0:03:04)

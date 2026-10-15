@@ -1,0 +1,4 @@
+second-reset attempts: {'OperationalError': 58, 'NoUser(401)': 28, 'Conflict(409)': 5}
+  example OperationalError : start_reset:259 <- acquire_reset_lock:156
+  example Conflict(409) : A reset is already running: batch B-20260930-001, stage Seed evidence staging, started 2026-10-15 21:14:33 UTC. Wait for it to finish and try again (GET /api/admin/reset/status).
+RESULT PASS

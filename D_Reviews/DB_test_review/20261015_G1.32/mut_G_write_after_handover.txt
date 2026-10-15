@@ -1,0 +1,142 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32/G_write_after_handover.py
+.............F...........F..........                                     [100%]
+================================== FAILURES ===================================
+__ test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis ___
+
+client = <starlette.testclient.TestClient object at 0x000002B2949DBF00>
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-554/test_ft_04_the_reset_writes_no0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002B2949DBAC0>
+
+    def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(
+            client, db_session, test_settings, monkeypatch):
+        """GEN-01, GEN-05 (FT-04): a reset must make no further database write once it has handed the
+        evidence batch to a background job.
+    
+        This is the defect G0.18's status hold introduced, and it cost all 1,116 evidence documents
+        behind an HTTP 202. `load_seed_documents` returns as soon as the documents batch exists and its
+        analysis has been *submitted*, so restoring the seed batch's status in a `finally` afterwards
+        raced that job: the reset's commit took SQLite's write lock, SQLite refused the job's lock
+        promotion without consulting `busy_timeout` (see `app/db.configure_sqlite`), and the analysis
+        died at `documents/batch.py`.
+    
+        The **ordering** is asserted, not the race. Every test forces `MRM_JOB_MODE=inline`, which runs
+        the two jobs one after the other so the race cannot happen — which is precisely why CI could not
+        see FT-04. An ordering assertion holds in either mode, and it is the invariant that matters:
+        whatever the reset still has to write, it writes before it starts something else writing.
+        """
+        from sqlalchemy.orm import Session as SASession
+        from sqlalchemy import event as sa_event
+    
+        from app.workers import runner
+    
+        events: list[str] = []
+    
+        def recording_submit(fn, *args):
+            events.append(f"submit:{fn.__name__}")
+            if fn is reset_service._reset_job:
+                fn(*args)  # the reset itself still runs; the jobs it starts are only recorded
+    
+        def on_commit(_session):
+            events.append("commit")
+    
+        monkeypatch.setattr(runner, "submit", recording_submit)
+        sa_event.listen(SASession, "after_commit", on_commit)
+        try:
+            resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+        finally:
+            sa_event.remove(SASession, "after_commit", on_commit)
+    
+        assert resp.status_code == 202, resp.text
+        # The *last* handover, found rather than named: G1.26 renamed the job the reset submits
+        # (`analyse_job` -> `_store_evidence_then_seed_report`) and this assertion failed on the name
+        # while the invariant it exists for still held. The invariant is what matters — whatever the
+        # reset still has to write, it writes before it starts anything else writing.
+        submits = [i for i, e in enumerate(events) if e.startswith("submit:") and e != "submit:_reset_job"]
+        assert submits, f"the reset never handed the evidence over: {events}"
+        after = events[submits[-1] + 1:]
+>       assert after == [], (
+            f"the reset committed {after.count('commit')} time(s) after {events[submits[-1]]}; "
+            f"in thread mode those writes race the job and lose the evidence (FT-04)"
+        )
+E       AssertionError: the reset committed 1 time(s) after submit:_store_evidence_then_seed_report; in thread mode those writes race the job and lose the evidence (FT-04)
+E       assert ['commit'] == []
+E         
+E         Left contains one more item: 'commit'
+E         Use -v to get more diff
+
+tests\test_imports.py:623: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+_ test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released _
+
+file_client = (<starlette.testclient.TestClient object at 0x000002B29450D9D0>, sessionmaker(class_='Session', bind=Engine(sqlite:///...Local/Temp/pytest-of-anand/pytest-554/test_g1_32_after_every_commit_0/lock.db), autoflush=True, expire_on_commit=True))
+
+    def test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released(file_client):
+        """GEN-05, GEN-04 (TR-65): no commit inside a reset leaves it looking finished, except the last.
+    
+        This is the form that would have caught both CR-53 and TR-65 — each was one commit after which
+        the inferred signal read "finished" while the reset still had writing to do. Every commit made
+        during an inline reset is observed, and after each one an independent connection asks the same
+        question `start_reset` asks. Only the final commit, the release, may answer "not running".
+        """
+        client, probe = file_client
+        seen: list[bool] = []
+    
+        def after_commit(_session):
+            with probe() as db:
+                seen.append(reset_service.reset_in_progress(db) is not None)
+    
+        headers = login(client, *ADMIN)  # before listening: signing in is not part of the reset
+        sa_event.listen(SASession, "after_commit", after_commit)
+        try:
+            resp = client.post("/api/admin/reset", headers=headers)
+        finally:
+            sa_event.remove(SASession, "after_commit", after_commit)
+    
+        assert resp.status_code == 202, resp.text
+        assert len(seen) > 10, f"a reset makes many commits; only {len(seen)} were observed"
+        assert seen[-1] is False, "the last commit is the release, after which the reset is over"
+        # The reset begins at the claim. At most one commit may precede it: inserting the lock row on a
+        # `create_all` database, which has none until the first reset (migration 0008 inserts it).
+        claim = seen.index(True)
+        assert claim <= 1, f"{claim} commits happened before the lock was claimed; the claim must come first"
+        early = [i for i, held in enumerate(seen[:-1]) if i >= claim and not held]
+>       assert early == [], (
+            f"after commit(s) {early} of {len(seen)} the reset read as finished while it was still "
+            f"writing, so a second reset would have been accepted there (TR-65, CR-53)")
+E       AssertionError: after commit(s) [2533] of 2535 the reset read as finished while it was still writing, so a second reset would have been accepted there (TR-65, CR-53)
+E       assert [2533] == []
+E         
+E         Left contains one more item: 2533
+E         Use -v to get more diff
+
+tests\test_reset_lock.py:89: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_imports.py::test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+2 failed, 34 passed, 62 deselected, 1 warning in 202.74s (0:03:22)

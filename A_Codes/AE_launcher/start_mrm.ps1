@@ -56,6 +56,14 @@ if (Test-Port 8000) {
         } catch { Pop-Location; Fail $_ }
         Pop-Location
     }
+    # Every start, not only the first: `create_all` adds tables a newer build introduced (G1.32's
+    # reset_lock, for one) to an existing dev database, and never alters or drops anything.
+    Push-Location $backend
+    try {
+        & $python -c "from app.db import engine; from app.models import Base; Base.metadata.create_all(engine)"
+        if ($LASTEXITCODE -ne 0) { throw "Database schema update failed." }
+    } catch { Pop-Location; Fail $_ }
+    Pop-Location
     Write-Host "Starting backend (minimised window 'MRM backend')..."
     Start-Process powershell -WorkingDirectory $backend -WindowStyle Minimized -ArgumentList @(
         "-NoProfile", "-Command",

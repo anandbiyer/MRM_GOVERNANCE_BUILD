@@ -2270,6 +2270,27 @@ it (**S11**, **S12**, the D12 addendum). It is a stored flag rather than a deriv
 `generated_by IS NULL`, because "no user generated this" and "this is a shaped example" are different
 statements and only the second is safe to put on a screen.
 
+### reset_lock — the reset's explicit lock (plan G1.32, GEN-04, GEN-05)
+- lock_id (always 1; one row, inserted by migration 0008)
+- holder
+- batch_id
+- acquired_by
+- acquired_at
+- stage
+- released_at
+- last_outcome
+- last_reason
+
+A reset claims the row at its very start with one conditional update ("set the holder where there is
+none"), holds it to its very end, and releases it in a `finally` that records the outcome
+(Completed, Failed or Interrupted) and, on failure, the stage and reason. "Is a reset running?" is
+answered by this row alone — not by any import batch's status, which is what the guard inferred from
+until that inference failed twice (review findings CR-53 and TR-65). The table is outside the set a
+reset deletes, and `batch_id` and `acquired_by` are plain ids with no foreign key, because the rows
+they name are deleted and reloaded by the reset itself. A lock left held by a process that died
+mid-reset is released, with the reason, when the application next starts. Holding and releasing the
+lock is processing state and is not audited; the reset itself is.
+
 ---
 
 # 49. Database Requirements

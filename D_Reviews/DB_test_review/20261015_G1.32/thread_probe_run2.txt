@@ -1,0 +1,7 @@
+reset started B-20260930-001
+samples=2740 elapsed=9.3s
+seed batch Completed (None); documents=1116; reports=1; lock outcome=Completed stage=Seeded example report reason=None
+second-reset attempts: {'OperationalError': 54, 'NoUser(401)': 26, 'Conflict(409)': 3}
+  example OperationalError : (sqlite3.OperationalError) database is locked
+  example Conflict(409) : A reset is already running: batch B-20260930-001, stage Seed evidence staging, started 2026-10-15 21:13:49 UTC. Wait for it to finish and try again (GET /api/admin/reset/status).
+RESULT PASS

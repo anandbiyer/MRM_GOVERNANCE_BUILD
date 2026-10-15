@@ -89,9 +89,18 @@ class ImportBatchDetail(ImportBatchOut):
 
 
 class ResetStatusOut(ORMModel):
-    """Whether a reset is still running. `batch` is the one to watch, or null when idle."""
+    """Whether a reset is running, read from the reset lock (G1.32), and how the last one ended.
+
+    `batch` is the running reset's seed batch, or null when idle. Its own status is *not* the signal:
+    it reads Completed once the seed is loaded, long before the reset has finished (CR-53, TR-65).
+    """
     in_progress: bool
     batch: ImportBatchOut | None
+    stage: str | None = None
+    acquired_at: Utc | None = None
+    released_at: Utc | None = None
+    last_outcome: str | None = None
+    last_reason: str | None = None
 
 
 class ImportIssueOut(ORMModel):

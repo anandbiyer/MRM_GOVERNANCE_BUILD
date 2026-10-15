@@ -1,0 +1,162 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32/K_no_finally.py
+............F................FF.....                                     [100%]
+================================== FAILURES ===================================
+___ test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed ____
+
+client = <starlette.testclient.TestClient object at 0x0000021DDC6CCC00>
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-558/test_cr_57_a_failure_writing_t0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021DDCADB890>
+
+    def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+                                                                               monkeypatch):
+        """GEN-05 (CR-57, FT-05's class): a crash in the example report's write is recorded, not lost.
+    
+        The report is written by a background job after the documents batch is already `Completed`, so
+        `record_job_failure` was never reached for it and `runner.submit` only logs: the reset read as
+        fully successful with no example and no reason anywhere a user could see.
+        """
+        from app.services import report_service
+    
+        h = login(client, *ADMIN)
+        resp = client.post("/api/admin/reset", headers=h)
+        assert resp.status_code == 202, resp.text
+        batch_id = resp.json()["batch_id"]
+    
+        def boom(_session_factory):
+            raise RuntimeError("report write exploded")
+    
+        # Driven directly, as in the FT-05 tests: inline job mode would otherwise surface the exception as
+        # an HTTP 500 rather than as the batch state this criterion is about. The lock is held first,
+        # because `_reset_job` runs only inside a reset that holds it.
+        factory = client.app.dependency_overrides[get_session_factory]()
+        monkeypatch.setattr(report_service, "seed_previous_report", boom)
+        with factory() as db:
+            assert reset_service.acquire_reset_lock(db, "rerun", "U-001")
+        with pytest.raises(RuntimeError):
+            reset_service._reset_job(factory, batch_id, None, "rerun")
+    
+        batch = client.get(f"/api/imports/batches/{batch_id}", headers=h).json()
+        assert batch["status"] == "Failed", batch
+        assert "Seeded example report failed" in (batch["error_message"] or ""), batch
+        assert "report write exploded" in batch["error_message"]
+>       assert client.get("/api/admin/reset/status", headers=h).json()["in_progress"] is False, \
+            "the failure releases the lock, so it cannot latch the reset guard (FT-05)"
+E       AssertionError: the failure releases the lock, so it cannot latch the reset guard (FT-05)
+E       assert True is False
+
+tests\test_imports.py:572: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+_ test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>] _
+
+client = <starlette.testclient.TestClient object at 0x0000021DDCA759D0>
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-558/test_g1_32_a_failure_in_any_st2/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021DDF58AF90>
+stage = 'Seed evidence analysis'
+patch = <function <lambda> at 0x0000021DDBE5B740>
+
+    @pytest.mark.parametrize("stage, patch", [
+        ("Seed load", lambda mp: _fail(mp, reset_service.engine, "run")),
+        ("Seed evidence staging", lambda mp: _fail(mp, reset_service, "stage_seed_documents")),
+        ("Seed evidence analysis", lambda mp: _fail(mp, __import__("app.documents.batch", fromlist=["x"]),
+                                                    "analyse_job")),
+        ("Seeded example report", lambda mp: _fail(mp, report_service, "seed_previous_report")),
+    ])
+    def test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage(
+            client, test_settings, monkeypatch, stage, patch):
+        """GEN-05 (TR-67, TR-68): whatever stage fails, the lock is released and says where and why.
+    
+        TR-67 found that a crash in the job's last write latched the seed batch `Processing` for ever.
+        With a lock released in a `finally`, no stage can latch it, and the failure is recorded rather
+        than only logged. The stage is asserted, not just the status (TR-68).
+        """
+        factory = _factory(client)
+        patch(monkeypatch)
+        with factory() as db:
+            with pytest.raises(RuntimeError, match="exploded"):
+                reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+    
+        with factory() as db:
+>           assert reset_service.reset_in_progress(db) is None, f"a failure at {stage!r} must release the lock"
+E           AssertionError: a failure at 'Seed evidence analysis' must release the lock
+E           assert <app.models.reset_lock.ResetLock object at 0x0000021DDFEF3610> is None
+E            +  where <app.models.reset_lock.ResetLock object at 0x0000021DDFEF3610> = <function reset_in_progress at 0x0000021DDA6A45C0>(<sqlalchemy.orm.session.Session object at 0x0000021DDFD72450>)
+E            +    where <function reset_in_progress at 0x0000021DDA6A45C0> = reset_service.reset_in_progress
+
+tests\test_reset_lock.py:143: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+_ test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>] _
+
+client = <starlette.testclient.TestClient object at 0x0000021DDE899BF0>
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-558/test_g1_32_a_failure_in_any_st3/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021DDFD3BA10>
+stage = 'Seeded example report'
+patch = <function <lambda> at 0x0000021DDBE5B950>
+
+    @pytest.mark.parametrize("stage, patch", [
+        ("Seed load", lambda mp: _fail(mp, reset_service.engine, "run")),
+        ("Seed evidence staging", lambda mp: _fail(mp, reset_service, "stage_seed_documents")),
+        ("Seed evidence analysis", lambda mp: _fail(mp, __import__("app.documents.batch", fromlist=["x"]),
+                                                    "analyse_job")),
+        ("Seeded example report", lambda mp: _fail(mp, report_service, "seed_previous_report")),
+    ])
+    def test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage(
+            client, test_settings, monkeypatch, stage, patch):
+        """GEN-05 (TR-67, TR-68): whatever stage fails, the lock is released and says where and why.
+    
+        TR-67 found that a crash in the job's last write latched the seed batch `Processing` for ever.
+        With a lock released in a `finally`, no stage can latch it, and the failure is recorded rather
+        than only logged. The stage is asserted, not just the status (TR-68).
+        """
+        factory = _factory(client)
+        patch(monkeypatch)
+        with factory() as db:
+            with pytest.raises(RuntimeError, match="exploded"):
+                reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+    
+        with factory() as db:
+>           assert reset_service.reset_in_progress(db) is None, f"a failure at {stage!r} must release the lock"
+E           AssertionError: a failure at 'Seeded example report' must release the lock
+E           assert <app.models.reset_lock.ResetLock object at 0x0000021DDF462B70> is None
+E            +  where <app.models.reset_lock.ResetLock object at 0x0000021DDF462B70> = <function reset_in_progress at 0x0000021DDA6A45C0>(<sqlalchemy.orm.session.Session object at 0x0000021DDC50F550>)
+E            +    where <function reset_in_progress at 0x0000021DDA6A45C0> = reset_service.reset_in_progress
+
+tests\test_reset_lock.py:143: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>]
+3 failed, 33 passed, 62 deselected, 1 warning in 201.93s (0:03:21)
