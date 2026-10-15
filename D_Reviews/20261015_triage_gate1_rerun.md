@@ -37,3 +37,18 @@ BL.33, BL.34, TR-23) need no new disposition.
 G1.29, G1.30 and G1.31, each followed by an R2 risk checkpoint, then one full `/review-build gate 1`
 with all four agents. Gate 1 closes on that run unless it finds a new Critical or High; new Medium or
 Low findings go to the Backlog.
+
+## Addendum — the G1.29 and G1.30 risk checkpoints (2026-10-15)
+
+Approved by the owner after the G1.30 checkpoint returned a High.
+
+| Item | Source IDs | Severity | Disposition | Where |
+|---|---|---|---|---|
+| The seed batch is committed `Completed` by `engine.run` before `_reset_job` re-holds it, so for milliseconds a second reset is accepted | TR-65 | High | **Fix now, structurally**: an explicit reset lock replaces the status inference | **G1.32** |
+| A crash in the job's final status restore latches the batch | TR-67 | Medium | Folded into G1.32 (the lock is always released, with the reason) | **G1.32** |
+| Analysis-failure path untested; stage not asserted; no 409 asserted during the report write | TR-66, TR-68, TR-69 | Medium, Low | Folded into G1.32's tests | **G1.32** |
+| The S13 test compares two reports whose "since" lists are empty, so it cannot fail | TR-60 | Medium | **Fix now** in G1.29 | **G1.29** (reopened in part) |
+| Reports stored before S13 reopen showing 0 decisions | TR-61 | Medium | **Decided**: option (a), fall back to the stored old key | **G1.29** (reopened in part) |
+| Hash moves on only one composite probe; `SECTIONS` omits `baseline` | TR-62, TR-63 | Medium, Low | Backlog | **BL.30** |
+| A non-raising total evidence failure still writes the example and reads Completed | OS-1 | Low | Backlog | **BL.37** |
+| Stray `test_zz_*.pyc` files | OS-2 | — | Not a defect: untracked and ignored, left by earlier probes | — |
