@@ -991,7 +991,9 @@ which on the seeded example is itself set to the earlier illustrative date.
 A reopened report states what was true when it was generated, not what is true now, so the footer
 reads **"Figures reconciled with the Command Center at generation, &lt;timestamp&gt;"** (**S12**,
 decided 2026-10-09). **The downloaded PDF is a surface too** (D14): it carries the reconciliation line
-on every report, and the seeded-example label on the seeded one. The present-tense claim it replaces was unverifiable by construction: the Command
+on every report, and the seeded-example label on the seeded one. The seeded example's `generated_at` is the real time
+it was computed — not shaped to its illustrative date — so its reconciliation line is true too
+(**D17**, decided 2026-10-15). The present-tense claim it replaces was unverifiable by construction: the Command
 Center has no as-of control and always renders `app.clock.today()`, so no Command Center for an earlier
 business date can be produced by this application at all.
 
@@ -3443,18 +3445,26 @@ Reset is refused for a role without the required permission.
 The demo files with deliberate errors produce the documented valid/rejected split.
 
 ### GEN-04
-A reset started while another is still running is refused with a conflict that names the batch in
-flight. Nothing is deleted and no second job is submitted. The refusal comes after the permission
-check, so an unauthorised caller is still refused for lacking the permission (GEN-02) rather than
-for the reset in progress.
+A reset started while another is running is refused with a conflict (409) that names the running
+reset's batch — or says it is still being created — and the stage it has reached. Nothing is deleted,
+nothing is regenerated and no second job is submitted. A held reset lock is answered from a read, and
+a claim that meets a database lock is the same 409, never a 500. The refusal comes after the
+permission check, so an unauthorised caller is still refused for lacking the permission (GEN-02)
+rather than for the reset in progress.
 
 ### GEN-05
-A reset exposes a progress signal that spans the whole operation — from the first delete to the last
-evidence file stored — and reports the reset finished only when a further reset would be accepted.
-The batch identifier returned when the reset starts is not that signal: a reset creates two batches
-and the first reaches a terminal status while the second is still loading evidence. A background job
-that fails marks its own batch Failed with the reason, so the signal cannot report a reset in
-progress for ever; a batch left non-terminal by a failed job can be cancelled through the API.
+A reset holds an explicit lock (§48 `reset_lock`) from its first step to its last, and
+`GET /api/admin/reset/status` reports a reset in progress exactly while that lock is held — never from
+any import batch's status. The batch identifier returned when the reset starts is not the signal: its
+status reads Completed long before the reset has finished. Whatever stage fails, the lock is released
+and records the outcome and the failing stage, so the signal cannot report a reset in progress for
+ever. A lock left held by an application that stopped mid-reset is released, with the reason, when the
+application next starts; there is no API to release it.
+
+*Reworded 2026-10-15, decision **D16** (spec issue SI-1, Gate 1 exit).* Both criteria described the
+batch-status mechanism that plan G1.32 replaced with the reset lock: GEN-05's "a batch left
+non-terminal by a failed job can be cancelled through the API" no longer frees anything, and GEN-04's
+"names the batch in flight" cannot hold before the batch exists.
 
 ## 76A.13 Traceability to the superseded conditions
 
@@ -3500,49 +3510,38 @@ current exception: the range `GEN-01..GEN-03` in the `test_imports.py` module do
 fails when the implementation is broken. The `test-outcome-reviewer` mutates the code it is judging;
 a criterion is *proven* only where that mutation makes a named test fail.
 
-**On `gate-1-core-report` these counts are the ones measured on `main`**, at the Gate 0 exit and so without
-the core Model Risk Report. REG-15 to REG-17 are built here and graded Proven by the G1.18 risk
-checkpoint, which the figures below do not include. The Gate 1 exit review recalculates the whole
-table; do not hand-adjust it in the meantime.
+Coverage at the Gate 1 exit, 2026-10-15 (`test-outcome-reviewer`, commit `b8cc1f3`): **76 of 152**
+criteria (§76A–§76E, §77, §78, §79) are *proven*. That is **76 of 94** once the 58 unbuilt criteria are
+excluded: 20 monitoring (§77), 13 Data Audit (§76B), 10 Copilot (§76C), 14 regulatory (§76D,
+deferred D12), and DOC-16 (Phase 5). A further **11** have a test that passes without asserting the
+whole expected result, **4** have no test, and **3** are failing: the three §76E build-control
+criteria. All CI gates were green on GitHub at `b8cc1f3`, including `backend-postgres`
+(migrations through `0009`, drift guard, append-only trigger) and the `snapshots` job.
 
-Coverage at the Gate 0 exit re-run, 2026-10-07 (`test-outcome-reviewer`, commit `779e3de`):
-**72 of 118** criteria (§76A, §76D, §77, §78, §79) are *proven* — **72 of 88** once the 30 unbuilt
-criteria are excluded (12 monitoring, §77; 17 regulatory, §76D; DOC-16, Phase 5). A further **12**
-have a test that passes without asserting the whole expected result, and **4** have no test at all.
-All three CI gates were green, including `backend-postgres`, which was run rather than skipped, so
-AUD-02 is proven end to end.
+By set:
+- §76A **47/60** Proven (10 Weak, 3 Untested)
+- §76B **0/13** (Phase 7)
+- §76C **0/10** (Phase 9)
+- §76D **3/17** Proven, 14 deferred (D12)
+- §76E **0/3** (3 Failing)
+- §77 **0/20** (Phase 6)
+- §78 **17/20** (1 Weak, 1 Untested, 1 Phase 5)
+- §79 **9/9**
 
-By set: §76A **46/60** Proven (11 Weak, 3 Untested) · §76D **0/17** (14 deferred D12, 3 in build on
-`gate-1-core-report`) · §77 **0/12** (Phase 6) · §78 **17/20** (1 Weak, 1 Untested, 1 Phase 5) ·
-§79 **9/9**.
+Gate 1's movement is **+4 Proven** over the Gate 0 exit figure of 72:
+- **REG-15**, **REG-16** and **REG-17** (G1.16–G1.18, G1.25–G1.27, G1.29, G1.31).
+- **GEN-04**: its "nothing is deleted, nothing regenerated, no second job" clause and the TR-70 409
+  path are now each killed by a mutant (G1.32).
 
-**Total since 2026-10-09: 149 criteria.** D7 added **MON-13…MON-20** (§77 now 0/20), and §76B
-(**DQ-01…DQ-13**, D8) and §76C (**COP-01…COP-10**, D11) were added, all *Not built*. So the figures
-above read **72 of 149** proven — still **72 of 88** once the now **61** unbuilt criteria are excluded
-(20 monitoring, 13 Data Audit, 10 Copilot, 17 regulatory, DOC-16). The next gate-exit report replaces
-this paragraph.
-
-**Total since 2026-10-15: 152 criteria.** D15 added §76E (**PLT-01…PLT-03**). PLT-02 and PLT-03 are
-built (G3.0, `A_Codes/AZ_tools/test_check_snapshots.py`) and PLT-01 is partly built (BL.31); the Gate 1
-exit review grades them.
-
-Gate 0's net movement over its whole span is **+4 Proven** from the 2026-10-02 baseline of 68:
-**APR-04** and **SEC-05** (G0.8, G0.9), **APR-03** (G0.26) and **GEN-05** (G0.22/G0.23). **CC-01**
-stayed Proven but its new severity drill-down went from non-discriminating to the most tightly
-guarded filter in the suite (G0.26). **LIF-02**, **SCR-02**, **SCR-04**, **CFG-01**, **CFG-02**,
-**SEC-01**, **SEC-02**, **AUD-02**, **CC-02**, **FND-03**, **DOC-13**, **DOC-20** and **GEN-02** were
-strengthened without changing grade. **AUD-01** and **GEN-01** remain partly proven; **SEC-07** and
-**GEN-04**, added by spec issue S7, start Untested-in-CI and Weak respectively.
+**GEN-05** stayed Proven on a new mechanism: the explicit reset lock, guarded after every commit.
+**GEN-01** was widened without changing grade. **PLT-01…PLT-03** enter as Failing:
+- PLT-01 because the report's nested `previous_generated_at` is still naive (BL.31).
+- PLT-02 and PLT-03 because a rename-and-rewrite passes the snapshot control (TR-87).
 
 The §76D total is 17. REG-01 to REG-14 are deferred with the rest of Phase 2A (**D12**) and are
-reported as *Not built (Phase 2A, deferred D12)*, never as failures. REG-15 to REG-17 are the core
-Model Risk Report (plan G1.16–G1.18), being built on `gate-1-core-report`; on `main` they are
-*Not built* until that gate merges.
-
-**REG-15, REG-16 and REG-17 are built as of 2026-10-07** (plan G1.16–G1.18) and covered by
-`tests/test_reports.py` and functional scenario FS-25. They are no longer "not built"; the figure
-above still says 69 proven because it is the 2026-10-02 measurement, and only the
-`test-outcome-reviewer` recalculates it.
+reported as *Not built (Phase 2A, deferred D12)*, never as failures. REG-15 to REG-17, the core
+Model Risk Report, are built on `gate-1-core-report` and Proven. On `main` they stay *Not built*
+until that gate merges.
 
 ### Not proven — no test
 
@@ -3567,34 +3566,48 @@ above still says 69 proven because it is the 2026-10-02 measurement, and only th
 | SCR-05 | `score`, `missing`, `explanation` and — since G0.25 — `effective_weight` on an API response | `weight` and `inputs` are asserted on no response, and **`calculated_at` is in neither `ScoreOut` nor `ScoreComponentOut`**, so §57's "last recalculation time" is not implemented. Derived state is computed on read, so the field may be meaningless as specified: decide whether to add it or amend the criterion. |
 | AUD-01 | A refused write leaves no audit event, at three refusal depths, with a control write and a non-cappable `audit_count` helper; and a failed audit rolls back `policy_service.update_setting` | The coupling for **every other service**. Committing the business change before `audit.record` in `model_service.create_model` — gated on the `commit` flag, so the import engine's SAVEPOINTs are untouched — leaves the whole suite green (verified by mutation, 184 passed). A bare commit there fails 8 tests, but only because it breaks the importer, not because any test observes the coupling. Parametrise the audit-failure test over the writing services. |
 | GEN-01 | One reset matches the documented portfolio figures; the committed seed loads, covers the policy baseline and leaves the dashboard working; an incomplete seed fails the batch loudly; the reset keeps its evidence and leaves its batch terminal; the generator never deletes before writing and does not churn unchanged templates. From 2026-10-07 a **second** reset at the same business date is compared with the first (`test_gen_01_a_reset_clears_the_report_history_and_reseeds_it`, G1.18) | Still partly proven: the comparison is a model risk report's content hash, which covers the inventory, validation, findings, approvals, score, documentation and the report baseline — but says nothing about documents, document versions, tiering answers, phase history, users or policy settings. |
-| GEN-04 | The 409, the batch named in the message, the guard not latching over all five terminal statuses, and 403 beating 409 at the service | *"Nothing is deleted and no second job is submitted."* Moving `regenerate_seed(directory)` ahead of the in-flight check leaves all 28 import tests green, even though `start_reset`'s own comment names that ordering as the point of the check. Capture the seed files and the `import_batch` count before the refused call and assert both unchanged, and assert `runner.submit` was not called. |
 | DOC-09 | A batch ID is issued in the documented format | Uniqueness across two batches. |
+
+### Failing: built, and a test or probe shows the criterion is not met
+
+| Criterion | What fails | Fix |
+|---|---|---|
+| PLT-01 | `sections.changes_since.previous_generated_at` is emitted naive on `POST /api/reports/model-risk` and on a reopened report, because `sections` is an untyped dict that `schemas.core.Utc` never reaches. The sweep walks 11 hard-coded endpoints and omits `/api/reports/*`. | BL.31: serialise `sections` through the same normaliser, sweep every GET route from the app's route table, and tag the tests PLT-01. |
+| PLT-02 | A file renamed and rewritten in one commit, with no snapshot, passes. `diff-tree` runs without `-M`, so the `R` branch is dead, and with `-M` the pre-change content is looked up at the destination path, which does not exist in the parent (TR-87). | Self-test case first; then `-M` and the source path as the base. |
+| PLT-03 | The same renamed-path clause fails. The count line, the non-ASCII path handling and the CI base selection are unasserted: mutants that remove `-z`/`quotePath` or the count both pass all 20 checks, and the script alone exits 0 on an empty base (TR-88). | Non-ASCII and count cases; move base resolution where it can be tested. |
 
 ### Correctly open — the capability does not exist yet
 
 | Criterion | Reason |
 |---|---|
-| DOC-16 | AI extraction cannot persist without confirmation — Phase 5; not yet built. |
-| MON-01…MON-20 | All monitoring criteria — Phase 6; not yet built. D1–D7 decided 2026-10-09, so nothing blocks Gate 3. |
-| DQ-01…DQ-13 | Data Audit — Phase 7; not yet built. D8 decided 2026-10-09. |
-| COP-01…COP-10 | Audit Copilot — Phase 9; not yet built. D11 decided 2026-10-09; provider is D13. |
-| REG-01…REG-14 | All regulatory alignment criteria — Phase 2A, **deferred (D12)**; report as "Not built (Phase 2A, deferred D12)". |
-| REG-15…REG-17 | Core Model Risk Report — **built on this branch** (G1.16–G1.18). Graded Proven by the G1.18 risk checkpoint (`review_state.json`); the Gate 1 exit review recounts them. |
+| DOC-16 | AI extraction cannot persist without confirmation. Phase 5; not yet built. |
+| MON-01…MON-20 | All monitoring criteria. Phase 6; not yet built. D1–D7 decided 2026-10-09. |
+| DQ-01…DQ-13 | Data Audit. Phase 7; not yet built. D8 decided 2026-10-09. |
+| COP-01…COP-10 | Audit Copilot. Phase 9; not yet built. D11 decided 2026-10-09; provider is D13. |
+| REG-01…REG-14 | All regulatory alignment criteria. Phase 2A, **deferred (D12)**; report as "Not built (Phase 2A, deferred D12)". |
 
 ### Residual non-discrimination on otherwise-proven criteria
 
 Recorded separately because the criterion is proven and the gap is narrow:
 
-- **APR-03.** Dropping `decision == "Conditional"` from `governance_view.open_conditions` leaves the
-  suite green: no seed approval is non-Conditional with `condition_status == "Open"`, and
-  `governance_rules.approval_errors` validates the condition fields only when the decision *is*
-  Conditional, so such a row is accepted. Add an `Approved` decision carrying an `Open` condition
-  status and assert it does not hold the model outstanding.
-- **GEN-01 / GEN-05 (FT-04).** `test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis`
-  listens on SQLAlchemy's **Session** `after_commit`, so it proves "no Session commit after the
-  submit", not "no write after the submit". A post-submit write on the Engine races the background
-  job identically and is invisible to it, as is an uncommitted write transaction still open at submit
-  time. Listen on the `Engine`-level `"commit"` event, or state the scope in the docstring.
+- **APR-03.** Unchanged: an `Approved` decision carrying an `Open` condition status is not tested.
+- **GEN-01 / GEN-05 (FT-04).** The listener is Session-level (BL.26), and it anchors on the *last*
+  hand-off, so an extra hand-off before the last write passes all 80 reset tests (TR-47, re-verified
+  2026-10-15).
+- **GEN-04.** Concurrent claim atomicity is shown on neither engine (TR-73, BL.38). SQLite write-lock
+  contention with no reset running is answered "a reset is already running", and the test asserts
+  that message (TR-79). The non-contention `OperationalError` branch is untested (TR-80).
+- **GEN-05.** `runner.submit` raising leaves the lock held until restart (TR-75, BL.38).
+- **REG-15.** Four Command Center equalities are tautological (TR-07). The seeded example is
+  compared with a fresh report for `documentation` only, so shaping any other figure passes (TR-92).
+  The overdue-findings boundary on the business date is unpinned (TR-93).
+- **REG-16 (hash breadth).** Each content key can still be dropped from the digest individually
+  (TR-38/TR-62, BL.30). The exclusion of `changes_since`, and of every predecessor-derived figure
+  anywhere else (S13), is pinned in both directions. Committing the report before its audit event
+  passes every report test: AUD-01's per-service coupling (BL.13), observed here too.
+- **REG-17.** Ordering by `generated_at` is unasserted (TR-09). A reopen that alters a stored figure
+  passes; only `score.by_band`, the seeded `documentation` and the pre-S13 decisions are compared
+  after reopening (TR-91). The PDF's reconciliation timestamp is unasserted (TR-84).
 
 ### Tagging and spec gaps
 
@@ -3618,18 +3631,23 @@ Recorded separately because the criterion is proven and the gap is narrow:
 - **Five further tests are untagged but substantively prove a criterion**: `test_cr_07_…` (DOC-13),
   `test_d5_and_d10_decided_keys_are_configured` (CFG-01, FND-03) and
   `test_displayed_columns_degrades_when_the_monitoring_phase_is_absent` (LIF-02).
-- **30 of 188 tests are untraced**, because four areas have no criteria: BRD **§65** (file validation
-  and security — 4 tests), BRD **§64** reliability (`test_db_config.py` — 5 tests), the **seed
-  generator**'s file safety (`test_seed_generator.py` — 12 tests), and **migrations and schema
-  drift** (`test_postgres.py` — 2 tests). Add a criteria set (76E) covering §64 and §65 and tag them.
+- **Untraced tests are 37 of 215 test functions** (255 collected), the same count as at `ab2adbc`
+  with a different mix. All 13 tests in `test_reset_lock.py` are traced. New untraced:
+  `test_db_config.py::test_a_dev_database_gains_a_nullable_column_…` (§64) and
+  `test_reports.py::test_d14_a_generated_report_is_as_of_…` (D14 only). Still structural: §64, §65,
+  the seed generator's file safety, and migrations (`test_migrations.py`, BL.35) have no criteria.
+- **No test names a PLT ID** (TR-90). The three `test_bl_28_*` tests are PLT-01's and should say so;
+  `A_Codes/AZ_tools/test_check_snapshots.py` should name PLT-02/PLT-03 per case. Its CRLF case is
+  vacuous on a machine with `core.autocrlf=true` (TR-89).
 - **SEC-07** has no CI-gated test and cannot get one until the frontend harness (G7.5) exists. Record
   in the G0.21 row that its evidence is non-CI, and write an `FS-` scenario for the **role switch**
   path specifically rather than relying on FS-23, which tests SEC-05.
 
-The four untested criteria and the twelve partly proven ones are real gaps in built functionality and
-should be closed before Phase 6 adds more surface area; **AUD-01's per-service coupling, GEN-01's
-determinism and GEN-04's "nothing happened" clause first**, because each currently passes against a
-broken implementation.
+The four untested and eleven partly proven criteria are real gaps in built functionality. The three
+failing build-control criteria come first, because each currently passes against a broken
+implementation: **TR-87** (rename-and-rewrite) before any further use of the snapshot check as
+evidence, and **PLT-01** (BL.31). Then **AUD-01's per-service coupling** (now observed in
+`report_service` too) and **GEN-01's row-count comparison**, before Phase 6 adds more surface area.
 
 The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text
 in its report. Update this section from that report rather than by hand.
@@ -4206,6 +4224,8 @@ outcome is copied into the Decision column below. A decision is not made until t
 | D13 | Which AI provider serves AI extraction (Gate 5) and the Audit Copilot (Gate 6)? | §37, §51, §60, §61, §76C | Options: **1** Claude API, key in `.env` (never committed); **2** an offline stub returning deterministic canned results, for demos and tests; **3** both, switchable by policy setting `ai_provider`, with the stub as the default when no key is present. §60's provenance fields (`provider`, `model_used`, `prompt_version`) record which one produced each result | Gate 5 | **Option 3, as environment settings, not T12 rows**: `MRM_AI_PROVIDER` (`stub` \| `claude`) and `MRM_AI_MODEL` in `app/config.py`. Defaults to `stub` when no API key is present; `claude` with no key **refuses to start** with a clear message and never falls back to the stub. §60 provenance records the provider and model behind each result. Decided 2026-10-09; see `E_ProjectPlan/decision_log.md` |
 | D14 | The seeded example report is dated one month before the seed's business date while its figures are computed from the current seed data. What must it disclose, and is the downloaded PDF a surface S12's disclosures must reach? | §12A REQ-REG-10A, REG-15, REG-17, S11, S12 | (a) date the seeded report on its generation date and move the "a month earlier" framing into the label; (b) keep the earlier date and disclose both dates | Gate 1 merging to `main` | **Option (b).** The seeded example keeps its earlier business date and is labelled "Seeded example: figures computed from current seed data on <generation date>, dated <business date> for illustration." The PDF **is** a surface: it carries that label and the "Figures reconciled with the Command Center at generation, <timestamp>" line. Built as plan **G1.31**. *Clarified the same day:* "<generation date>" is the business date the figures were computed for, stored as `figures_as_of` (migration 0009); equal to `business_date` except on the seeded example. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
 | D15 | Build controls (the snapshot check, the merge hook) and the UTC-timestamp invariant have no acceptance criteria, so no coverage signal can go stale for them | Part 0, §64, §76A.14 | Add §76E | Any | **Add §76E "Platform and build controls"** with **PLT-01** (every API timestamp is UTC), **PLT-02** and **PLT-03** (the snapshot control). §76A.14's total becomes 152. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
+| D16 | GEN-04 and GEN-05 still describe the batch-status mechanism G1.32 replaced with the reset lock | §76A.12, §48 `reset_lock` | Reword both to the lock | Gate 1 merging to `main` | **Reworded to the reset lock**, stating that startup releases a lock left by a stopped application and that there is no API release. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
+| D17 | The seeded example's reconciliation line shows its shaped `generated_at` (TR-83) | §12A REQ-REG-10A, S12, D14 | (a) the real computation time; (b) `figures_as_of`; (c) omit the line on the seeded example | Gate 1 merging to `main` | **Option (a)**: the seeded example's `generated_at` is the real time it was computed, no longer shaped, so its reconciliation line and "generated at" are true. Built as plan **G1.34**. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
 
 ---
 

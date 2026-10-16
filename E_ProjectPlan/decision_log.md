@@ -691,6 +691,61 @@ merge hook is not given a criterion here; it can join §76E when it next changes
 
 ---
 
+## D16 — GEN-04 and GEN-05 describe the reset lock
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §76A.12 GEN-04, GEN-05; §48 `reset_lock` |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** Spec issue SI-1 (Gate 1 exit, requirements-reviewer): both criteria still described the
+batch-status mechanism plan G1.32 replaced with an explicit reset lock. GEN-05's escape hatch — cancel
+a batch left non-terminal through the API — no longer frees anything, and GEN-04's "names the batch in
+flight" cannot hold before the batch exists.
+
+**Decision.** Reword both to the lock. GEN-04: the 409 names the running reset's batch (or says it is
+being created) and its stage; nothing is deleted, regenerated or submitted; a held lock is answered
+from a read and a locked claim is the same 409, never a 500. GEN-05: the status signal is the lock
+alone; any failing stage releases it with the outcome and stage; a lock left by an application that
+stopped mid-reset is released, with the reason, when it next starts — confirmed in code
+(`app/main.py` startup → `reset_service.recover_interrupted_reset`, test
+`test_g1_32_starting_the_application_releases_an_interrupted_lock`) — and there is no API release.
+
+**Consequences.** §76A.12 reworded; no code change, because the behaviour already exists.
+
+---
+
+## D17 — The seeded example's reconciliation time
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A REQ-REG-10A, S12, D14 |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** TR-83 (G1.31 risk checkpoint, re-observed by all three runtime agents at the Gate 1
+exit): the seeded example's reconciliation line reads "at generation, 2026-08-31 09:00" — its shaped
+`generated_at` — one line above "figures computed … on 2026-09-30". TR-48's silent date disagreement,
+moved one line down.
+
+**Options.** (a) The real time the seeded example was computed. (b) `figures_as_of`. (c) Omit the line
+on the seeded example.
+
+**Decision.** Option (a). The seeded example's `generated_at` becomes the real time it was computed,
+no longer shaped to its illustrative date, so both its reconciliation line and its "generated at" are
+true statements. Its `business_date` keeps the illustrative earlier date and its label (D14) says so.
+
+**Consequences.** Plan row **G1.34**, which also refuses report generation with 409 while the reset
+lock is held (CR-67). Tests assert the seeded reconciliation timestamp in full (closing TR-84 for the
+seeded case).
+
+---
+
 ## Template
 
 ```
