@@ -2,6 +2,9 @@
 """Fail if a commit edited a file under A_Codes/ or B_Inputs/ without snapshotting it first.
 
     python A_Codes/AZ_tools/check_snapshots.py <base-ref> [<head-ref>]
+    python A_Codes/AZ_tools/check_snapshots.py --ci        # base and head from the CI event (below)
+
+Criteria **PLT-02** and **PLT-03** (§76E, D15); tests in `test_check_snapshots.py`.
 
 Part 0's first convention: before editing an existing hand-edited file under `A_Codes/` or
 `B_Inputs/`, copy it into `_OLD/` with `snapshot.sh`. It has been broken and repaired at **five**
@@ -26,7 +29,14 @@ it had *in that commit's parent* somewhere in `_OLD/`. Matching is by **content*
 line endings normalised, because the working tree is CRLF while `git show` yields LF, and a
 plausibly-named copy with different bytes is what the hand checks kept having to rule out.
 
-**Grandfathered.** Commits authored before `ENFORCED_FROM` are reported but not failed. The history
+**Renames.** A file renamed and rewritten in one commit is an edit. `diff-tree` runs with `-M`, and
+the pre-change content is looked up at the rename's **source** path in the parent — the destination
+does not exist there. Without both, a rename-and-rewrite passed with nothing snapshotted (TR-87). A
+pure rename, content unchanged, is not an edit.
+
+**Grandfathered.** Commits *committed* before `ENFORCED_FROM` are reported but not failed. The
+committer date, not the author date: a rebase or cherry-pick preserves the author date, so a new
+commit could otherwise borrow an old one's exemption (CR-69). The history
 before this control contains gaps that are already repaired (the five reviews) and some that cannot
 be repaired even in principle: `_OLD/` holds copies taken at *uncommitted* intermediate states, which
 match no committed parent and so can never be found by any post-hoc check. Enforcing retroactively
@@ -47,6 +57,7 @@ from __future__ import annotations
 import hashlib
 import subprocess
 import sys
+import os
 from datetime import date
 from pathlib import Path
 
@@ -107,49 +118,98 @@ def old_candidates(ref: str, path: str) -> list[tuple[str, bytes]]:
     return out
 
 
-def modified_in(sha: str) -> list[str]:
-    """Hand-edited files this commit modified. `-z` so odd filenames are not quoted or split."""
-    raw = git("diff-tree", "--no-commit-id", "-r", "-z", "--diff-filter=MR", sha)
+def modified_in(sha: str) -> list[tuple[str, str]]:
+    """`(path before, path after)` of each hand-edited file this commit modified or renamed.
+
+    `-M` so a rename is reported as one (TR-87: without it, a rename-and-rewrite showed as an add plus
+    a delete and was never checked). `-z` so odd filenames are neither quoted nor split, and
+    `core.quotePath=false` (in `git`) for the same reason. A rename is covered if either end is.
+    """
+    raw = git("diff-tree", "--no-commit-id", "-r", "-z", "-M", "--diff-filter=MR", sha)
     fields = [f for f in raw.split("\0") if f]
-    paths: list[str] = []
+    pairs: list[tuple[str, str]] = []
     i = 0
     while i < len(fields):
         meta = fields[i]
         # ":<srcmode> <dstmode> <srcsha> <dstsha> <status>" then one path, or two when status is R.
         status = meta.rsplit(" ", 1)[-1] if meta.startswith(":") else ""
         if status.startswith("R"):
-            paths.append(fields[i + 2])  # the destination: a rename that rewrites content is an edit
+            pairs.append((fields[i + 1], fields[i + 2]))
             i += 3
         else:
-            paths.append(fields[i + 1])
+            pairs.append((fields[i + 1], fields[i + 1]))
             i += 2
-    return [p for p in paths if covered(p)]
+    return [(src, dst) for src, dst in pairs if covered(src) or covered(dst)]
 
 
-def check_commit(sha: str, head: str) -> list[str]:
-    """Paths this commit edited whose pre-change content is not recoverable from `_OLD/` at `head`."""
+def check_commit(sha: str, head: str) -> tuple[int, list[str]]:
+    """`(edits checked, report lines)` for this commit's edits whose pre-change content is not
+    recoverable from `_OLD/` at `head`."""
     missing = []
-    for path in modified_in(sha):
-        before = blob(f"{sha}^", path)
+    checked = 0
+    for src, dst in modified_in(sha):
+        before = blob(f"{sha}^", src)  # the source path: for a rename, the destination is new here
         if before is None:
-            continue  # created here under a different name; nothing earlier to recover
-        after = blob(sha, path)
+            continue  # nothing earlier to recover
+        after = blob(sha, dst)
         if after is not None and digest(before) == digest(after):
-            continue  # mode-only or line-ending-only change: nothing was edited
+            continue  # mode-only, line-ending-only or pure rename: nothing was edited
+        checked += 1
         want = digest(before)
-        candidates = old_candidates(head, path)
+        # A snapshot taken before a rename is named for the source; one taken after, for the
+        # destination. Matching is by content, so either is accepted.
+        candidates = old_candidates(head, src) + (old_candidates(head, dst) if dst != src else [])
         if any(digest(data) == want for _, data in candidates):
             continue
         names = ", ".join(n for n, _ in candidates) or "none"
-        missing.append(f"      {path}\n          pre-change sha256 {want[:16]}…  _OLD/ present: {names}")
-    return missing
+        shown = dst if src == dst else f"{dst} (renamed from {src})"
+        missing.append(f"      {shown}\n          pre-change sha256 {want[:16]}…  _OLD/ present: {names}")
+    return checked, missing
+
+
+ZERO_SHA = "0" * 40
+
+
+def resolve_range(event: str, before: str, head: str, pr_base: str, pr_head: str,
+                  default_branch: str) -> tuple[str, str]:
+    """`(base, head)` for a CI run, or SystemExit when no base can be found. Never an empty base.
+
+    Moved here from the workflow's shell so it can be tested (TR-88), and so every way it can go
+    wrong fails closed rather than printing "nothing to diff" and exiting 0 (TR-52):
+      * pull_request — the merge base of the PR's base and head, not `base.sha`: a base branch that
+        has moved since the PR opened would otherwise charge the PR with other people's commits (TR-54).
+      * push — `before`, unless it is the all-zero sha of a branch's first push, when the merge base
+        with the default branch is used.
+      * anything else (workflow_dispatch, a re-run) — the merge base with the default branch.
+    """
+    if event == "pull_request":
+        head = pr_head
+        base = git("merge-base", pr_base, pr_head).strip()
+    elif event == "push" and before and before != ZERO_SHA:
+        base = before
+    else:
+        base = git("merge-base", default_branch, head).strip()
+    if not base or not head:
+        raise SystemExit(f"Could not resolve a base for event {event!r}; refusing to pass vacuously.")
+    return base, head
 
 
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
-    base, head = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else "HEAD")
+    if sys.argv[1] == "--ci":
+        e = os.environ.get
+        base, head = resolve_range(e("SNAP_EVENT", ""), e("SNAP_BEFORE", ""), e("SNAP_HEAD", ""),
+                                   e("SNAP_PR_BASE", ""), e("SNAP_PR_HEAD", ""),
+                                   e("SNAP_DEFAULT_BRANCH", "origin/main"))
+        print(f"Range: {base}..{head}  (event {e('SNAP_EVENT', '')})")
+    else:
+        base, head = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else "HEAD")
+    if not base.strip():
+        # `git rev-list ..HEAD` is an empty range, so an empty base would pass vacuously (TR-88).
+        print("An empty base ref was given; refusing to pass vacuously.")
+        return 2
 
     listed = git("rev-list", "--no-merges", "--reverse", f"{base}..{head}").split()
     if not listed:
@@ -159,14 +219,18 @@ def main() -> int:
     enforced_failures = 0
     grandfathered = 0
     checked = 0
+    edits = 0
     for sha in listed:
-        authored = date.fromisoformat(git("show", "-s", "--format=%ad", "--date=format:%Y-%m-%d", sha).strip())
-        missing = check_commit(sha, head)
+        # Committer date (CR-69): a rebase keeps the author date, which would let a new commit
+        # borrow an old one's exemption.
+        committed = date.fromisoformat(git("show", "-s", "--format=%cd", "--date=format:%Y-%m-%d", sha).strip())
+        n, missing = check_commit(sha, head)
+        edits += n
         checked += 1
         if not missing:
             continue
         subject = git("show", "-s", "--format=%s", sha).strip()
-        if authored < ENFORCED_FROM:
+        if committed < ENFORCED_FROM:
             grandfathered += len(missing)
             print(f"  (before {ENFORCED_FROM}, reported only) {sha[:8]} {subject[:60]}")
             print("\n".join(missing))
@@ -175,9 +239,10 @@ def main() -> int:
         print(f"  FAIL {sha[:8]} {subject[:60]}")
         print("\n".join(missing))
 
-    print(f"\nChecked {checked} non-merge commit(s) between {base[:12]} and {head[:12]}.")
+    print(f"\nChecked {checked} non-merge commit(s) between {base[:12]} and {head[:12]}: "
+          f"{edits} file edit(s) checked.")
     if grandfathered:
-        print(f"{grandfathered} gap(s) in commits authored before {ENFORCED_FROM}: reported, not failed.")
+        print(f"{grandfathered} gap(s) in commits committed before {ENFORCED_FROM}: reported, not failed.")
     if not enforced_failures:
         print("Every enforced commit snapshotted what it edited.")
         return 0

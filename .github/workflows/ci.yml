@@ -144,36 +144,18 @@ jobs:
         run: python A_Codes/AZ_tools/test_check_snapshots.py
 
       - name: Every edited file has its pre-change content in _OLD/
-        run: |
-          set -eu
-          head='${{ github.sha }}'
-          case '${{ github.event_name }}' in
-            pull_request)
-              # The merge base, not base.sha: base.sha is where the base branch happened to be when
-              # the PR opened, so a base that has moved since would charge this PR with other
-              # people's commits (its R2 checkpoint, TR-54).
-              head='${{ github.event.pull_request.head.sha }}'
-              base="$(git merge-base '${{ github.event.pull_request.base.sha }}' "$head")"
-              ;;
-            push)
-              base='${{ github.event.before }}'
-              # A branch's first push reports an all-zero "before". Fall back to the merge base with
-              # the default branch rather than exiting 0: "nothing to diff" was a silent pass, which
-              # is how a control stops controlling (TR-52).
-              case "$base" in
-                *[!0]*) ;;
-                *) base="$(git merge-base origin/${{ github.event.repository.default_branch }} "$head")" ;;
-              esac
-              ;;
-            *)
-              # workflow_dispatch and anything else: `github.event.before` is empty, which used to
-              # fall into the all-zero branch and pass vacuously on every manual run (TR-52).
-              base="$(git merge-base origin/${{ github.event.repository.default_branch }} "$head")"
-              ;;
-          esac
-          echo "Range: $base..$head  (event ${{ github.event_name }})"
-          test -n "$base"
-          python A_Codes/AZ_tools/check_snapshots.py "$base" "$head"
+        # The base is resolved inside the script (`--ci`), where it is tested (PLT-03, TR-88), rather
+        # than in shell here: pull requests use the merge base of base and head (TR-54); a push uses
+        # `before`, or the merge base with the default branch on a branch's first push; any other
+        # trigger uses that merge base; and an unresolvable base fails rather than passing (TR-52).
+        env:
+          SNAP_EVENT: ${{ github.event_name }}
+          SNAP_BEFORE: ${{ github.event.before }}
+          SNAP_HEAD: ${{ github.sha }}
+          SNAP_PR_BASE: ${{ github.event.pull_request.base.sha }}
+          SNAP_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          SNAP_DEFAULT_BRANCH: origin/${{ github.event.repository.default_branch }}
+        run: python A_Codes/AZ_tools/check_snapshots.py --ci
 
   frontend:
     name: Frontend typecheck and build

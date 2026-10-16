@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for check_snapshots.py. Run after any change to it.
+"""Tests for check_snapshots.py — criteria PLT-02 and PLT-03 (§76E). Run after any change to it.
 
     python A_Codes/AZ_tools/test_check_snapshots.py
 
@@ -30,11 +30,13 @@ BEFORE_ENFORCED = "2026-10-01"
 FAILURES: list[str] = []
 
 
-def git(cwd: Path, *args: str, when: str | None = None) -> str:
+def git(cwd: Path, *args: str, when: str | None = None, authored: str | None = None) -> str:
     env = dict(os.environ)
     if when:
         stamp = f"{when}T12:00:00"
         env |= {"GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp}
+    if authored:  # an author date that differs from the committer date, as a rebase preserves
+        env |= {"GIT_AUTHOR_DATE": f"{authored}T12:00:00"}
     env |= {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
             "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
     out = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, env=env, timeout=120)
@@ -49,9 +51,9 @@ def write(cwd: Path, rel: str, data: str | bytes) -> None:
     p.write_bytes(data if isinstance(data, bytes) else data.encode("utf-8"))
 
 
-def commit(cwd: Path, message: str, when: str = ENFORCED) -> str:
+def commit(cwd: Path, message: str, when: str = ENFORCED, authored: str | None = None) -> str:
     git(cwd, "add", "-A")
-    git(cwd, "commit", "-q", "--allow-empty", "-m", message, when=when)
+    git(cwd, "commit", "-q", "--allow-empty", "-m", message, when=when, authored=authored)
     return git(cwd, "rev-parse", "HEAD").strip()
 
 
@@ -59,6 +61,11 @@ def new_repo(tmp: Path, name: str) -> Path:
     cwd = tmp / name
     cwd.mkdir(parents=True)
     git(cwd, "init", "-q", "-b", "main")
+    # TR-89: with the machine's `core.autocrlf=true`, git would convert the CRLF case's bytes on the
+    # way in, so the case proved nothing here while still meaning something under CI's settings. Pin
+    # the repository to store bytes exactly as written, so the case means the same on every machine.
+    git(cwd, "config", "core.autocrlf", "false")
+    git(cwd, "config", "core.safecrlf", "false")
     # The tool resolves the repo as parents[2] of its own path, so it must live in the same layout.
     shutil.copy(TOOL, cwd / "A_Codes" / "AZ_tools" / "check_snapshots.py") if (
         (cwd / "A_Codes" / "AZ_tools").mkdir(parents=True, exist_ok=True) or True) else None
@@ -69,7 +76,16 @@ def new_repo(tmp: Path, name: str) -> Path:
 
 def run(cwd: Path, base: str, head: str = "HEAD") -> tuple[int, str]:
     out = subprocess.run([sys.executable, str(cwd / "A_Codes" / "AZ_tools" / "check_snapshots.py"),
-                          base, head], cwd=cwd, capture_output=True, text=True, timeout=300)
+                          base, head], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
+                         timeout=300)
+    return out.returncode, out.stdout + out.stderr
+
+
+def run_ci(cwd: Path, **env: str) -> tuple[int, str]:
+    """The CI entry point: base and head resolved from the event, as the workflow passes them."""
+    full = dict(os.environ) | {"PYTHONIOENCODING": "utf-8"} | env
+    out = subprocess.run([sys.executable, str(cwd / "A_Codes" / "AZ_tools" / "check_snapshots.py"), "--ci"],
+                         cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=full, timeout=300)
     return out.returncode, out.stdout + out.stderr
 
 
@@ -222,6 +238,93 @@ def main() -> int:
         code, out = run(r, base)
         check("grandfathered exit", code, 0)
         check("but it is reported", "reported, not failed" in out, True)
+
+        print("\nPLT-02: a file renamed and rewritten in one commit is an edit (TR-87):")
+        r = new_repo(tmp, "rename_rewrite")
+        write(r, SRC, "x = 1\n" * 20)
+        base = commit(r, "add thing")
+        git(r, "mv", SRC, "A_Codes/AB_backend/app/renamed.py")
+        write(r, "A_Codes/AB_backend/app/renamed.py", "x = 1\n" * 19 + "x = 2\n")  # similar enough for -M
+        commit(r, "rename and rewrite, no snapshot")
+        code, out = run(r, base)
+        check("PLT-02 rename + rewrite without a snapshot fails", code, 1)
+        check("PLT-02 names the new path", "A_Codes/AB_backend/app/renamed.py" in out, True)
+
+        r = new_repo(tmp, "rename_rewrite_ok")
+        write(r, SRC, "x = 1\n" * 20)
+        base = commit(r, "add thing")
+        snapshot_of(r, SRC, 1, "x = 1\n" * 20)            # the source, snapshotted before the rename
+        git(r, "add", "-A")
+        git(r, "mv", SRC, "A_Codes/AB_backend/app/renamed.py")
+        write(r, "A_Codes/AB_backend/app/renamed.py", "x = 1\n" * 19 + "x = 2\n")
+        commit(r, "rename and rewrite, source snapshotted")
+        check("PLT-02 rename + rewrite with the source snapshotted passes", run(r, base)[0], 0)
+
+        r = new_repo(tmp, "rename_only")
+        write(r, SRC, "x = 1\n" * 20)
+        base = commit(r, "add thing")
+        git(r, "mv", SRC, "A_Codes/AB_backend/app/renamed.py")
+        commit(r, "pure rename")
+        check("PLT-02 a pure rename is not an edit", run(r, base)[0], 0)
+
+        print("\nPLT-03: a non-ASCII path is checked, not silently dropped:")
+        r = new_repo(tmp, "nonascii")
+        uni = "A_Codes/AB_backend/app/café_règle.py"
+        write(r, uni, "x = 1\n")
+        base = commit(r, "add accented file")
+        write(r, uni, "x = 2\n")
+        commit(r, "edit accented file, no snapshot")
+        code, out = run(r, base)
+        check("PLT-03 non-ASCII edit without a snapshot fails", code, 1)
+        check("PLT-03 names the non-ASCII path", uni in out, True)
+
+        print("\nPLT-03: the number of file edits checked is reported, so a skip cannot be silent:")
+        r = new_repo(tmp, "count")
+        write(r, SRC, "x = 1\n")
+        write(r, "A_Codes/AB_backend/app/other.py", "y = 1\n")
+        base = commit(r, "add two")
+        snapshot_of(r, SRC, 1, "x = 1\n")
+        snapshot_of(r, "A_Codes/AB_backend/app/other.py", 1, "y = 1\n")
+        write(r, SRC, "x = 2\n")
+        write(r, "A_Codes/AB_backend/app/other.py", "y = 2\n")
+        commit(r, "edit two, both snapshotted")
+        code, out = run(r, base)
+        check("PLT-03 count line", "2 file edit(s) checked" in out, True)
+
+        print("\nPLT-03: the enforcement cut-off reads the committer date, which a rebase resets (CR-69):")
+        r = new_repo(tmp, "rebased")
+        write(r, SRC, "x = 1\n")
+        base = commit(r, "add thing")
+        write(r, SRC, "x = 2\n")
+        commit(r, "edit, no snapshot, old author date", authored=BEFORE_ENFORCED)  # committed after
+        check("PLT-03 an old author date does not grandfather a new commit", run(r, base)[0], 1)
+
+        print("\nPLT-03: CI resolves a non-empty base on every trigger, and fails closed (TR-88):")
+        r = new_repo(tmp, "ci")
+        write(r, SRC, "x = 1\n")
+        first = commit(r, "add thing")
+        git(r, "checkout", "-q", "-b", "feature")
+        write(r, SRC, "x = 2\n")                  # unsnapshotted, so a correct range fails
+        head = commit(r, "edit on feature")
+        zeros = "0" * 40
+        common = {"SNAP_HEAD": head, "SNAP_DEFAULT_BRANCH": "main"}
+        code, out = run_ci(r, **common, SNAP_EVENT="push", SNAP_BEFORE=first)
+        check("PLT-03 push uses `before`", (code, f"Range: {first}..{head}" in out), (1, True))
+        code, out = run_ci(r, **common, SNAP_EVENT="push", SNAP_BEFORE=zeros)
+        check("PLT-03 first push falls back to the merge base", (code, f"Range: {first}..{head}" in out),
+              (1, True))
+        code, out = run_ci(r, **common, SNAP_EVENT="workflow_dispatch", SNAP_BEFORE="")
+        check("PLT-03 manual run uses the merge base, not a vacuous pass", (code, "Range: " in out), (1, True))
+        git(r, "checkout", "-q", "main")
+        write(r, "README.md", "main moves on\n")
+        moved = commit(r, "main moves after the branch")
+        code, out = run_ci(r, SNAP_EVENT="pull_request", SNAP_PR_BASE=moved, SNAP_PR_HEAD=head,
+                           SNAP_HEAD="ignored-for-pr", SNAP_DEFAULT_BRANCH="main")
+        check("PLT-03 pull request uses the merge base, not base.sha", f"Range: {first}..{head}" in out, True)
+        code, out = run_ci(r, SNAP_EVENT="push", SNAP_BEFORE=zeros, SNAP_HEAD=head,
+                           SNAP_DEFAULT_BRANCH="no-such-branch")
+        check("PLT-03 an unresolvable base fails closed", code != 0 and "Range: " not in out, True)
+        check("PLT-03 an empty base on the command line fails closed", run(r, "")[0] != 0, True)
 
         print("\nAn empty range, and failing closed on nonsense:")
         r = new_repo(tmp, "empty")
