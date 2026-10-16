@@ -1,0 +1,6 @@
+[mut_g1x] applied R23_previous_id_wrong
+        retirements, so mutations that made the service always return either list empty passed all 22
+FAILED tests/test_reports.py::test_reg_15_changes_since_lists_exactly_the_differences
+FAILED tests/test_reports.py::test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content
+FAILED tests/test_reports.py::test_reg_17_lists_a_retired_model_and_a_newly_opened_finding
+3 failed, 35 passed, 1 warning in 133.02s (0:02:13)

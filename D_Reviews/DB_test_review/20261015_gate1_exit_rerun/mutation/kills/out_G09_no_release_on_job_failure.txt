@@ -1,0 +1,4 @@
+[mut_g1x] applied G09_no_release_on_job_failure
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed load-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence staging-<lambda>]
+2 failed, 80 passed, 1 warning in 424.54s (0:07:04)

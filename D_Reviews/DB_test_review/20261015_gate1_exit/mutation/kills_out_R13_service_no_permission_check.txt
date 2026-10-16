@@ -1,0 +1,4 @@
+        committed it passed every test.
+FAILED tests/test_reports.py::test_reg_16_the_service_refuses_an_unpermitted_principal_too
+FAILED tests/test_reports.py::test_reg_16_a_refused_generation_writes_no_audit_event
+2 failed, 34 passed, 1 warning in 109.40s (0:01:49)

@@ -1,0 +1,6 @@
+reset started B-20260930-001
+samples=3803 elapsed=13.2s
+seed batch Completed (None); documents=1116; reports=1; lock outcome=Completed stage=Seeded example report reason=None
+second-reset attempts: {'Conflict(409)': 91, 'NoUser(401)': 30}
+  example Conflict(409) : A reset is already running: batch B-20260930-001, stage Clearing data, started 2026-10-15 21:38:48 UTC. Wait for it to finish and try again (GET /api/admin/reset/status).
+RESULT PASS

@@ -1,0 +1,2 @@
+FAILED tests/test_reports.py::test_reg_17_earlier_reports_are_listed_newest_first
+1 failed, 35 passed, 1 warning in 113.66s (0:01:53)

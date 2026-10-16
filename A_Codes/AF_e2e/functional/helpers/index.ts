@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
+import zlib from "node:zlib";
 import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 export const RUN_DIR = process.env.FT_RUN_DIR ?? "";
@@ -150,4 +151,76 @@ export function findSeedEvidence(modelId: string, area: string, fileName: string
     if (fs.existsSync(candidate)) return candidate;
   }
   throw new Error(`No seeded evidence at <business line>/${modelId}/${area}/${fileName} under ${root}`);
+}
+
+/**
+ * The text of a PDF, good enough to look for a sentence in it (D14: "the PDF counts as a surface").
+ *
+ * No PDF library is installed on either side, so this inflates every FlateDecode stream and reads the
+ * string operands of the text operators. Words are compared with all whitespace removed, because
+ * reportlab wraps a paragraph into several `Tj` strings wherever the line breaks. Good enough for
+ * "is this sentence on the page"; not a general extractor.
+ */
+export function pdfText(bytes: Buffer): string {
+  const raw = bytes.toString("latin1");
+  const chunks: string[] = [];
+  const re = /(?<!end)stream\r?\n/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) {
+    const start = m.index + m[0].length;
+    const end = raw.indexOf("endstream", start);
+    if (end < 0) break;
+    const text = raw.slice(start, end);
+    const attempts = [
+      () => zlib.inflateSync(Buffer.from(text, "latin1")),
+      () => zlib.inflateSync(ascii85(text)),   // reportlab's default: ASCII85 over Flate
+    ];
+    let decoded = text;
+    for (const attempt of attempts) {
+      try { decoded = attempt().toString("latin1"); break; } catch { /* next */ }
+    }
+    chunks.push(decoded);
+    re.lastIndex = end;
+  }
+  const unescape = (s: string) => s
+    .replace(/\\(\d{3})/g, (_x, o: string) => String.fromCharCode(parseInt(o, 8)))
+    .replace(/\\([()\\])/g, "$1");
+  const strings: string[] = [];
+  for (const c of chunks) {
+    for (const s of c.matchAll(/\(((?:\\.|[^\\)])*)\)\s*(?:Tj|')/g)) strings.push(unescape(s[1]));
+    for (const arr of c.matchAll(/\[([^\]]*)\]\s*TJ/g)) {
+      strings.push([...arr[1].matchAll(/\(((?:\\.|[^\\)])*)\)/g)].map((x) => unescape(x[1])).join(""));
+    }
+  }
+  return strings.join(" ");
+}
+
+/** ASCII85 (Adobe) decoding, for the PDF streams reportlab writes. */
+function ascii85(input: string): Buffer {
+  const s = input.replace(/^\s*<~/, "").replace(/~>[\s\S]*$/, "").replace(/\s+/g, "");
+  const out: number[] = [];
+  let group: number[] = [];
+  const flush = (g: number[], n: number) => {
+    let v = 0;
+    for (const c of g) v = v * 85 + c;
+    const bytes = [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
+    out.push(...bytes.slice(0, n));
+  };
+  for (const ch of s) {
+    if (ch === "z" && group.length === 0) { out.push(0, 0, 0, 0); continue; }
+    group.push(ch.charCodeAt(0) - 33);
+    if (group.length === 5) { flush(group, 4); group = []; }
+  }
+  if (group.length > 0) {
+    const n = group.length - 1;
+    while (group.length < 5) group.push(84);
+    flush(group, n);
+  }
+  return Buffer.from(out);
+}
+
+/** Whether `needle` appears in `haystack`, ignoring every whitespace difference. */
+export function containsIgnoringSpace(haystack: string, needle: string): boolean {
+  const squash = (s: string) => s.replace(/\s+/g, "");
+  return squash(haystack).includes(squash(needle));
 }

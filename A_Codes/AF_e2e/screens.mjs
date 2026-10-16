@@ -193,13 +193,91 @@ const browser = await chromium.launch();
   await page.close();
 }
 {
-  // Report and Copilot have no route on this branch: capture what an Executive actually sees.
+  // Copilot has no route on this branch: capture what an Executive actually sees.
   const page = await browser.newPage({ viewport: VIEWPORT });
   await signInAs(page, "Executive");
-  await shot(page, "MUP-29", "app");
+  await shot(page, "MUP-31", "app");
   await page.goto(`${APP_URL}/models/new`);
   await page.waitForTimeout(500);
   await shot(page, "MUP-35", "app");
+  await page.close();
+}
+
+// --- Model Risk Report (new screen, G1.17; BRD §55.10) --------------------------------------
+// Four captures, because the pack, the stored history and a *reopened historical* report are
+// three different things to judge, and the last one is where the Gate 1 finding lives.
+{
+  const page = await browser.newPage({ viewport: VIEWPORT });
+  await signInAs(page, "Executive");
+  await appScreen(page, "Model Risk Report");
+  await shot(page, "MUP-29", "app");       // the screen as a read-only role sees it
+  await shot(page, "MUP-39", "app");       // the Earlier reports list
+  // Reopen the seeded *previous* report — the oldest row, business date 30 days back, generated
+  // before the seed's evidence documents were loaded. Deliberately the last row, not the first:
+  // the first row is today's report and says nothing about how history reads.
+  // Since G1.26/G1.31 (S11, S12, D14) the seeded row carries a label; MP-18's capture is kept
+  // under its old name so the before/after can be compared across runs.
+  await page.getByRole("button", { name: /^(Open|Showing)$/ }).last().click();
+  await page.getByRole("heading", { name: /^Inventory —/ }).waitFor();
+  await page.waitForTimeout(400);
+  await shot(page, "MP-18_stored_report", "app");
+  const header = page.locator("section.panel")
+    .filter({ has: page.getByRole("button", { name: "Download PDF" }) });
+  await header.screenshot({ path: path.join(OUT, "MUP-39_seeded_header_app.png") });
+  console.log("  MUP-39_seeded_header_app.png");
+  await page.close();
+}
+{
+  const page = await browser.newPage({ viewport: VIEWPORT });
+  await signInAs(page, "Validator");       // holds REPORT_GENERATE (REQ-REG-10A)
+  await appScreen(page, "Model Risk Report");
+  await page.getByRole("button", { name: "Generate report" }).click();
+  await page.getByRole("heading", { name: /^Inventory —/ }).waitFor();
+  await page.waitForTimeout(600);
+  await shot(page, "MUP-30", "app");       // the pack, against the mock-up's six sections
+  await shot(page, "MUP-40", "app");
+  // S13: decisions since the previous report now sit in the Changes-since table.
+  for (const [name, heading] of [["MUP-40_changes_since", "Changes since the previous report"],
+                                 ["MUP-30_approvals", /^Approvals$/],
+                                 ["MUP-29_validation", /^Validation$/],
+                                 ["MUP-29_findings", /^Findings$/]]) {
+    const panel = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: heading }) });
+    await panel.screenshot({ path: path.join(OUT, `${name}_app.png`) });
+    console.log(`  ${name}_app.png`);
+  }
+  await page.close();
+}
+
+// --- Revalidation timeline overflow (FT-11 adjudication) ------------------------------------
+// BL.24 took the panel from five columns to eight while it stays in the two-column `.cols` grid.
+// `.tablewrap` is `overflow-x: auto`, so this is in-panel scrolling, not page overflow — the
+// measurement is captured so the judgement can be read off evidence rather than asserted.
+{
+  const page = await browser.newPage({ viewport: VIEWPORT });
+  await signInAs(page, "Executive");
+  await appScreen(page, "Command Center");
+  const panel = page.locator("section.panel")
+    .filter({ has: page.getByRole("heading", { name: /Revalidation timeline/ }) });
+  const wrap = panel.locator("div.tablewrap");
+  const metrics = await wrap.evaluate((el) => {
+    const headers = [...el.querySelectorAll("thead th")].map((th) => ({
+      text: th.textContent, right: Math.round(th.getBoundingClientRect().right),
+    }));
+    return {
+      clientWidth: el.clientWidth, scrollWidth: el.scrollWidth,
+      pageScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      headers,
+    };
+  });
+  console.log("  revalidation timeline: " + JSON.stringify(metrics));
+  fs.writeFileSync(path.join(OUT, "FT-11_metrics.json"), JSON.stringify(metrics, null, 2));
+  await panel.screenshot({ path: path.join(OUT, "FT-11_panel_app.png") });
+  console.log("  FT-11_panel_app.png");
+  // The same panel scrolled fully right: the two columns BL.24's change pushes out of view.
+  await wrap.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+  await page.waitForTimeout(200);
+  await panel.screenshot({ path: path.join(OUT, "FT-11_panel_scrolled_app.png") });
+  console.log("  FT-11_panel_scrolled_app.png");
   await page.close();
 }
 

@@ -1,0 +1,49 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32r/N4_locked_claim_treated_as_claimed.py
+.......................................F..                               [100%]
+================================== FAILURES ===================================
+_________ test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500 __________
+
+client = <starlette.testclient.TestClient object at 0x000001449C607DF0>
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-586/test_g1_32_a_database_lock_on_0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001449F3C72F0>
+
+    def test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500(client, db_session, test_settings, monkeypatch):
+        """GEN-04 (TR-70): a claim that cannot get SQLite's write lock means a reset is running.
+    
+        The claim is a write, so while a reset holds the write lock it fails with "database is locked"
+        rather than matching zero rows. That reached the client as an HTTP 500 in 65% of second attempts
+        in thread mode. It is the same answer as a refused claim, and gets the same 409.
+        """
+        from sqlalchemy.exc import OperationalError
+    
+        def locked(*_a, **_k):
+            raise OperationalError("UPDATE reset_lock ...", {}, Exception("database is locked"))
+    
+        monkeypatch.setattr(reset_service, "acquire_reset_lock", locked)
+        resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+>       assert resp.status_code == 409, resp.text
+E       AssertionError: {"batch_id":"B-20260930-001","batch_type":"seed","source":"reset","uploaded_by":"U-001","status":"Uploaded","options":{"on_existing":"update","role":null},"created_at":"2026-10-15T21:56:09Z","started_at":"2026-10-15T21:56:09.760332Z","validated_at":null,"completed_at":null,"total_files":6,"successful_files":0,"failed_files":0,"total_records":0,"successful_records":0,"failed_records":0,"warning_count":0,"error_message":null}
+E       assert 202 == 409
+E        +  where 202 = <Response [202 Accepted]>.status_code
+
+tests\test_reset_lock.py:290: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_reset_lock.py::test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500
+1 failed, 41 passed, 62 deselected, 1 warning in 258.26s (0:04:18)

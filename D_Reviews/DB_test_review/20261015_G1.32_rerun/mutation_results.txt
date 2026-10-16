@@ -1,0 +1,48 @@
+== control
+42 passed, 62 deselected, 1 warning in 229.61s (0:03:49)
+== A_release_at_handover
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+FAILED tests/test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>]
+5 failed, 37 passed, 62 deselected, 1 warning in 254.30s (0:04:14)
+Background job _store_evidence_then_seed_report failed
+== B_baseline_path_no_release
+__________ test_g1_32_a_missing_baseline_releases_the_lock_as_failed __________
+    def test_g1_32_a_missing_baseline_releases_the_lock_as_failed(client, test_settings, monkeypatch):
+FAILED tests/test_reset_lock.py::test_g1_32_a_missing_baseline_releases_the_lock_as_failed
+1 failed, 41 passed, 62 deselected, 1 warning in 231.42s (0:03:51)
+== C_start_reset_failure_no_release
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed preparation-<lambda>]
+1 failed, 41 passed, 62 deselected, 1 warning in 256.32s (0:04:16)
+== H2_batch_before_check
+>       assert unexpected == [], f"{len(unexpected)} attempt(s) failed with an error instead of 409: {unexpected[:3]}"
+E       AssertionError: 274 attempt(s) failed with an error instead of 409: ['OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af', 'OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af', 'OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af']
+ERROR    app.workers.runner:runner.py:27 Background job _store_evidence_then_seed_report failed
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+FAILED tests/test_reset_lock.py::test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing
+FAILED tests/test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409
+3 failed, 39 passed, 62 deselected, 1 warning in 280.37s (0:04:40)
+== H_regenerate_before_check
+FAILED tests/test_reset_lock.py::test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing
+FAILED tests/test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409
+2 failed, 40 passed, 62 deselected, 1 warning in 846.84s (0:14:06)
+Background job _store_evidence_then_seed_report failed
+== N1_no_read_first
+FAILED tests/test_reset_lock.py::test_g1_32_a_held_lock_is_answered_from_a_read_without_claiming
+1 failed, 41 passed, 62 deselected, 1 warning in 272.61s (0:04:32)
+== N2_no_operational_except
+== N3_any_operational_error_is_409
+42 passed, 62 deselected, 1 warning in 221.72s (0:03:41)
+== N4_locked_claim_treated_as_claimed
+E       AssertionError: {"batch_id":"B-20260930-001","batch_type":"seed","source":"reset","uploaded_by":"U-001","status":"Uploaded","options":{"on_existing":"update","role":null},"created_at":"2026-10-15T21:56:09Z","started_at":"2026-10-15T21:56:09.760332Z","validated_at":null,"completed_at":null,"total_files":6,"successful_files":0,"failed_files":0,"total_records":0,"successful_records":0,"failed_records":0,"warning_count":0,"error_message":null}
+FAILED tests/test_reset_lock.py::test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500
+1 failed, 41 passed, 62 deselected, 1 warning in 258.26s (0:04:18)
+== N5_no_rollback_in_except
+42 passed, 62 deselected, 1 warning in 219.62s (0:03:39)
+== N6_read_first_does_not_name_batch
+        used to infer from, and that inference failed twice (CR-53, TR-65). The refusal names the batch
+FAILED tests/test_imports.py::test_a_second_reset_is_refused_while_one_is_running
+FAILED tests/test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409
+2 failed, 40 passed, 62 deselected, 1 warning in 261.68s (0:04:21)

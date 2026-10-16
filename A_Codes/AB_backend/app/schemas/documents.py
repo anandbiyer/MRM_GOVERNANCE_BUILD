@@ -2,6 +2,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.core import Utc
+
 from app.schemas.ingestion import ImportBatchOut
 
 
@@ -22,7 +24,7 @@ class DocumentVersionOut(ORMModel):
     change_reason: str | None
     import_batch_id: str | None
     uploaded_by: str | None
-    uploaded_at: datetime
+    uploaded_at: Utc
 
 
 class DocumentOut(ORMModel):
@@ -47,15 +49,15 @@ class DocumentOut(ORMModel):
     retention_end: date | None
     legal_hold: bool
     created_by: str | None
-    created_at: datetime | None
-    updated_at: datetime | None
+    created_at: Utc | None
+    updated_at: Utc | None
     row_version: int
 
 
 class DocumentSummaryOut(DocumentOut):
     file_name: str
     size_bytes: int
-    uploaded_at: datetime
+    uploaded_at: Utc
     folder_path: str | None = None
 
 
@@ -63,7 +65,7 @@ class DocumentLinkOut(ORMModel):
     entity_type: str
     entity_id: str
     created_by: str | None
-    created_at: datetime
+    created_at: Utc
 
 
 class DocumentDetailOut(DocumentOut):

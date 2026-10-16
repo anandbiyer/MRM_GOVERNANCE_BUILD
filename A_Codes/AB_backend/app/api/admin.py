@@ -37,11 +37,17 @@ def reset_to_seed(
 
 @router.get("/reset/status", response_model=ResetStatusOut)
 def reset_status(db: DbSession, _: CurrentPrincipal):
-    """Whether a reset is still running, and which batch to watch.
+    """Whether a reset is still running, which batch it is, and how the last one ended.
 
-    A reset creates two batches — the seed import and then one for the evidence files — so the batch
-    id returned by POST /reset reports Completed while the reset is still writing. This is the signal
-    that covers the whole operation (FT-02).
+    Read from the reset lock alone (G1.32), which a reset holds from its first step to its last. The
+    batch id returned by POST /reset is not the signal: its status reads Completed once the seed is
+    loaded, while the reset is still writing (FT-02, CR-53, TR-65).
     """
-    running = reset_service.reset_in_progress(db)
-    return ResetStatusOut(in_progress=running is not None, batch=running)
+    lock = reset_service.lock_state(db)
+    if lock is None:
+        return ResetStatusOut(in_progress=False, batch=None)
+    running = lock.holder is not None
+    batch = reset_service.running_batch(db, lock)
+    return ResetStatusOut(in_progress=running, batch=batch, stage=lock.stage, acquired_at=lock.acquired_at,
+                          released_at=lock.released_at, last_outcome=lock.last_outcome,
+                          last_reason=lock.last_reason)

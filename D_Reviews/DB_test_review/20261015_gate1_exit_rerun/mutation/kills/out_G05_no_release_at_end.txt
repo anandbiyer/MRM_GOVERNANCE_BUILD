@@ -1,0 +1,18 @@
+[mut_g1x] applied G05_no_release_at_end
+        status inference first failed. This observes the lock at the moment the evidence is staged.
+___ test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed ____
+    def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409
+FAILED tests/test_imports.py::test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+FAILED tests/test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed
+FAILED tests/test_imports.py::test_ft_04_a_reset_leaves_the_seed_batch_terminal_and_the_evidence_loaded
+FAILED tests/test_reports.py::test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content
+FAILED tests/test_reports.py::test_gen_01_a_reset_clears_the_report_history_and_reseeds_it
+FAILED tests/test_reports.py::test_s11_the_seeded_report_holds_real_figures
+FAILED tests/test_reports.py::test_s12_the_seeded_report_is_labelled_and_a_generated_one_is_not
+FAILED tests/test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line
+13 failed, 69 passed, 1 warning in 900.56s (0:15:00)

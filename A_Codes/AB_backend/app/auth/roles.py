@@ -33,6 +33,7 @@ class Permission(StrEnum):
     DOCUMENT_REVIEW = "document:review"
     MONITORING_MANAGE = "monitoring:manage"
     DQ_MANAGE = "dq:manage"
+    REPORT_GENERATE = "report:generate"
     SYSTEM_ADMIN = "system:admin"
 
 
@@ -47,9 +48,11 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.MODEL_DEVELOPER: frozenset(_ALL_READ | {Permission.DOCUMENT_UPLOAD}),
     Role.VALIDATOR: frozenset(_ALL_READ | {
         Permission.VALIDATION_EDIT, Permission.FINDING_EDIT, Permission.DOCUMENT_UPLOAD,
-        Permission.DOCUMENT_REVIEW,
+        Permission.DOCUMENT_REVIEW, Permission.REPORT_GENERATE,
     }),
-    Role.MRC_MEMBER: frozenset(_ALL_READ | {Permission.APPROVAL_RECORD, Permission.AUDIT_READ}),
+    Role.MRC_MEMBER: frozenset(_ALL_READ | {
+        Permission.APPROVAL_RECORD, Permission.AUDIT_READ, Permission.REPORT_GENERATE,
+    }),
     Role.AUDITOR: frozenset(_ALL_READ | {Permission.AUDIT_READ}),
     Role.EXECUTIVE: frozenset(_ALL_READ),
     Role.MONITORING_ANALYST: frozenset(_ALL_READ | {

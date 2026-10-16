@@ -1,0 +1,42 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32r/B_baseline_path_no_release.py
+.....................................F....                               [100%]
+================================== FAILURES ===================================
+__________ test_g1_32_a_missing_baseline_releases_the_lock_as_failed __________
+
+client = <starlette.testclient.TestClient object at 0x000001E2C425CD10>
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-579/test_g1_32_a_missing_baseline_0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E2C40095A0>
+
+    def test_g1_32_a_missing_baseline_releases_the_lock_as_failed(client, test_settings, monkeypatch):
+        """GEN-05 (TR-72): the one stage that ends the reset without raising still releases the lock."""
+        factory = _factory(client)
+        monkeypatch.setattr(reset_service, "missing_baseline_settings", lambda _db: ["probe_setting"])
+        with factory() as db:
+            reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)  # completes: the failure is recorded, not raised
+        with factory() as db:
+>           assert reset_service.reset_in_progress(db) is None, "the baseline path must release the lock"
+E           AssertionError: the baseline path must release the lock
+E           assert <app.models.reset_lock.ResetLock object at 0x000001E2C4CB2D50> is None
+E            +  where <app.models.reset_lock.ResetLock object at 0x000001E2C4CB2D50> = <function reset_in_progress at 0x000001E2BF174670>(<sqlalchemy.orm.session.Session object at 0x000001E2C3F69D50>)
+E            +    where <function reset_in_progress at 0x000001E2BF174670> = reset_service.reset_in_progress
+
+tests\test_reset_lock.py:240: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_reset_lock.py::test_g1_32_a_missing_baseline_releases_the_lock_as_failed
+1 failed, 41 passed, 62 deselected, 1 warning in 231.42s (0:03:51)

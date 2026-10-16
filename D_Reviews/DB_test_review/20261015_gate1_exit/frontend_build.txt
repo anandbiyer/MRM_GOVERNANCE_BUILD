@@ -1,0 +1,15 @@
+
+> mrm-mis-frontend@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v8.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+✓ 95 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.77 kB │ gzip:   0.42 kB
+dist/assets/index-Bhq-GI78.css   12.91 kB │ gzip:   3.35 kB
+dist/assets/index-DcdCOI-P.js   416.10 kB │ gzip: 119.80 kB
+
+[32m✓ built in 130ms[39m
+exit=0 dur=4s

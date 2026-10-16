@@ -1,0 +1,5 @@
+[mut_g1x] applied R19_closed_empty
+        # truthiness passed even when the seed shaped 120 models instead of 4 (TR-05). The numbers are
+FAILED tests/test_reports.py::test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content
+FAILED tests/test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report
+2 failed, 36 passed, 1 warning in 135.58s (0:02:15)

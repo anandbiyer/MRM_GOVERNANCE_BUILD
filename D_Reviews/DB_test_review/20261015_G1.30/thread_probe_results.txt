@@ -1,0 +1,12 @@
+Thread-mode probe (MRM_JOB_MODE=thread, file-backed SQLite, staged G1.30 code), 2026-10-15.
+Run 0, builder's probe unchanged (50 ms sampling, breaks at first "finished"):
+  VIOLATION t=2.40s reset reads finished but no example report yet; RESULT FAIL
+  (concurrent with the mutation run, so the machine was loaded)
+Runs 1-3, instrumented copy, 20 ms sampling, continues past "finished, no report": PASS x3
+  seed Completed, documents Completed, documents=1116, reports=1, ~9.4 s
+Runs 4-8, instrumented copy, 2 ms sampling: FAIL x5, one sample each:
+  t=3.05s / 2.99s / 2.89s / 2.92s / 2.93s  seed/docs=('Completed', None)
+  i.e. the seed batch reads Completed and the documents batch does not exist yet;
+  end state in every run correct (seed Completed, 1116 documents, 1 report).
+Latch probe (latch_probe_test.py): final restore commit raising OperationalError leaves
+  STATUS Processing ERR None IN_PROGRESS B-PROBE  -> 1 passed (latch demonstrated).

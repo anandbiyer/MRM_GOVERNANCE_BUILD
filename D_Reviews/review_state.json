@@ -1,6 +1,79 @@
 {
   "_comment": "Written by /review-checkpoint and /review-build. The skip rule reads it: a checkpoint whose scope has the same git write-tree, or a gate whose Ready review has the same head, is not re-run. The merge hook (.claude/hooks/review_gate.py) reads gates only.",
-  "checkpoints": {},
+  "checkpoints": {
+    "G1.16": {
+      "kind": "schema",
+      "date": "2026-10-07",
+      "report": "D_Reviews/DA_code_review/20261007_G1.16_schema.md",
+      "tree": "4ac2165fc3679a7d0eb6de329bc6c40af4dde4b2",
+      "open_critical_high": 0,
+      "note": "Performed by hand: the requirements-reviewer agent type was unavailable in-session."
+    },
+    "G1.16:risk": {
+      "kind": "risk",
+      "date": "2026-10-07",
+      "report": "D_Reviews/DB_test_review/20261007_G1.16_risk.md",
+      "tree": "35e7e8f51bba178979ed14e286051fa8e57c385b",
+      "open_critical_high": 0,
+      "note": "R2-01 (service permission guard untested) found and fixed in-row."
+    },
+    "G1.18:risk": {
+      "kind": "risk",
+      "date": "2026-10-07",
+      "report": "D_Reviews/DB_test_review/20261007_G1.18_risk_rerun.md",
+      "tree": "7114ef417befce253798ca62fa8da45207c60104",
+      "open_critical_high": 0,
+      "note": "Re-run after the five fixes. REG-15 and REG-16 Proven; REG-17 Proven once TR-06 was closed in-row. Six remaining Medium/Low triaged to BL.7 and BL.8."
+    },
+    "G1.29:risk": {
+      "date": "2026-10-15",
+      "tree": "00acd08b823984f4be1852b537815b21c34e3472",
+      "report": "D_Reviews/DB_test_review/20261015_G1.29_risk.md",
+      "summary": "0 Critical, 0 High; 3 Medium (TR-60, TR-61, TR-62), 2 Low (TR-63, TR-64). REG-16 and REG-17 Proven. Reviewed at scope digest 3860887a; TR-64 (a line-join artefact in report_service.py:320) fixed in-row before commit, which is the only difference from the recorded tree."
+    },
+    "G1.30:risk": {
+      "date": "2026-10-15",
+      "tree": "bb0f2c19a438a2dd6dcda8387571517b8884a94a",
+      "report": "D_Reviews/DB_test_review/20261015_G1.30_risk.md",
+      "summary": "0 Critical, 1 High (TR-65, pre-existing: engine.run commits the seed batch Completed before _reset_job re-holds it, a millisecond window outside G1.30's diff), 2 Medium (TR-66, TR-67), 2 Low (TR-68, TR-69). G1.30's own change judged correct; GEN-05 Weak. Row left Not started pending triage. Digest per /review-checkpoint: git ls-files -s -- <scope> | git hash-object --stdin."
+    },
+    "G1.32": {
+      "date": "2026-10-15",
+      "tree": "fa2f789ce96909d9221a6b131d6988c856a7dac7",
+      "report": "D_Reviews/DA_code_review/20261015_G1.32_schema.md",
+      "summary": "Pass: 0 Critical, 0 High; CR-59..CR-62 Low. Migration, ORM and \u00a748 agree column by column; offline PostgreSQL DDL identical to the ORM's."
+    },
+    "G1.32:risk": {
+      "date": "2026-10-15",
+      "tree": "9f0d010638d3275a86e922c95e60033591ad77cf",
+      "report": "D_Reviews/DB_test_review/20261015_G1.32_risk_rerun.md",
+      "summary": "Re-run after the TR-70 fix: 0 Critical, 0 High. TR-70, TR-72, TR-74, TR-76 closed; GEN-04 Weak -> Proven with residuals, GEN-05 Proven. New: TR-79 (Medium), TR-80..TR-82 (Low), held for the Gate 1 exit triage. First run: D_Reviews/DB_test_review/20261015_G1.32_risk.md (TR-70 High)."
+    },
+    "G1.31": {
+      "date": "2026-10-15",
+      "tree": "37b9f21471bc02debacf76fa1cf0b85bfbfd6022",
+      "report": "D_Reviews/DA_code_review/20261015_G1.31_schema.md",
+      "summary": "Pass: 0 Critical/High/Medium; CR-63..CR-65 Low held for the Gate 1 exit triage; CR-66 (the D14 clarification recorded nowhere) fixed before commit."
+    },
+    "G1.31:risk": {
+      "date": "2026-10-15",
+      "tree": "82b3945c0290aca1df648a913d5a8d9190764965",
+      "report": "D_Reviews/DB_test_review/20261015_G1.31_risk.md",
+      "summary": "0 Critical, 0 High; TR-83 (Medium, owner decision: the seeded reconciliation line carries the shaped generated_at), TR-84..TR-86 Low, held for the Gate 1 exit triage. REG-15, REG-16, REG-17 Proven; 8 of 10 mutants killed."
+    },
+    "G1.33:risk": {
+      "date": "2026-10-15",
+      "tree": "commit 3994f43",
+      "report": "D_Reviews/DB_test_review/20261015_G1.33_risk.md",
+      "summary": "0 Critical, 0 High. TR-87 closed; PLT-02 and PLT-03 Proven (78 of 152). TR-94 (Windows self-test crash, introduced by the row) and TR-95 (a rename test passing for the wrong reason) fixed in-row afterwards; TR-96 (spec: a rename git sees as delete+add is not charged), TR-97, TR-98, TR-99 held for the gate triage."
+    },
+    "G1.34:risk": {
+      "date": "2026-10-15",
+      "tree": "af2e3dbfbc8a5fc50ef0f6f153f00b00449869f1",
+      "report": "D_Reviews/DB_test_review/20261015_G1.34_risk.md",
+      "summary": "0 Critical, 0 High; REG-16, REG-17, GEN-04 Proven. TR-113 (test tagged GEN-04) fixed in-row; TR-110, TR-111, TR-112, TR-114 Low held for the gate triage."
+    }
+  },
   "gates": {
     "0": {
       "date": "2026-10-07",
@@ -16,6 +89,19 @@
       },
       "reviewed_head": "c8deaaf",
       "head_note": "Recorded head moved c8deaaf -> 69f867f, approved by owner; diff contains no product code. The four agents reviewed 779e3de / c8deaaf. `head` is moved forward to this commit so the gate can be merged, and the reason is recorded rather than left implicit. Nine protected files changed between c8deaaf and here and NONE is product code: `git diff c8deaaf <head> -- A_Codes/AB_backend/app A_Codes/AC_frontend/src A_Codes/AD_seed B_Inputs` is empty. The nine are: the merge hook and its new test file (ordered after the review); six docstring-only criterion-ID tags in tests/test_imports.py (GEN-04, GEN-05 \u2014 no assertion touched); FS-27 and its catalogue entry (run, and shown to fail against the restored G0.21 defect); and four harness files the parity tester itself wrote as that review's own deliverables. Backend 184 pass / 4 skip and the frontend build were re-run green here, and the hook's own 22 checks pass. This is a judgement call by the author of the change, not an agent verdict: to reverse it, re-run /review-build gate 0 at this commit."
+    },
+    "1": {
+      "date": "2026-10-16",
+      "verdict": "Ready",
+      "summary": "D_Reviews/20261016_summary.md",
+      "head": "a4f17ce2bdbce9415c03b203d100eb820ceee7cf",
+      "note": "Owner-scoped re-run after G1.33/G1.34: requirements and test reviewers in full, functional limited to FS-21 and FS-25, no parity run (full parity at b8cc1f3 found 0 Missing). 0 Critical/High; 77 of 152 proven; CI green on GitHub incl. PostgreSQL and the new --ci snapshot job.",
+      "previous": {
+        "date": "2026-10-15",
+        "verdict": "Not ready",
+        "head": "b8cc1f36b02234d13300e18024fd42cd2b7a52b4",
+        "summary": "D_Reviews/20261015_summary.md"
+      }
     }
   }
 }

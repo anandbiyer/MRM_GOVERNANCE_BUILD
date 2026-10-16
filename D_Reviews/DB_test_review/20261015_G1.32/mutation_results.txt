@@ -1,0 +1,42 @@
+== control
+36 passed, 62 deselected, 1 warning in 183.40s (0:03:03)
+== A_release_at_handover
+== B_baseline_path_no_release
+36 passed, 62 deselected, 1 warning in 206.78s (0:03:26)
+== C_start_reset_failure_no_release
+36 passed, 62 deselected, 1 warning in 208.83s (0:03:28)
+== D_read_then_write_claim
+36 passed, 62 deselected, 1 warning in 206.19s (0:03:26)
+== E_release_ignores_holder
+FAILED tests/test_reset_lock.py::test_g1_32_only_the_holder_can_release_the_lock
+1 failed, 35 passed, 62 deselected, 1 warning in 184.06s (0:03:04)
+== F_stage_ignores_holder
+36 passed, 62 deselected, 1 warning in 180.09s (0:03:00)
+== G_write_after_handover
+        # (`analyse_job` -> `_store_evidence_then_seed_report`) and this assertion failed on the name
+FAILED tests/test_imports.py::test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+2 failed, 34 passed, 62 deselected, 1 warning in 202.74s (0:03:22)
+== H_regenerate_before_claim
+36 passed, 62 deselected, 1 warning in 204.42s (0:03:24)
+== I_claim_before_permission
+36 passed, 62 deselected, 1 warning in 204.64s (0:03:24)
+== J_job_failure_no_release
+___ test_ft_05_a_reset_whose_evidence_staging_fails_leaves_the_batch_failed ___
+    def test_ft_05_a_reset_whose_evidence_staging_fails_leaves_the_batch_failed(client, test_settings,
+FAILED tests/test_documents.py::test_ft_05_a_reset_whose_evidence_staging_fails_leaves_the_batch_failed
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed load-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence staging-<lambda>]
+3 failed, 33 passed, 62 deselected, 1 warning in 199.87s (0:03:19)
+== K_no_finally
+___ test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed ____
+    def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+        assert "Seeded example report failed" in (batch["error_message"] or ""), batch
+FAILED tests/test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>]
+3 failed, 33 passed, 62 deselected, 1 warning in 201.93s (0:03:21)
+== L_recovery_noop
+FAILED tests/test_reset_lock.py::test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason
+FAILED tests/test_reset_lock.py::test_g1_32_starting_the_application_releases_an_interrupted_lock
+2 failed, 34 passed, 62 deselected, 1 warning in 203.51s (0:03:23)

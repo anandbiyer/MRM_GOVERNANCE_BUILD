@@ -1,0 +1,3 @@
+[mut_g1x] applied C01_no_lock_check_in_generate
+FAILED tests/test_reports.py::test_cr_67_a_report_cannot_be_generated_while_a_reset_holds_the_lock
+1 failed, 51 passed, 1 warning in 258.05s (0:04:18)

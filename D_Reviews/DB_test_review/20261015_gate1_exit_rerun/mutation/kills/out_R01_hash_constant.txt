@@ -1,0 +1,4 @@
+[mut_g1x] applied R01_hash_constant
+FAILED tests/test_reports.py::test_reg_16_the_same_data_gives_the_same_content_hash
+FAILED tests/test_reports.py::test_reg_16_the_hash_ignores_which_report_came_before
+2 failed, 36 passed, 1 warning in 110.36s (0:01:50)

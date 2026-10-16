@@ -22,6 +22,9 @@ const LATER: Partial<Record<Tab, string>> = {
 };
 
 function fmt(d: string | null | undefined) {
+  // Date-only values only. A timestamp belongs in `formatDateTime`: passing one here printed the
+  // UTC calendar day while the same event's timestamp elsewhere printed the local one, so Model 360
+  // showed two different days for events minutes apart (MP-15, BL.28).
   return formatDate(d);
 }
 
@@ -79,7 +82,7 @@ function Overview({ d, meta, name }: { d: Model360; meta: ModelMeta; name: (id: 
         {d.tier_overrides.length > 0 && (
           <ul className="checklist" style={{ marginTop: 10 }}>
             {d.tier_overrides.map((o, i) => (
-              <li key={i}>{fmt(o.created_at)} · {o.previous_tier} → {o.new_tier} by {o.user_id}: {o.reason}</li>
+              <li key={i}>{formatDateTime(o.created_at)} · {o.previous_tier} → {o.new_tier} by {o.user_id}: {o.reason}</li>
             ))}
           </ul>
         )}
@@ -89,7 +92,7 @@ function Overview({ d, meta, name }: { d: Model360; meta: ModelMeta; name: (id: 
         <Stepper phases={meta.lifecycle_phases} current={m.lifecycle_phase} />
         <ul className="checklist" style={{ marginTop: 12 }}>
           {d.phase_history.map((h, i) => (
-            <li key={i}>{fmt(h.changed_at)} · {h.from_phase ?? "—"} → <b>{h.to_phase}</b>{h.user_id ? ` by ${h.user_id}` : ""}{h.reason ? ` — ${h.reason}` : ""}</li>
+            <li key={i}>{formatDateTime(h.changed_at)} · {h.from_phase ?? "—"} → <b>{h.to_phase}</b>{h.user_id ? ` by ${h.user_id}` : ""}{h.reason ? ` — ${h.reason}` : ""}</li>
           ))}
         </ul>
       </section>
@@ -181,7 +184,7 @@ function HistoryPanel({ modelId, d }: { modelId: string; d: Model360 }) {
       <section className="panel">
         <h4>Versions</h4>
         <ul className="checklist">
-          {d.versions.map((v) => <li key={v.version}><span className="mono">{v.version}</span> · {fmt(v.recorded_at)} {v.change_reason ? `— ${v.change_reason}` : ""}</li>)}
+          {d.versions.map((v) => <li key={v.version}><span className="mono">{v.version}</span> · {formatDateTime(v.recorded_at)} {v.change_reason ? `— ${v.change_reason}` : ""}</li>)}
         </ul>
       </section>
       <section className="panel">

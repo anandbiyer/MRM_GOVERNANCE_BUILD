@@ -1,0 +1,9 @@
+busy_timeout_ms = 300
+[control: nothing else happening] ACCEPTED (claimed the lock; stopped before any delete)
+      lock held by another reset at any time: no; lock now: None
+[W: unrelated commit between auth read and start_reset] ACCEPTED (claimed the lock; stopped before any delete)
+      lock held by another reset at any time: no; lock now: None
+[H: unrelated writer holds the write lock > busy_timeout] 409 A reset is already running. Wait for it to finish and try again (GET /api/admin/reset/status).
+      lock held by another reset at any time: no; lock now: None
+[control again] ACCEPTED (claimed the lock; stopped before any delete)
+      lock held by another reset at any time: no; lock now: None

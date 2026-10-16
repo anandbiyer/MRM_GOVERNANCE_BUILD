@@ -1,0 +1,4 @@
+[mut_g1x] applied R28_pdf_reconciliation_gone
+FAILED tests/test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+2 failed, 36 passed, 1 warning in 122.42s (0:02:02)

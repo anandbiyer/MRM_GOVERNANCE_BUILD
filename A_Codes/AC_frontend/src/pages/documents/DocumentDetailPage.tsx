@@ -6,7 +6,7 @@ import type { AuditEvent, DocumentDetail } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { ErrorState, Loading } from "../../components/States";
 import { Preview, formatBytes, invalidateDocuments } from "./shared";
-import { formatDate } from "../../format";
+import { formatDate, formatDateTime} from "../../format";
 
 export function DocumentDetailPage() {
   const { documentId } = useParams();
@@ -54,7 +54,7 @@ export function DocumentDetailPage() {
               ["Effective date", formatDate(d.effective_date)], ["Source", d.source],
               ["Classification", `${d.classification_source ?? "—"}${d.classification_confidence !== null ? ` (${Math.round(d.classification_confidence * 100)}%)` : ""}`],
               ["Why", d.classification_reason ?? "—"], ["Extraction", `${d.extraction_status} (AI extraction arrives in Phase 5)`],
-              ["Retention", `${d.retention_start ?? "—"} → ${d.retention_end ?? "—"}`]] as [string, React.ReactNode][]).map(([k, v]) => (
+              ["Retention", `${formatDate(d.retention_start)} → ${formatDate(d.retention_end)}`]] as [string, React.ReactNode][]).map(([k, v]) => (
               <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
             ))}
           </dl>
@@ -70,7 +70,7 @@ export function DocumentDetailPage() {
                   <tr key={v.version_id} className={v.version === current.version ? "sel" : "click"} onClick={() => setVersion(v.version)}>
                     <td className="mono">{v.version}</td>
                     <td className="mono">{v.file_name}<div style={{ color: "var(--faint)" }}>{formatBytes(v.size_bytes)} · {v.checksum.slice(0, 12)}…</div></td>
-                    <td className="mono">{new Date(v.uploaded_at).toLocaleString()}</td>
+                    <td className="mono">{formatDateTime(v.uploaded_at)}</td>
                     <td className="mono">{v.uploaded_by ?? "system"}</td>
                     <td className="mono">{v.import_batch_id ? <Link to={`/documents/batches/${v.import_batch_id}`} onClick={(e) => e.stopPropagation()}>{v.import_batch_id}</Link> : "single"}</td>
                     <td><button className="btn sm" onClick={(e) => { e.stopPropagation(); downloadFile(`/api/documents/${d.document_id}/versions/${v.version}/download`, v.file_name).catch((x) => setError(x.message)); }}>Download</button></td>
@@ -110,7 +110,7 @@ export function DocumentDetailPage() {
           {audit.isLoading ? <Loading /> : (
             <ul className="checklist">
               {(audit.data ?? []).map((e) => (
-                <li key={e.event_id}>{new Date(e.occurred_at).toLocaleString()} · <b>{e.action}</b> by {e.user_id ?? "system"} ({e.role})
+                <li key={e.event_id}>{formatDateTime(e.occurred_at)} · <b>{e.action}</b> by {e.user_id ?? "system"} ({e.role})
                   {e.import_batch_id ? ` in batch ${e.import_batch_id}` : ""}{e.reason ? ` — ${e.reason}` : ""}</li>
               ))}
             </ul>

@@ -1,0 +1,2 @@
+FAILED tests/test_reports.py::test_tr_61_a_report_stored_before_s13_reopens_with_its_decisions
+1 failed, 35 passed, 1 warning in 112.74s (0:01:52)

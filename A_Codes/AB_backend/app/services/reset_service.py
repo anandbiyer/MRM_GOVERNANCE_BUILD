@@ -7,10 +7,14 @@ kept: audit records are immutable, and the reset itself is recorded as an audit 
 """
 import csv
 import importlib.util
+import logging
+import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.audit import service as audit
@@ -32,31 +36,36 @@ from app.models import (
     Model,
     ModelPhaseHistory,
     ModelRelationship,
+    ModelRiskReport,
     ModelVersion,
     PolicySetting,
+    ResetLock,
     TieringAnswer,
     TierOverride,
     UserRole,
     Validation,
 )
-from app.services import bootstrap_service
+from app.services import bootstrap_service, report_service
 from app.services.errors import ConflictError, ForbiddenError, ValidationFailedError
 from app.services.policy_access import Policy
 from app.workers import runner
 
-# Children before parents.
-DELETE_ORDER = (Finding, Approval, Validation, DocumentLink, DocumentVersion, Document, DocumentFolder, ModelRelationship,
-                ModelVersion, ModelPhaseHistory, TierOverride, TieringAnswer, Model, UserRole, AppUser, PolicySetting)
+log = logging.getLogger(__name__)
+
+# Children before parents. `ModelRiskReport` is first: it references itself through
+# `previous_report_id`, and a reset must leave the report history as reproducible as everything else
+# (GEN-01) — otherwise the next reset's seeded predecessor depends on what a demo did in between.
+DELETE_ORDER = (ModelRiskReport, Finding, Approval, Validation, DocumentLink, DocumentVersion, Document,
+                DocumentFolder, ModelRelationship, ModelVersion, ModelPhaseHistory, TierOverride,
+                TieringAnswer, Model, UserRole, AppUser, PolicySetting)
 
 # The §42 batch statuses that mean a batch has finished, one way or another. The rest — Uploaded,
-# Validating, Ready, Processing — mean work is still expected.
+# Validating, Ready, Processing — mean work is still expected. No longer what the reset guard reads
+# (that is the lock, G1.32); kept as the §42 contract the batch tests check against.
 TERMINAL_BATCH_STATUSES = ("Completed", "Partially Completed", "Failed", "Validation Failed", "Cancelled")
 
-# A reset produces two batches: the seed import (source "reset") and, at the very end of the job, a
-# documents batch for the evidence files (source "seed", created only by `stage_seed_documents`).
-# Both must be finished before another reset may start, which is why the seed batch's own status is
-# not a sufficient signal.
-RESET_BATCH_SOURCES = ("reset", "seed")
+# The single row of `reset_lock` (G1.32). "Is a reset running?" is answered by this row alone.
+LOCK_ID = 1
 
 
 def regenerate_seed(directory: Path) -> None:
@@ -99,19 +108,164 @@ def seed_files(directory: Path) -> list[tuple[str, bytes]]:
     return [(p.name, p.read_bytes()) for p in files]
 
 
-def reset_in_progress(db: Session) -> ImportBatch | None:
-    """The batch of a reset that has not finished yet, or None.
+# --- the reset lock (G1.32) -------------------------------------------------------------------------
+#
+# Until G1.32 "is a reset running?" was inferred from import batch statuses, and that inference failed
+# twice in the same way. CR-53: both reset batches were terminal while the example report was still
+# being written. TR-65: `engine.run` commits the seed batch `Completed` a moment before the reset
+# re-holds it. Each time, for that window, a second reset would have been accepted with its deletes
+# racing the first. Rather than patch each window as it is found, a reset now claims an explicit lock
+# at its very start, holds it to its very end, and releases it in a `finally` that records how it
+# ended. The in-flight check and `GET /api/admin/reset/status` read the lock and nothing else.
+#
+# Writes to the lock are processing state, like a batch status, so they are not audited; the reset
+# itself is (`_reset_job`). Each helper uses its own short transaction so the lock is visible to other
+# sessions the moment it changes.
 
-    Covers both batches a reset creates, because the seed import completes well before the evidence
-    files are loaded: a caller polling the batch id it was given sees "Completed" while the reset is
-    still writing.
+
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _lock_row(db: Session) -> ResetLock | None:
+    """The lock row, re-read from the database rather than from this session's identity map."""
+    return db.execute(select(ResetLock).where(ResetLock.lock_id == LOCK_ID)
+                      .execution_options(populate_existing=True)).scalar_one_or_none()
+
+
+def _ensure_lock_row(db: Session) -> None:
+    """Migration 0008 inserts the row; a `create_all` database (the dev launcher, tests) does not."""
+    if _lock_row(db) is not None:
+        return
+    db.add(ResetLock(lock_id=LOCK_ID))
+    try:
+        db.commit()
+    except IntegrityError:  # another session inserted it first, which is just as good
+        db.rollback()
+
+
+def acquire_reset_lock(db: Session, holder: str, acquired_by: str | None) -> bool:
+    """Claim the lock for `holder`. True if this call now holds it, False if a reset already does.
+
+    One conditional UPDATE — "set the holder where there is none" — so of two claimants exactly one
+    matches the free row. That is atomic on SQLite and PostgreSQL alike, which is what BL.12 found the
+    old read-then-proceed guard was not: on PostgreSQL two requests could both read "nothing running"
+    and both reach the delete loop.
     """
-    return db.scalars(
-        select(ImportBatch)
-        .where(ImportBatch.source.in_(RESET_BATCH_SOURCES),
-               ImportBatch.status.not_in(TERMINAL_BATCH_STATUSES))
-        .order_by(ImportBatch.batch_id)
-    ).first()
+    _ensure_lock_row(db)
+    claimed = db.execute(
+        update(ResetLock)
+        .where(ResetLock.lock_id == LOCK_ID, ResetLock.holder.is_(None))
+        .values(holder=holder, acquired_by=acquired_by, acquired_at=_now(), stage="Starting",
+                batch_id=None, released_at=None, last_outcome=None, last_reason=None)
+        .execution_options(synchronize_session=False)
+    ).rowcount
+    db.commit()
+    return claimed == 1
+
+
+def set_reset_stage(session_factory: Callable[[], Session], holder: str, stage: str,
+                    batch_id: str | None = None) -> None:
+    """Record the stage the running reset has reached (and its batch, once that exists)."""
+    values = {"stage": stage} | ({"batch_id": batch_id} if batch_id else {})
+    with session_factory() as db:
+        db.execute(update(ResetLock)
+                   .where(ResetLock.lock_id == LOCK_ID, ResetLock.holder == holder)
+                   .values(**values).execution_options(synchronize_session=False))
+        db.commit()
+
+
+def release_reset_lock(session_factory: Callable[[], Session], holder: str, outcome: str,
+                       reason: str | None = None) -> None:
+    """Release the lock if `holder` holds it, recording how the reset ended. Never raises.
+
+    Only the holder can release, so a late or repeated release — an inline-mode job that already
+    released, a test re-running a stage — cannot free someone else's reset. It never raises because it
+    runs in `finally` blocks while an exception may already be in flight. If the release itself cannot
+    be written (the database is gone, say), the lock stays held and `recover_interrupted_reset` frees
+    it when the application next starts.
+    """
+    try:
+        with session_factory() as db:
+            db.execute(update(ResetLock)
+                       .where(ResetLock.lock_id == LOCK_ID, ResetLock.holder == holder)
+                       .values(holder=None, released_at=_now(), last_outcome=outcome, last_reason=reason)
+                       .execution_options(synchronize_session=False))
+            db.commit()
+    except Exception:  # noqa: BLE001 — see the docstring: never mask the original failure
+        log.exception("Could not release the reset lock held by %s", holder)
+
+
+def reset_in_progress(db: Session) -> ResetLock | None:
+    """The lock of the reset that is running, or None. The only answer to "is a reset running?"."""
+    lock = _lock_row(db)
+    return lock if lock is not None and lock.holder is not None else None
+
+
+def lock_state(db: Session) -> ResetLock | None:
+    """The lock row whether held or not, for the status endpoint's "how did the last one end"."""
+    return _lock_row(db)
+
+
+def running_batch(db: Session, lock: ResetLock) -> ImportBatch | None:
+    """The seed batch of the reset holding `lock`, or None when the lock is free or not yet bound."""
+    return db.get(ImportBatch, lock.batch_id) if lock.holder is not None and lock.batch_id else None
+
+
+def recover_interrupted_reset(db: Session) -> bool:
+    """Release a lock left held by an application that stopped mid-reset. True if one was released.
+
+    The `finally` that releases the lock cannot run if the process itself dies. Jobs run inside the
+    application's own process (`app.workers.runner`), so when it starts again no reset of its own can
+    be running: a lock still held was left by an interrupted run. Called once at startup. Known limit,
+    recorded with G1.32: a CLI reset (`python -m app.cli reset`) runs in its own process, so starting the
+    API server while one is running would release that run's lock. When jobs move to separate workers
+    (G7.3) this needs a holder heartbeat instead.
+    """
+    lock = reset_in_progress(db)
+    if lock is None:
+        return False
+    reason = (f"Interrupted: the application stopped during the reset, at stage "
+              f"{lock.stage or 'unknown'}; the lock was released when it started again.")
+    db.execute(update(ResetLock)
+               .where(ResetLock.lock_id == LOCK_ID, ResetLock.holder == lock.holder)
+               .values(holder=None, released_at=_now(), last_outcome="Interrupted", last_reason=reason)
+               .execution_options(synchronize_session=False))
+    db.commit()
+    log.warning("Released a reset lock left by an interrupted run (batch %s, stage %s)",
+                lock.batch_id, lock.stage)
+    return True
+
+
+def _readable(db: Session) -> bool:
+    """Whether a read of the lock can be made now (it can, unless the session is in a failed state)."""
+    try:
+        reset_in_progress(db)
+        return True
+    except OperationalError:
+        db.rollback()
+        return False
+
+
+def _already_running(lock: ResetLock | None) -> ConflictError:
+    """The 409 for a reset refused because another is running, naming it where it can be read."""
+    if lock is None:
+        return ConflictError("A reset is already running. Wait for it to finish and try again "
+                             "(GET /api/admin/reset/status).")
+    started = lock.acquired_at.strftime("%Y-%m-%d %H:%M:%S UTC") if lock.acquired_at else "earlier"
+    return ConflictError(
+        f"A reset is already running: batch {lock.batch_id or '(being created)'}, "
+        f"stage {lock.stage or 'unknown'}, started {started}. "
+        f"Wait for it to finish and try again (GET /api/admin/reset/status)."
+    )
+
+
+def _failure(stage: str, exc: BaseException) -> str:
+    """The reason recorded on the lock, worded like `record_job_failure`'s on the batch."""
+    return f"{stage} failed: {type(exc).__name__}: {exc}"
+
+
+# --- the reset -------------------------------------------------------------------------------------
 
 
 def start_reset(db: Session, session_factory: Callable[[], Session], principal: Principal | None,
@@ -120,97 +274,142 @@ def start_reset(db: Session, session_factory: Callable[[], Session], principal: 
         raise ForbiddenError("Reset is disabled in this environment (MRM_ALLOW_RESET=false).")
     if principal and not has_permission(principal.role, Permission.POLICY_EDIT):
         raise ForbiddenError("Only an Admin can reset the application data.")
-    # Refuse before regenerating the seed or deleting anything: a reset clears every governance
-    # table and reloads it, so two overlapping runs would interleave one's deletes with the other's
-    # inserts. The check comes after the permission checks so an unauthorised caller still gets 403.
+    # Claim the lock before regenerating the seed or deleting anything: a reset clears every
+    # governance table and reloads it, so two overlapping runs would interleave one's deletes with
+    # the other's inserts. After the permission checks, so an unauthorised caller still gets 403 and
+    # learns nothing about whether a reset is running (GEN-04).
+    #
+    # Two steps, and the order matters (TR-70). The claim is a *write*, and while a reset is running
+    # it holds SQLite's write lock, so a claim tried then fails with "database is locked" instead of
+    # matching zero rows — which reached the client as an HTTP 500 for most second attempts in thread
+    # mode. So: answer from a plain read when the lock is visibly held, which needs no write lock; and
+    # if the claim itself still meets a database lock (a reset started between the read and the
+    # claim), that means the same thing and gets the same 409. Never a 500 for "a reset is running".
     running = reset_in_progress(db)
-    if running:
-        raise ConflictError(
-            f"A reset is already running: batch {running.batch_id} is {running.status}. "
-            f"Wait for it to finish and try again. If it is stuck, cancel that batch first."
-        )
-    directory = directory or get_settings().seed_dir
-    if get_settings().regenerate_seed_on_reset:
-        regenerate_seed(directory)
-    uploads = seed_files(directory)
-    batch = import_service.create_batch(db, None, uploads, source="reset", batch_type="seed")
-    batch.uploaded_by = principal.user_id if principal else None
-    db.commit()
-    runner.submit(_reset_job, session_factory, batch.batch_id, principal)
+    if running is not None:
+        raise _already_running(running)
+    holder = uuid.uuid4().hex
+    try:
+        claimed = acquire_reset_lock(db, holder, principal.user_id if principal else None)
+    except OperationalError as exc:
+        db.rollback()
+        if "locked" not in str(exc).lower() and "busy" not in str(exc).lower():
+            raise  # a real database failure, not contention, is not a conflict
+        claimed = False
+    if not claimed:
+        raise _already_running(reset_in_progress(db) if _readable(db) else None)
+    stage = "Seed preparation"
+    try:
+        set_reset_stage(session_factory, holder, stage)
+        directory = directory or get_settings().seed_dir
+        if get_settings().regenerate_seed_on_reset:
+            regenerate_seed(directory)
+        uploads = seed_files(directory)
+        batch = import_service.create_batch(db, None, uploads, source="reset", batch_type="seed")
+        batch.uploaded_by = principal.user_id if principal else None
+        db.commit()
+        set_reset_stage(session_factory, holder, "Clearing data", batch_id=batch.batch_id)
+    except BaseException as exc:
+        db.rollback()
+        release_reset_lock(session_factory, holder, "Failed", _failure(stage, exc))
+        raise
+    # From here the lock belongs to the job: it is released by whichever stage ends the reset. In
+    # inline mode the job runs inside this call and has released the lock by the time it returns.
+    runner.submit(_reset_job, session_factory, batch.batch_id, principal, holder)
     return batch
 
 
-def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None) -> None:
-    with session_factory() as db:
-        counts = {m.__tablename__: db.scalar(select(func.count()).select_from(m)) for m in DELETE_ORDER}
-        for m in DELETE_ORDER:
-            db.execute(delete(m))
-        Policy.invalidate(db)
-        audit.record(db, principal, action="reset", entity="application", entity_id="all", import_batch_id=batch_id,
-                     before=counts, reason="Reset to seed")
-        batch = db.get(ImportBatch, batch_id)
-        batch.status = "Processing"
-        db.commit()
-    engine.run(session_factory, batch_id, "load", None)
+def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None,
+               holder: str) -> None:
+    """Clear, load the seed, check the baseline, stage the evidence, then hand over (see below).
 
-    # Fail loudly on an incomplete configuration rather than leaving a 500 for the first user.
-    with session_factory() as db:
-        missing = missing_baseline_settings(db)
-        if missing:
-            batch = db.get(ImportBatch, batch_id)
-            batch.status = "Failed"
-            batch.error_message = (
-                f"Reset loaded the seed but {len(missing)} policy setting(s) required by the baseline "
-                f"are missing: {', '.join(missing)}. The seed's T12 is older than the configuration "
-                f"the rules need. Regenerate it (A_Codes/AD_seed/generate_seed.py) or run "
-                f"`python -m app.cli bootstrap` to restore the baseline."
-            )
-            audit.record(db, principal, action="reset_incomplete", entity="application", entity_id="all",
-                         import_batch_id=batch_id, after={"missing_policy_settings": missing},
-                         reason="Seed policy settings do not cover the baseline")
-            db.commit()
-            return
-
-    # `engine.run` marks the batch Completed once the seed templates are loaded, but the reset is not
-    # finished: the evidence still has to be loaded. That left a gap in which the seed batch was
-    # terminal and the documents batch did not exist yet, so `reset_in_progress` saw nothing in
-    # flight and a second reset could start inside it. Holding the status across the call closes the
-    # gap — `stage_seed_documents` returns as soon as the documents batch exists, and that batch then
-    # keeps the reset visibly in flight. Note the seed batch does go back to Completed while the
-    # evidence is still being stored, so it is not a signal for "the reset has finished";
-    # GET /api/admin/reset/status is.
-    #
-    # The order below is load-bearing, and getting it wrong cost every evidence document (FT-04).
-    # The evidence batch is *staged* first — created, committed, non-terminal — then the seed batch's
-    # status is restored, and only then is the analysis handed to a background job. The reset
-    # therefore finishes all of its own writes before anything else starts writing. Previously the
-    # restore happened in a `finally` after the job had been submitted, and in thread mode that
-    # commit raced the job: it took SQLite's write lock, SQLite refused the job's lock promotion
-    # without consulting `busy_timeout` (see `app.db.configure_sqlite`), and the analysis died with
-    # 1,116 documents deleted and none reloaded, behind an HTTP 202.
-    with session_factory() as db:
-        batch = db.get(ImportBatch, batch_id)
-        loaded_status, batch.status = batch.status, "Processing"
-        db.commit()
+    Runs under the lock `holder` claimed in `start_reset`. Any failure records the stage on the seed
+    batch (FT-05) and on the lock, and releases it, so no stage can leave a reset latched (TR-67).
+    """
+    stage = "Clearing data"
     try:
-        staged = stage_seed_documents(session_factory, get_settings().seed_dir / "documents")
-    except BaseException as exc:
-        # Not merely "restore the previous status": staging crashed, so the reset did not finish and
-        # must not read as Completed over an empty Document Centre. Recording it Failed is also what
-        # keeps `reset_in_progress` from latching — Failed is terminal, Processing is not (FT-05).
-        import_service.record_job_failure(session_factory, batch_id, "Seed evidence staging", exc)
-        raise
-    else:
-        # Restore the status the seed load concluded with (Completed or Partially Completed). This
-        # write is why the order matters: it must happen before the analysis starts (FT-04).
         with session_factory() as db:
+            counts = {m.__tablename__: db.scalar(select(func.count()).select_from(m)) for m in DELETE_ORDER}
+            for m in DELETE_ORDER:
+                db.execute(delete(m))
+            Policy.invalidate(db)
+            audit.record(db, principal, action="reset", entity="application", entity_id="all",
+                         import_batch_id=batch_id, before=counts, reason="Reset to seed")
             batch = db.get(ImportBatch, batch_id)
-            batch.status = loaded_status
+            batch.status = "Processing"
             db.commit()
-    if staged:
-        from app.documents import batch as doc_batch
+        stage = "Seed load"
+        set_reset_stage(session_factory, holder, stage)
+        engine.run(session_factory, batch_id, "load", None)
 
-        doc_batch.start_analysis_job(session_factory, staged, None)
+        # Fail loudly on an incomplete configuration rather than leaving a 500 for the first user.
+        stage = "Baseline check"
+        set_reset_stage(session_factory, holder, stage)
+        with session_factory() as db:
+            missing = missing_baseline_settings(db)
+            if missing:
+                batch = db.get(ImportBatch, batch_id)
+                batch.status = "Failed"
+                batch.error_message = (
+                    f"Reset loaded the seed but {len(missing)} policy setting(s) required by the baseline "
+                    f"are missing: {', '.join(missing)}. The seed's T12 is older than the configuration "
+                    f"the rules need. Regenerate it (A_Codes/AD_seed/generate_seed.py) or run "
+                    f"`python -m app.cli bootstrap` to restore the baseline."
+                )
+                audit.record(db, principal, action="reset_incomplete", entity="application", entity_id="all",
+                             import_batch_id=batch_id, after={"missing_policy_settings": missing},
+                             reason="Seed policy settings do not cover the baseline")
+                db.commit()
+                release_reset_lock(session_factory, holder, "Failed",
+                                   f"{stage} failed: {len(missing)} required policy setting(s) missing")
+                return
+
+        stage = "Seed evidence staging"
+        set_reset_stage(session_factory, holder, stage)
+        staged = stage_seed_documents(session_factory, get_settings().seed_dir / "documents")
+        # The last write before the handover (FT-04): the job continues from here.
+        set_reset_stage(session_factory, holder, "Seed evidence analysis")
+    except BaseException as exc:
+        import_service.record_job_failure(session_factory, batch_id, stage, exc)
+        release_reset_lock(session_factory, holder, "Failed", _failure(stage, exc))
+        raise
+    # **FT-04**: the reset makes no database write after submitting a job. In thread mode such a
+    # write races the job for SQLite's write lock and the job loses — once, that cost all 1,116
+    # evidence documents behind an HTTP 202. So the handover is the last thing this function does, and
+    # the lock passes to the job with it. **S11**: the example report's figures must be a real
+    # portfolio state, so the report is written after the evidence loads, inside the same job.
+    #
+    # Neither batch's status is a signal for "the reset has finished" any more (CR-53, TR-65); the
+    # lock is. The seed batch keeps the status the seed load concluded with, unless a later stage
+    # fails, in which case it is marked Failed with that stage, so the Import Centre shows why.
+    runner.submit(_store_evidence_then_seed_report, session_factory, staged, batch_id, holder)
+
+
+def _store_evidence_then_seed_report(session_factory: Callable[[], Session], documents_batch_id: str | None,
+                                     seed_batch_id: str, holder: str) -> None:
+    """Analyse and store the seed evidence, write the example report, then release the lock.
+
+    The release is in a `finally`, so whatever happens here the reset ends and says how (GEN-05,
+    TR-67). On a failure the seed batch is also marked `Failed` with the stage (CR-57, FT-05's class)
+    and the exception is re-raised so the runner still logs it. If the *analysis* fails, `analyse_job`
+    has already marked the documents batch `Failed`, and no example is written: a report over a
+    half-loaded portfolio would be worse than none (TR-66).
+    """
+    from app.documents import batch as doc_batch
+
+    stage, outcome, reason = "Seed evidence analysis", "Completed", None
+    try:
+        if documents_batch_id:
+            doc_batch.analyse_job(session_factory, documents_batch_id, None)
+        stage = "Seeded example report"
+        set_reset_stage(session_factory, holder, stage)
+        report_service.seed_previous_report(session_factory)
+    except BaseException as exc:
+        outcome, reason = "Failed", _failure(stage, exc)
+        import_service.record_job_failure(session_factory, seed_batch_id, stage, exc)
+        raise
+    finally:
+        release_reset_lock(session_factory, holder, outcome, reason)
 
 
 def stage_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:

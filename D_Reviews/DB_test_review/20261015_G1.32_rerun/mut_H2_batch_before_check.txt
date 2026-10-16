@@ -1,0 +1,283 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32r/H2_batch_before_check.py
+.........................F............F..F                               [100%]
+================================== FAILURES ===================================
+_ test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released _
+
+file_client = (<starlette.testclient.TestClient object at 0x0000024C9CC4D260>, sessionmaker(class_='Session', bind=Engine(sqlite:///...cal/Temp/pytest-of-anand/pytest-582/test_g1_32_after_every_commit_0/lock.db), autoflush=False, expire_on_commit=False))
+
+    def test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released(file_client):
+        """GEN-05, GEN-04 (TR-65): no commit inside a reset leaves it looking finished, except the last.
+    
+        This is the form that would have caught both CR-53 and TR-65 — each was one commit after which
+        the inferred signal read "finished" while the reset still had writing to do. Every commit made
+        during an inline reset is observed, and after each one an independent connection asks the same
+        question `start_reset` asks. Only the final commit, the release, may answer "not running".
+        """
+        client, probe, _ = file_client
+        seen: list[bool] = []
+    
+        def after_commit(_session):
+            with probe() as db:
+                seen.append(reset_service.reset_in_progress(db) is not None)
+    
+        headers = login(client, *ADMIN)  # before listening: signing in is not part of the reset
+        sa_event.listen(SASession, "after_commit", after_commit)
+        try:
+            resp = client.post("/api/admin/reset", headers=headers)
+        finally:
+            sa_event.remove(SASession, "after_commit", after_commit)
+    
+        assert resp.status_code == 202, resp.text
+        assert len(seen) > 10, f"a reset makes many commits; only {len(seen)} were observed"
+        assert seen[-1] is False, "the last commit is the release, after which the reset is over"
+        # The reset begins at the claim. At most one commit may precede it: inserting the lock row on a
+        # `create_all` database, which has none until the first reset (migration 0008 inserts it).
+        claim = seen.index(True)
+>       assert claim <= 1, f"{claim} commits happened before the lock was claimed; the claim must come first"
+E       AssertionError: 3 commits happened before the lock was claimed; the claim must come first
+E       assert 3 <= 1
+
+tests\test_reset_lock.py:87: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+_ test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing _
+
+client = <starlette.testclient.TestClient object at 0x0000024C9C047570>
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-582/test_g1_32_a_refused_reset_del0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024C9F7B2990>
+
+    def test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing(
+            client, db_session, test_settings, monkeypatch):
+        """GEN-04 (TR-74): "nothing is deleted and no second job is submitted" - the clause no test held.
+    
+        Moving `regenerate_seed` ahead of the claim used to pass every test, although rewriting the seed
+        folder under a running reset is exactly what the in-flight check exists to prevent.
+        """
+        from app.models import Model
+        from app.workers import runner
+    
+        h = login(client, *ADMIN)
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, "running", "U-001")
+            before = (db.scalar(select(func.count()).select_from(ImportBatch)),
+                      db.scalar(select(func.count()).select_from(Model)))
+    
+        calls = []
+        monkeypatch.setattr(reset_service, "regenerate_seed", lambda *a: calls.append("regenerate"))
+        monkeypatch.setattr(reset_service, "seed_files", lambda *a: calls.append("seed_files") or [])
+        monkeypatch.setattr(runner, "submit", lambda fn, *a: calls.append(f"submit:{fn.__name__}"))
+    
+        assert client.post("/api/admin/reset", headers=h).status_code == 409
+        assert calls == [], f"a refused reset did {calls}; it must do nothing at all"
+        with db_session() as db:
+            after = (db.scalar(select(func.count()).select_from(ImportBatch)),
+                     db.scalar(select(func.count()).select_from(Model)))
+>           assert after == before, "no batch created and nothing deleted"
+E           AssertionError: no batch created and nothing deleted
+E           assert (1, 0) == (0, 0)
+E             
+E             At index 0 diff: 1 != 0
+E             Use -v to get more diff
+
+tests\test_reset_lock.py:271: AssertionError
+_ test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409 __
+
+file_client = (<starlette.testclient.TestClient object at 0x0000024C9FBE7460>, sessionmaker(class_='Session', bind=Engine(sqlite:///...cal/Temp/pytest-of-anand/pytest-582/test_g1_32_in_thread_mode_ever0/lock.db), autoflush=False, expire_on_commit=False))
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-582/test_g1_32_in_thread_mode_ever0/demo'), today_override=datetime.date(2026, 9, 30))
+
+    def test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409(file_client, test_settings):
+        """GEN-04 (TR-70): the regression in the mode the product runs in, which CI's inline mode hides.
+    
+        One reset runs in background threads on a file-backed database while this test keeps trying to
+        start another, through the same service call the API makes. Every attempt must be refused with a
+        conflict - never accepted, never an unexpected error. Called at the service rather than over HTTP
+        because a reset deletes and reloads users, so authenticated requests 401 for a moment (TR-71,
+        BL.1) - a separate issue that would mask this one.
+        """
+        import time
+    
+        client, probe, factory = file_client
+        test_settings.job_mode = "thread"  # restored by the test_settings fixture
+        with factory() as db:
+            reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+    
+        refused, unexpected, accepted = 0, [], 0
+        deadline = time.time() + 600
+        while time.time() < deadline:
+            with probe() as db:
+                if reset_service.reset_in_progress(db) is None:
+                    break
+            with factory() as db:
+                try:
+                    reset_service.start_reset(db, factory, ADMIN_PRINCIPAL)
+                    accepted += 1
+                except ConflictError as exc:
+                    assert exc.status_code == 409
+                    refused += 1
+                except Exception as exc:  # noqa: BLE001 - collected, so the assertion can name them
+                    unexpected.append(f"{type(exc).__name__}: {exc}"[:200])
+            time.sleep(0.01)
+        else:
+            pytest.fail("the background reset did not finish within 10 minutes")
+    
+        assert accepted == 0, f"{accepted} second reset(s) were accepted while one was running"
+>       assert unexpected == [], f"{len(unexpected)} attempt(s) failed with an error instead of 409: {unexpected[:3]}"
+E       AssertionError: 274 attempt(s) failed with an error instead of 409: ['OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af', 'OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af', 'OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af']
+E       assert ['Operational...son, af', ...] == []
+E         
+E         Left contains 274 more items, first extra item: 'OperationalError: (sqlite3.OperationalError) database is locked\n[SQL: INSERT INTO audit_event (user_id, role, action, entity, entity_id, model_id, import_batch_id, document_id, reason, before_json, af'
+E         Use -v to get more diff
+
+tests\test_reset_lock.py:343: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  seed/T12_policy_settings.xlsx: 72 rows, written
+  seed/T01_users.xlsx: 65 rows, written
+  seed/T02_model_inventory.xlsx: 256 rows, written
+  seed/T03_validation_history.xlsx: 415 rows, written
+  seed/T04_findings.xlsx: 206 rows, written
+  seed/T05_approvals.xlsx: 383 rows, written
+  seed/documents: 1116 synthetic evidence files (1116 written, 0 unchanged, 0 removed)
+  demo/T02_new_models_demo.xlsx: 5 rows, written
+  demo/T04_findings_demo_errors.csv: 5 rows, written
+------------------------------ Captured log call ------------------------------
+ERROR    app.workers.runner:runner.py:27 Background job _store_evidence_then_seed_report failed
+Traceback (most recent call last):
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1943, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 1180, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\app\workers\runner.py", line 25, in _run
+    fn(*args)
+    ~~^^^^^^^
+  File "C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32r/H2_batch_before_check.py", line 405, in _store_evidence_then_seed_report
+    doc_batch.analyse_job(session_factory, documents_batch_id, None)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\app\documents\batch.py", line 233, in analyse_job
+    _analyse(session_factory, batch_id, principal)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\app\documents\batch.py", line 274, in _analyse
+    db.flush()
+    ~~~~~~~~^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4536, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "<sqlalchemy generated warned() wrapper for sqlalchemy.orm.session.Session._flush>", line 2, in _flush
+    return target(fn, self, objects=objects)
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\util\deprecations.py", line 281, in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4679, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 166, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4640, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 467, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 643, in execute
+    util.preloaded.orm_persistence._save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        uow.states_for_mapper_hierarchy(self.mapper, False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 84, in _save_obj
+    _emit_update_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        update,
+        ^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 916, in _emit_update_statements
+    c = connection.execute(
+        statement, multiparams, execution_options=execution_options
+    )
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1448, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 533, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1668, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<9 lines>...
+        param_dict=param_dict,
+    )
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1822, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1962, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2332, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1943, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 1180, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
+[SQL: UPDATE document_upload_item SET model_id=?, model_source=?, document_type=?, type_source=?, type_confidence=?, type_reason=?, title=?, status=? WHERE document_upload_item.item_id = ?]
+[parameters: ('M-0007', 'folder', 'Model Approval/MRC Paper', 'filename', 0.85, "File name contains 'mrc'.", 'MRC Paper 2025', 'Ready', 1)]
+(Background on this error at: https://sqlalche.me/e/21/e3q8)
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+FAILED tests/test_reset_lock.py::test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing
+FAILED tests/test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409
+3 failed, 39 passed, 62 deselected, 1 warning in 280.37s (0:04:40)

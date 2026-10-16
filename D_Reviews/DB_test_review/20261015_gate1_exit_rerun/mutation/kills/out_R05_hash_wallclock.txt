@@ -1,0 +1,7 @@
+[mut_g1x] applied R05_hash_wallclock
+FAILED tests/test_reports.py::test_reg_16_the_same_data_gives_the_same_content_hash
+FAILED tests/test_reports.py::test_gen_01_a_reset_clears_the_report_history_and_reseeds_it
+FAILED tests/test_reports.py::test_reg_16_the_hash_ignores_which_report_came_before
+FAILED tests/test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash
+FAILED tests/test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report
+5 failed, 33 passed, 1 warning in 127.05s (0:02:07)

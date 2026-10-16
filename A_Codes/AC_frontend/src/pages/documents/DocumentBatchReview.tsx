@@ -8,6 +8,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { EmptyState, ErrorState, Loading } from "../../components/States";
 import { BatchStatus } from "../imports/BatchDetail";
 import { formatBytes, invalidateDocuments, useDocumentMeta } from "./shared";
+import { formatDateTime} from "../../format";
 
 const RUNNING = ["Validating", "Processing"];
 const EDITABLE = ["Ready", "Validation Failed", "Failed"];
@@ -116,7 +117,7 @@ export function DocumentBatchReview() {
       <header>
         <div className="eyebrow"><Link to="/documents">Document Centre</Link> · Upload batch</div>
         <h1 className="mono" style={{ fontSize: 26 }}>{b.batch_id} <BatchStatus status={b.status} /></h1>
-        <p className="lede">{b.total_files} file(s) · {b.source} upload by {b.uploaded_by ?? "system"} · {b.created_at ? new Date(b.created_at).toLocaleString() : ""}.
+        <p className="lede">{b.total_files} file(s) · {b.source} upload by {b.uploaded_by ?? "system"} · {b.created_at ? formatDateTime(b.created_at) : ""}.
           {b.manifest_files.length > 0 && <> Manifest: <span className="mono">{b.manifest_files.join(", ")}</span>.</>}</p>
       </header>
 

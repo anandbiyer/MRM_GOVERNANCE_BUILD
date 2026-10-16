@@ -7,6 +7,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../../components/States";
 import { BatchStatus } from "../imports/BatchDetail";
 import { SingleUploadForm, formatBytes, useDocumentMeta } from "./shared";
+import { formatDateTime} from "../../format";
 
 const TABS = ["Register", "Upload", "Batches", "Completeness"] as const;
 type Tab = (typeof TABS)[number];
@@ -89,7 +90,7 @@ function Register() {
                     <td className="mono">{d.current_version}</td>
                     <td className="mono">{d.file_name} <span style={{ color: "var(--faint)" }}>{formatBytes(d.size_bytes)}</span></td>
                     <td className="mono" style={{ color: "var(--muted)" }}>{d.folder_path ?? "—"}</td>
-                    <td className="mono">{new Date(d.uploaded_at).toLocaleDateString()}</td>
+                    <td className="mono">{formatDateTime(d.uploaded_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -185,7 +186,7 @@ function Batches() {
           {q.data!.map((b) => (
             <tr key={b.batch_id}>
               <td className="mono"><Link to={`/documents/batches/${b.batch_id}`}>{b.batch_id}</Link></td>
-              <td className="mono">{b.created_at ? new Date(b.created_at).toLocaleString() : "—"}</td>
+              <td className="mono">{b.created_at ? formatDateTime(b.created_at) : "—"}</td>
               <td className="mono">{b.uploaded_by ?? "system"}</td>
               <td>{b.source}</td>
               <td className="mono">{b.total_files}</td>

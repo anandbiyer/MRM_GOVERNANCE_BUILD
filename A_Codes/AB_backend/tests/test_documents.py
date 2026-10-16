@@ -473,8 +473,11 @@ def test_ft_05_a_reset_whose_evidence_staging_fails_leaves_the_batch_failed(clie
     # tests force `MRM_JOB_MODE=inline`, so the job runs inside the request and its exception would
     # surface as an HTTP 500 instead of as the batch state this criterion is about.
     monkeypatch.setattr(reset_service, "stage_seed_documents", boom)
+    factory = client.app.dependency_overrides[get_session_factory]()
+    with factory() as db:
+        assert reset_service.acquire_reset_lock(db, "rerun", "U-001")  # `_reset_job` runs under the lock
     with pytest.raises(RuntimeError):
-        reset_service._reset_job(client.app.dependency_overrides[get_session_factory](), batch_id, None)
+        reset_service._reset_job(factory, batch_id, None, "rerun")
 
     batch = client.get(f"/api/imports/batches/{batch_id}", headers=login(client, *ADMIN)).json()
     assert batch["status"] == "Failed", batch

@@ -1,6 +1,6 @@
 // Shared helpers for the parity checklist. Locators use role, label and text only — never
 // data-testid, and never a change to product code (see the mockup-parity-tester agent rules).
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { MOCKUP_URL } from "../playwright.config";
 
 /**
@@ -140,4 +140,26 @@ export async function kvValue(page: Page, term: string): Promise<string> {
   const dd = page.locator("dl.kv div", { has: page.getByText(term, { exact: true }) }).locator("dd").first();
   await expect(dd, `Model 360 should show "${term}"`).toBeVisible();
   return (await dd.innerText()).trim();
+}
+
+/**
+ * The `cellIndex` of a table column, found by its header text rather than counted by hand.
+ *
+ * A positional `td.nth(2)` is a trap: BL.24 inserted Owner and Last validation into the Command
+ * Center's revalidation timeline, and every positional locator two columns downstream silently
+ * began reading a different column. One that happens to compare unequal values fails loudly; one
+ * that compares equal values passes while proving nothing. Ask the DOM where the column is.
+ */
+export async function columnIndex(table: Locator, header: string): Promise<number> {
+  const th = table.locator("thead th", { hasText: new RegExp(`^${escapeRegExp(header)}$`) }).first();
+  await expect(th, `table should have a "${header}" column`).toHaveCount(1);
+  const index = await th.evaluate((el) => (el as HTMLTableCellElement).cellIndex);
+  expect(index, `"${header}" column index`).toBeGreaterThanOrEqual(0);
+  return index;
+}
+
+/** Read one body cell of a table by row number and header text. */
+export async function cellByHeader(table: Locator, row: number, header: string): Promise<string> {
+  const index = await columnIndex(table, header);
+  return (await table.locator("tbody tr").nth(row).locator("td").nth(index).innerText()).trim();
 }

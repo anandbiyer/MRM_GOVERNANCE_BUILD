@@ -1,0 +1,13 @@
+        status inference first failed. This observes the lock at the moment the evidence is staged.
+___ test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed ____
+    def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>]
+FAILED tests/test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409
+FAILED tests/test_imports.py::test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+FAILED tests/test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed
+FAILED tests/test_imports.py::test_ft_04_a_reset_leaves_the_seed_batch_terminal_and_the_evidence_loaded
+FAILED tests/test_reports.py::test_gen_01_a_reset_clears_the_report_history_and_reseeds_it
+9 failed, 71 passed, 1 warning in 857.80s (0:14:17)

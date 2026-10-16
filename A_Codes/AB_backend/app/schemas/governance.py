@@ -3,7 +3,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from app.schemas.core import Utc
 
 
 class ORMModel(BaseModel):
@@ -82,7 +84,7 @@ class ScoreOut(BaseModel):
     overall: Decimal | None
     reason: str | None
     components: list[ScoreComponentOut]
-    calculated_at: datetime
+    calculated_at: Utc
 
 
 class ModelStateOut(BaseModel):
@@ -126,7 +128,7 @@ class TieringOut(ORMModel):
     override_tier: str | None
     override_reason: str | None
     override_by: str | None
-    override_at: datetime | None
+    override_at: Utc | None
 
 
 class ModelOut(ORMModel):
@@ -151,8 +153,8 @@ class ModelOut(ORMModel):
     legacy_sod_exception: bool
     tiering: TieringOut
     row_version: int
-    created_at: datetime | None
-    updated_at: datetime | None
+    created_at: Utc | None
+    updated_at: Utc | None
 
 
 class PhaseHistoryOut(ORMModel):
@@ -160,7 +162,7 @@ class PhaseHistoryOut(ORMModel):
     to_phase: str
     reason: str | None
     user_id: str | None
-    changed_at: datetime
+    changed_at: Utc
 
 
 class TierOverrideOut(ORMModel):
@@ -169,14 +171,14 @@ class TierOverrideOut(ORMModel):
     new_tier: str
     reason: str
     user_id: str
-    created_at: datetime
+    created_at: Utc
 
 
 class VersionOut(ORMModel):
     version: str
     change_reason: str | None
     user_id: str | None
-    recorded_at: datetime
+    recorded_at: Utc
 
 
 class RelationshipOut(BaseModel):
@@ -377,3 +379,35 @@ class ModelMetaOut(BaseModel):
     score_band_good_min: int
     score_band_labels: dict[str, str]
     users: list[dict[str, Any]]
+
+
+class ModelRiskReportOut(ORMModel):
+    """A stored report's header (BRD §48 `model_risk_report`)."""
+    report_id: str
+    business_date: date
+    generated_by: str | None
+    generated_at: Utc
+    framework_label: str
+    content_hash: str
+    previous_report_id: str | None
+    #: True only for the example a reset seeds. The screens label it, because its baseline is shaped
+    #: so the next report has something to compare against (S11, S12 / the D12 addendum).
+    is_seeded: bool
+    #: The business date the figures were computed for (D14). Equal to `business_date` except on the
+    #: seeded example. Null on reports stored before migration 0009.
+    figures_as_of: date | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def seeded_label(self) -> str | None:
+        """D14's disclosure, worded once here so the list, the reopened report and the PDF agree."""
+        if not self.is_seeded:
+            return None
+        computed = f" on {self.figures_as_of.isoformat()}" if self.figures_as_of else ""
+        return (f"Seeded example: figures computed from current seed data{computed}, "
+                f"dated {self.business_date.isoformat()} for illustration.")
+
+
+class ModelRiskReportDetail(ModelRiskReportOut):
+    """The header plus the stored content, so a report reopens as what it said."""
+    sections: dict

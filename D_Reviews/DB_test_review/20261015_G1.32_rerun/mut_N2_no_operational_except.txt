@@ -1,0 +1,148 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32r/N2_no_operational_except.py
+..............F..                                                        [100%]
+================================== FAILURES ===================================
+_________ test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500 __________
+
+client = <starlette.testclient.TestClient object at 0x0000020A35ECC9E0>
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-589/test_g1_32_a_database_lock_on_0/demo'), today_override=datetime.date(2026, 9, 30))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000020A36CAC910>
+
+    def test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500(client, db_session, test_settings, monkeypatch):
+        """GEN-04 (TR-70): a claim that cannot get SQLite's write lock means a reset is running.
+    
+        The claim is a write, so while a reset holds the write lock it fails with "database is locked"
+        rather than matching zero rows. That reached the client as an HTTP 500 in 65% of second attempts
+        in thread mode. It is the same answer as a refused claim, and gets the same 409.
+        """
+        from sqlalchemy.exc import OperationalError
+    
+        def locked(*_a, **_k):
+            raise OperationalError("UPDATE reset_lock ...", {}, Exception("database is locked"))
+    
+        monkeypatch.setattr(reset_service, "acquire_reset_lock", locked)
+>       resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_reset_lock.py:289: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\httpx\_client.py:1144: in post
+    return self.request(
+.venv\Lib\site-packages\starlette\testclient.py:463: in request
+    return super().request(
+.venv\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+.venv\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:360: in handle_request
+    raise exc
+.venv\Lib\site-packages\starlette\testclient.py:357: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv\Lib\site-packages\anyio\from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\anand\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\anand\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+.venv\Lib\site-packages\anyio\from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\applications.py:1215: in __call__
+    await super().__call__(scope, receive, send)
+.venv\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv\Lib\site-packages\fastapi\telemetry\_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+.venv\Lib\site-packages\starlette\middleware\cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:676: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2786: in app
+    await route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1817: in handle
+    await self.original_router.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2869: in handle
+    await included_router._handle_selected(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1843: in _handle_selected
+    await original_route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1308: in handle
+    await effective_context.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:165: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\routing.py:151: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\routing.py:727: in app
+    raw_response = await run_endpoint_function(
+.venv\Lib\site-packages\fastapi\routing.py:362: in run_endpoint_function
+    return await run_in_threadpool(
+.venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\telemetry\_api.py:240: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+app\api\admin.py:35: in reset_to_seed
+    return reset_service.start_reset(db, session_factory, principal)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\anand\AppData\Local\Temp\claude\C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build\7475a71c-ccaa-41be-b1e5-87e13ffed8ec\scratchpad\mut32r\N2_no_operational_except.py:292: in start_reset
+    claimed = acquire_reset_lock(db, holder, principal.user_id if principal else None)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+_a = (<sqlalchemy.orm.session.Session object at 0x0000020A36196AD0>, 'dd8564ee750d4f0db083eac9f16f75e9', 'U-001')
+_k = {}
+
+    def locked(*_a, **_k):
+>       raise OperationalError("UPDATE reset_lock ...", {}, Exception("database is locked"))
+E       sqlalchemy.exc.OperationalError: (builtins.Exception) database is locked
+E       [SQL: UPDATE reset_lock ...]
+E       (Background on this error at: https://sqlalche.me/e/21/e3q8)
+
+tests\test_reset_lock.py:286: OperationalError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_reset_lock.py::test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500
+1 failed, 16 passed, 1 warning in 94.70s (0:01:34)

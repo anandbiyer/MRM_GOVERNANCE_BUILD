@@ -1,0 +1,4 @@
+[mut_g1x] applied R03_cr52_decisions_in_approvals
+FAILED tests/test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash
+FAILED tests/test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report
+2 failed, 36 passed, 1 warning in 148.75s (0:02:28)

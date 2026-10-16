@@ -1,0 +1,270 @@
+"""Demo/dev "reset to seed" (BRD §70, REQ-GEN-01).
+
+Clears governance data and rebuilds it through the import engine from the seed files in
+B_Inputs/AC_seed — the same path a user import takes — then loads the seed evidence documents
+through the Document Centre batch path. Stored objects of cleared documents remain in object storage. The audit trail and import history are
+kept: audit records are immutable, and the reset itself is recorded as an audit event.
+"""
+import csv
+import importlib.util
+from collections.abc import Callable
+from pathlib import Path
+
+from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Session
+
+from app.audit import service as audit
+from app.auth.roles import Permission, has_permission
+from app.auth.security import Principal
+from app.clock import today
+from app.config import get_settings
+from app.ingestion import engine
+from app.ingestion import service as import_service
+from app.models import (
+    AppUser,
+    Approval,
+    Document,
+    DocumentFolder,
+    DocumentLink,
+    DocumentVersion,
+    Finding,
+    ImportBatch,
+    Model,
+    ModelPhaseHistory,
+    ModelRelationship,
+    ModelRiskReport,
+    ModelVersion,
+    PolicySetting,
+    TieringAnswer,
+    TierOverride,
+    UserRole,
+    Validation,
+)
+from app.services import bootstrap_service, report_service
+from app.services.errors import ConflictError, ForbiddenError, ValidationFailedError
+from app.services.policy_access import Policy
+from app.workers import runner
+
+# Children before parents. `ModelRiskReport` is first: it references itself through
+# `previous_report_id`, and a reset must leave the report history as reproducible as everything else
+# (GEN-01) — otherwise the next reset's seeded predecessor depends on what a demo did in between.
+DELETE_ORDER = (ModelRiskReport, Finding, Approval, Validation, DocumentLink, DocumentVersion, Document,
+                DocumentFolder, ModelRelationship, ModelVersion, ModelPhaseHistory, TierOverride,
+                TieringAnswer, Model, UserRole, AppUser, PolicySetting)
+
+# The §42 batch statuses that mean a batch has finished, one way or another. The rest — Uploaded,
+# Validating, Ready, Processing — mean work is still expected.
+TERMINAL_BATCH_STATUSES = ("Completed", "Partially Completed", "Failed", "Validation Failed", "Cancelled")
+
+# A reset produces two batches: the seed import (source "reset") and, at the very end of the job, a
+# documents batch for the evidence files (source "seed", created only by `stage_seed_documents`).
+# Both must be finished before another reset may start, which is why the seed batch's own status is
+# not a sufficient signal.
+RESET_BATCH_SOURCES = ("reset", "seed")
+
+
+def regenerate_seed(directory: Path) -> None:
+    """Rewrite the seed templates (and demo files) for today's business date using A_Codes/AD_seed."""
+    s = get_settings()
+    spec = importlib.util.spec_from_file_location("generate_seed", s.seed_generator)
+    if spec is None or not s.seed_generator.exists():
+        raise ValidationFailedError(f"Seed generator not found at {s.seed_generator}.")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.generate(directory, today(), demo_dir=s.demo_files_dir)
+
+
+def missing_baseline_settings(db: Session) -> list[str]:
+    """Policy keys the bootstrap baseline defines that the loaded seed did not supply.
+
+    A reset deletes `policy_setting` and reloads it from the seed's T12 alone, so a seed generated
+    before a new setting was introduced silently removes it. Every rule reads its thresholds from
+    this table, so the first screen to need the missing key fails with a 500 — the application looks
+    broken rather than misconfigured. B_Inputs/AA_bootstrap is the canonical baseline configuration
+    (`app.cli bootstrap` loads exactly it), so the seed must never be a subset of it.
+
+    Returns [] when the baseline file is absent: not every deployment ships one, and a missing
+    baseline is not evidence of an incomplete seed.
+    """
+    baseline = get_settings().bootstrap_dir / bootstrap_service.POLICY_FILE
+    if not baseline.exists():
+        return []
+    with baseline.open(newline="", encoding="utf-8-sig") as fh:
+        expected = {(row.get("setting_key") or "").strip() for row in csv.DictReader(fh)}
+    expected.discard("")
+    loaded = set(db.scalars(select(PolicySetting.setting_key)))
+    return sorted(expected - loaded)
+
+
+def seed_files(directory: Path) -> list[tuple[str, bytes]]:
+    files = sorted(p for p in directory.glob("*") if p.suffix.lower() in (".xlsx", ".csv"))
+    if not files:
+        raise ValidationFailedError(f"No seed files found in {directory}. Run A_Codes/AD_seed/generate_seed.py.")
+    return [(p.name, p.read_bytes()) for p in files]
+
+
+def reset_in_progress(db: Session) -> ImportBatch | None:
+    """The batch of a reset that has not finished yet, or None.
+
+    Covers both batches a reset creates, because the seed import completes well before the evidence
+    files are loaded: a caller polling the batch id it was given sees "Completed" while the reset is
+    still writing.
+    """
+    return db.scalars(
+        select(ImportBatch)
+        .where(ImportBatch.source.in_(RESET_BATCH_SOURCES),
+               ImportBatch.status.not_in(TERMINAL_BATCH_STATUSES))
+        .order_by(ImportBatch.batch_id)
+    ).first()
+
+
+def start_reset(db: Session, session_factory: Callable[[], Session], principal: Principal | None,
+                directory: Path | None = None) -> ImportBatch:
+    if not get_settings().allow_reset:
+        raise ForbiddenError("Reset is disabled in this environment (MRM_ALLOW_RESET=false).")
+    if principal and not has_permission(principal.role, Permission.POLICY_EDIT):
+        raise ForbiddenError("Only an Admin can reset the application data.")
+    # Refuse before regenerating the seed or deleting anything: a reset clears every governance
+    # table and reloads it, so two overlapping runs would interleave one's deletes with the other's
+    # inserts. The check comes after the permission checks so an unauthorised caller still gets 403.
+    running = reset_in_progress(db)
+    if running:
+        raise ConflictError(
+            f"A reset is already running: batch {running.batch_id} is {running.status}. "
+            f"Wait for it to finish and try again. If it is stuck, cancel that batch first."
+        )
+    directory = directory or get_settings().seed_dir
+    if get_settings().regenerate_seed_on_reset:
+        regenerate_seed(directory)
+    uploads = seed_files(directory)
+    batch = import_service.create_batch(db, None, uploads, source="reset", batch_type="seed")
+    batch.uploaded_by = principal.user_id if principal else None
+    db.commit()
+    runner.submit(_reset_job, session_factory, batch.batch_id, principal)
+    return batch
+
+
+def _reset_job(session_factory: Callable[[], Session], batch_id: str, principal: Principal | None) -> None:
+    with session_factory() as db:
+        counts = {m.__tablename__: db.scalar(select(func.count()).select_from(m)) for m in DELETE_ORDER}
+        for m in DELETE_ORDER:
+            db.execute(delete(m))
+        Policy.invalidate(db)
+        audit.record(db, principal, action="reset", entity="application", entity_id="all", import_batch_id=batch_id,
+                     before=counts, reason="Reset to seed")
+        batch = db.get(ImportBatch, batch_id)
+        batch.status = "Processing"
+        db.commit()
+    engine.run(session_factory, batch_id, "load", None)
+
+    # Fail loudly on an incomplete configuration rather than leaving a 500 for the first user.
+    with session_factory() as db:
+        missing = missing_baseline_settings(db)
+        if missing:
+            batch = db.get(ImportBatch, batch_id)
+            batch.status = "Failed"
+            batch.error_message = (
+                f"Reset loaded the seed but {len(missing)} policy setting(s) required by the baseline "
+                f"are missing: {', '.join(missing)}. The seed's T12 is older than the configuration "
+                f"the rules need. Regenerate it (A_Codes/AD_seed/generate_seed.py) or run "
+                f"`python -m app.cli bootstrap` to restore the baseline."
+            )
+            audit.record(db, principal, action="reset_incomplete", entity="application", entity_id="all",
+                         import_batch_id=batch_id, after={"missing_policy_settings": missing},
+                         reason="Seed policy settings do not cover the baseline")
+            db.commit()
+            return
+
+    # `engine.run` marks the batch Completed once the seed templates are loaded, but the reset is not
+    # finished: the evidence still has to be loaded. That left a gap in which the seed batch was
+    # terminal and the documents batch did not exist yet, so `reset_in_progress` saw nothing in
+    # flight and a second reset could start inside it. Holding the status across the call closes the
+    # gap — `stage_seed_documents` returns as soon as the documents batch exists, and that batch then
+    # keeps the reset visibly in flight. Note the seed batch does go back to Completed while the
+    # evidence is still being stored, so it is not a signal for "the reset has finished";
+    # GET /api/admin/reset/status is.
+    #
+    # The order below is load-bearing, and getting it wrong cost every evidence document (FT-04).
+    # The evidence batch is *staged* first — created, committed, non-terminal — then the seed batch's
+    # status is restored, and only then is the analysis handed to a background job. The reset
+    # therefore finishes all of its own writes before anything else starts writing. Previously the
+    # restore happened in a `finally` after the job had been submitted, and in thread mode that
+    # commit raced the job: it took SQLite's write lock, SQLite refused the job's lock promotion
+    # without consulting `busy_timeout` (see `app.db.configure_sqlite`), and the analysis died with
+    # 1,116 documents deleted and none reloaded, behind an HTTP 202.
+    with session_factory() as db:
+        batch = db.get(ImportBatch, batch_id)
+        loaded_status, batch.status = batch.status, "Processing"
+        db.commit()
+    try:
+        staged = stage_seed_documents(session_factory, get_settings().seed_dir / "documents")
+    except BaseException as exc:
+        # Not merely "restore the previous status": staging crashed, so the reset did not finish and
+        # must not read as Completed over an empty Document Centre. Recording it Failed is also what
+        # keeps `reset_in_progress` from latching — Failed is terminal, Processing is not (FT-05).
+        import_service.record_job_failure(session_factory, batch_id, "Seed evidence staging", exc)
+        raise
+    # The seed batch is **left `Processing`** and handed to the job, which restores it as its last
+    # write. Two rules pull against each other here, and a third arrived with G1.26:
+    #
+    # * **FT-04**: the reset makes no database write after submitting a job — in thread mode such a
+    #   write races the job for SQLite's write lock and the job loses (1,116 documents, once). So the
+    #   status cannot be restored *here*, after the submit.
+    # * **S11**: the example report's figures must be a real portfolio state, so it is written after
+    #   the evidence loads, inside the job.
+    # * **GEN-05 / CR-53**: the reset must read as in progress until its last write. Restoring the
+    #   status *before* the submit (as G1.26 did) satisfied FT-04 but left both reset batches terminal
+    #   while the job was still writing the report — a second reset would have been accepted and its
+    #   deletes would have raced that write.
+    #
+    # Handing the restore to the job satisfies all three: nothing is written here after the submit,
+    # and the seed batch stays non-terminal until the job's own final write.
+    runner.submit(_store_evidence_then_seed_report, session_factory, staged, batch_id, loaded_status)
+
+
+def _store_evidence_then_seed_report(session_factory: Callable[[], Session], documents_batch_id: str | None,
+                                     seed_batch_id: str, loaded_status: str) -> None:
+    """Analyse and store the seed evidence, write the example report, then end the reset.
+
+    The seed batch arrives `Processing` and stays so until this job's last write, which is what keeps
+    `reset_in_progress` true for the whole reset (GEN-05, CR-53). On success it is restored to the
+    status the seed load concluded with. On any failure it is marked `Failed` with the stage and the
+    reason (CR-57, FT-05's class) — terminal, so the reset guard cannot latch — and the exception is
+    re-raised so the runner still logs it. If the *analysis* fails, `analyse_job` has already marked
+    the documents batch `Failed`, and no example is written: a report over a half-loaded portfolio
+    would be worse than none.
+    """
+    from app.documents import batch as doc_batch
+
+    stage = "Seed evidence analysis"
+    try:
+        if documents_batch_id:
+            doc_batch.analyse_job(session_factory, documents_batch_id, None)
+        stage = "Seeded example report"
+        report_service.seed_previous_report(session_factory)
+    except BaseException as exc:
+        import_service.record_job_failure(session_factory, seed_batch_id, stage, exc)
+        raise
+    with session_factory() as db:
+        batch = db.get(ImportBatch, seed_batch_id)
+        batch.status = loaded_status
+        db.commit()
+
+
+def stage_seed_documents(session_factory: Callable[[], Session], directory: Path) -> str | None:
+    """Stage the seed evidence as a Document Centre batch and return its id, without analysing it.
+
+    Seed evidence goes through the Document Centre batch path: folder/file classification, then
+    automatic confirmation of confidently classified files (system seed only). Analysis is started by
+    the caller once it has no writes left of its own — see `_reset_job` and FT-04.
+    """
+    if not directory.is_dir():
+        return None
+    uploads = [(p.relative_to(directory).as_posix(), p.read_bytes()) for p in sorted(directory.rglob("*")) if p.is_file()]
+    if not uploads:
+        return None
+    from app.documents import batch as doc_batch
+
+    with session_factory() as db:
+        return doc_batch.create_batch(db, session_factory, None, uploads, source="seed", auto_confirm=True,
+                                      start_analysis=False).batch_id

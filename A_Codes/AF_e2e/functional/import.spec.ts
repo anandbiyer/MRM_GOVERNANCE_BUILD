@@ -143,11 +143,11 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
   };
 
   // A reset that has not finished, read straight from the test database rather than from the API:
-  // mid-reset `app_user` is empty for a moment, so nothing can be asked over HTTP, and this is the
-  // same condition `reset_service.reset_in_progress` applies.
-  const resetInFlight = () => dbCount("import_batch",
-    "source IN ('reset','seed') AND status NOT IN " +
-    "('Completed','Partially Completed','Failed','Validation Failed','Cancelled')");
+  // mid-reset `app_user` is empty for a moment, so nothing can be asked over HTTP. Since G1.32 the
+  // only answer to "is a reset running?" is the `reset_lock` row (`reset_service.reset_in_progress`).
+  // The old batch-status inference (H-21) is what the product itself stopped using: both batches
+  // are terminal while the seeded example report is written, so the probe could stop early.
+  const resetInFlight = () => dbCount("reset_lock", "holder IS NOT NULL");
 
   /**
    * GEN-04: a second reset, while one is running, is refused with a conflict naming the batch in
@@ -173,6 +173,12 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
       }
       if (resp.status() === 202) {
         verdict = `a second reset was accepted while one was running: ${text}`;
+        break;
+      }
+      if (resp.status() >= 500) {
+        // TR-70 (G1.32): a refused second reset met SQLite's write lock and answered 500. GEN-04
+        // says conflict; a 500 is a wrong answer, not an unanswered question.
+        verdict = `a second reset during a running one answered ${resp.status()}: ${text}`;
         break;
       }
       await page.waitForTimeout(300);  // 401/403: mid-delete, ask again
@@ -209,6 +215,16 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
     for (const b of seedBatches) {
       expect(b.status, `reset batch ${JSON.stringify(b)}`).not.toBe("Failed");
     }
+    // GEN-05 (G1.32): the signal reports how the reset ended, and it ended Completed. Read once the
+    // lock is free, so "finished" is only reported when a further reset would be accepted.
+    const final = await page.request.get("/api/admin/reset/status", { headers: await asAdmin() });
+    const body = await final.json() as { in_progress: boolean; last_outcome: string | null };
+    expect(body.in_progress, "GEN-05: idle means the lock is free").toBe(false);
+    expect(body.last_outcome, `GEN-05: the reset ended ${JSON.stringify(body)}`).toBe("Completed");
+    expect(dbCount("reset_lock", "holder IS NOT NULL"), "GEN-05: the lock is released").toBe(0);
+    // The reset's last write is the seeded example report (G1.26); it must exist once idle.
+    expect(dbCount("model_risk_report", "is_seeded = 1"),
+      "GEN-05: idle only after the seeded example is written").toBe(1);
   };
 
   await reset(true);   // the first reset also carries the GEN-04 concurrency probe
@@ -225,16 +241,15 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
   await checkpoint(page, "FS-21_after_two_resets");
   expect(second, "GEN-01: a reset at the same business date is deterministic").toEqual(first);
   expect(first.models).toBe(256);
-  expect(first.policy).toBe(70);
+  // Pinned on purpose: GEN-01's claim is the *documented* distribution, so this number has to be
+  // edited deliberately when the bootstrap gains a setting rather than read from the database it is
+  // checking. Gate 1 added `regulatory_framework` and its companion, taking it from 70 to 72
+  // (harness defect H-20; `functional-scenarios.md` line 2 carries the same figure).
+  expect(first.policy).toBe(72);
   expect(first.documents, "FT-04: a reset must reload the evidence, not just delete it")
     .toBeGreaterThan(1000);
 });
 
-test.fixme("FS-25 REG-15 REG-16 REG-17 core Model Risk Report: figures, reproducibility and access",
-  async () => {
-    // Not built (G1.16–G1.18). The core report is specified as §12A REQ-REG-10A and is built ahead
-    // of the rest of Phase 2A (D12), so this scenario precedes FS-31 rather than waiting on it.
-  });
 
 test.fixme("FS-30 MON-01 MON-02 MON-03 monitoring plan, metrics, results and breach", async () => {
   // Not built (Phase 6).

@@ -1,0 +1,49 @@
+C01_no_lock_check_in_generate | 1 failed, 51 passed, 1 warning in 258.05s (0:04:18) | test_reports.py::test_cr_67_a_report_cannot_be_generated_while_a_reset_holds_the_lock 
+C02_lock_before_permission | 52 passed, 1 warning in 184.38s (0:03:04) | 
+C03_lock_after_store_put | 52 passed, 1 warning in 229.46s (0:03:49) | 
+D01_seed_generated_at_shaped | 1 failed, 51 passed, 1 warning in 184.64s (0:03:04) | test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed 
+D02_seed_generated_at_naive_local | 1 failed, 51 passed, 1 warning in 227.37s (0:03:47) | test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed 
+G01_409_not_naming_batch | 2 failed, 80 passed, 1 warning in 285.30s (0:04:45) | test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409 test_imports.py::test_a_second_reset_is_refused_while_one_is_running 
+G02_regenerate_before_claim | 2 failed, 80 passed, 1 warning in 931.16s (0:15:31) | test_reset_lock.py::test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409 
+G03_no_read_first | 1 failed, 81 passed, 1 warning in 316.35s (0:05:16) | test_reset_lock.py::test_g1_32_a_held_lock_is_answered_from_a_read_without_claiming 
+G04_locked_claim_is_500 | 1 failed, 81 passed, 1 warning in 311.99s (0:05:11) | test_reset_lock.py::test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500 
+G05_no_release_at_end | 13 failed, 69 passed, 1 warning in 900.56s (0:15:00) | test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence analysis-<lambda>] test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>] 
+G06_release_before_report | 4 failed, 78 passed, 1 warning in 311.63s (0:05:11) | test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409 test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>] 
+G07_status_never_in_progress | 1 failed, 81 passed, 1 warning in 272.36s (0:04:32) | test_imports.py::test_reset_status_reports_the_batch_to_watch 
+G08_permission_after_lock | 1 failed, 81 passed, 1 warning in 276.56s (0:04:36) | test_imports.py::test_an_unauthorised_caller_is_refused_before_the_in_flight_check 
+G09_no_release_on_job_failure | 2 failed, 80 passed, 1 warning in 424.54s (0:07:04) | test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed load-<lambda>] test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seed evidence staging-<lambda>] 
+G10_failure_not_marked_on_batch | 2 failed, 80 passed, 1 warning in 331.44s (0:05:31) | test_reset_lock.py::test_g1_32_an_analysis_failure_writes_no_report_and_fails_the_reset test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed 
+G11_extra_handover_before_last_write | 82 passed, 1 warning in 294.52s (0:04:54) | 
+G12_409_no_stage | 2 failed, 80 passed, 1 warning in 301.88s (0:05:01) | test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409 test_imports.py::test_a_second_reset_is_refused_while_one_is_running 
+G13_no_startup_recovery | 2 failed, 80 passed, 1 warning in 289.13s (0:04:49) | test_reset_lock.py::test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason test_reset_lock.py::test_g1_32_starting_the_application_releases_an_interrupted_lock 
+G14_recovery_without_reason | 1 failed, 81 passed, 1 warning in 288.75s (0:04:48) | test_reset_lock.py::test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason 
+R01_hash_constant | 2 failed, 36 passed, 1 warning in 110.36s (0:01:50) | test_reports.py::test_reg_16_the_same_data_gives_the_same_content_hash test_reports.py::test_reg_16_the_hash_ignores_which_report_came_before 
+R02_hash_includes_changes_since | 4 failed, 34 passed, 1 warning in 110.14s (0:01:50) | test_reports.py::test_reg_16_the_same_data_gives_the_same_content_hash test_reports.py::test_reg_16_the_hash_ignores_which_report_came_before test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash 
+R03_cr52_decisions_in_approvals | 2 failed, 36 passed, 1 warning in 148.75s (0:02:28) | test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report 
+R04_s13_since_count_in_findings | 2 failed, 36 passed, 1 warning in 124.40s (0:02:04) | test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report 
+R05_hash_wallclock | 5 failed, 33 passed, 1 warning in 127.05s (0:02:07) | test_reports.py::test_reg_16_the_same_data_gives_the_same_content_hash test_reports.py::test_gen_01_a_reset_clears_the_report_history_and_reseeds_it test_reports.py::test_reg_16_the_hash_ignores_which_report_came_before 
+R06_overdue_not_tier_ordered | 1 failed, 37 passed, 1 warning in 126.83s (0:02:06) | test_reports.py::test_reg_15_figures_equal_the_command_center 
+R07_critical_is_lowest_severity | 1 failed, 37 passed, 1 warning in 137.84s (0:02:17) | test_reports.py::test_reg_15_figures_equal_the_command_center 
+R08_calendar_date | 2 failed, 36 passed, 1 warning in 128.81s (0:02:08) | test_reports.py::test_reg_15_the_business_date_is_the_business_date_not_the_calendar_date test_reports.py::test_d14_a_generated_report_is_as_of_its_business_date_and_carries_no_label 
+R09_stage_drops_a_column | 1 failed, 37 passed, 1 warning in 113.12s (0:01:53) | test_reports.py::test_reg_15_figures_equal_the_command_center 
+R10_overdue_findings_include_due_today | 38 passed, 1 warning in 152.61s (0:02:32) | 
+R11_lowest_limit_constant | 1 failed, 37 passed, 1 warning in 126.29s (0:02:06) | test_reports.py::test_reg_15_the_lowest_scoring_count_comes_from_policy 
+R12_weakest_is_strongest | 1 failed, 37 passed, 1 warning in 110.50s (0:01:50) | test_reports.py::test_reg_15_the_score_section_names_the_weakest_component 
+R13_service_no_permission_check | 2 failed, 36 passed, 1 warning in 148.67s (0:02:28) | test_reports.py::test_reg_16_the_service_refuses_an_unpermitted_principal_too test_reports.py::test_reg_16_a_refused_generation_writes_no_audit_event 
+R14_no_audit | 2 failed, 36 passed, 1 warning in 109.99s (0:01:49) | test_reports.py::test_reg_16_each_generation_writes_exactly_one_audit_event test_reports.py::test_reg_16_a_refused_generation_writes_no_audit_event 
+R15_audit_twice | 2 failed, 36 passed, 1 warning in 110.51s (0:01:50) | test_reports.py::test_reg_16_each_generation_writes_exactly_one_audit_event test_reports.py::test_reg_16_a_refused_generation_writes_no_audit_event 
+R16_report_committed_before_audit | 38 passed, 1 warning in 121.28s (0:02:01) | 
+R17_list_oldest_first | 1 failed, 37 passed, 1 warning in 124.94s (0:02:04) | test_reports.py::test_reg_17_earlier_reports_are_listed_newest_first 
+R18_list_by_id_only | 38 passed, 1 warning in 125.61s (0:02:05) | 
+R19_closed_empty | 2 failed, 36 passed, 1 warning in 135.58s (0:02:15) | test_reports.py::test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report 
+R20_decisions_all_approvals | 3 failed, 35 passed, 1 warning in 111.57s (0:01:51) | test_reports.py::test_reg_15_changes_since_lists_exactly_the_differences test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report 
+R21_tr61_no_legacy_fallback | 1 failed, 37 passed, 1 warning in 123.15s (0:02:03) | test_reports.py::test_tr_61_a_report_stored_before_s13_reopens_with_its_decisions 
+R22_reopen_alters_content | 38 passed, 1 warning in 122.57s (0:02:02) | 
+R23_previous_id_wrong | 3 failed, 35 passed, 1 warning in 133.02s (0:02:13) | test_reports.py::test_reg_15_changes_since_lists_exactly_the_differences test_reports.py::test_reg_17_a_reset_seeds_one_earlier_report_so_changes_since_has_content test_reports.py::test_reg_17_lists_a_retired_model_and_a_newly_opened_finding 
+R24_d14_figures_as_of_is_business_date | 2 failed, 36 passed, 1 warning in 108.22s (0:01:48) | test_reports.py::test_d14_the_seeded_example_states_the_date_of_its_figures_and_its_illustrative_date test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line 
+R25_is_seeded_false | 4 failed, 34 passed, 1 warning in 122.53s (0:02:02) | test_reports.py::test_s12_the_seeded_report_is_labelled_and_a_generated_one_is_not test_reports.py::test_d14_the_seeded_example_states_the_date_of_its_figures_and_its_illustrative_date test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line 
+R26_pdf_no_seeded_label | 1 failed, 37 passed, 1 warning in 123.31s (0:02:03) | test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line 
+R27_pdf_reconciliation_no_timestamp | 1 failed, 37 passed, 1 warning in 123.03s (0:02:03) | test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed 
+R28_pdf_reconciliation_gone | 2 failed, 36 passed, 1 warning in 122.42s (0:02:02) | test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed 
+R29_seed_shapes_a_figure | 38 passed, 1 warning in 110.70s (0:01:50) | 
+G15_being_created_not_said | 82 passed, 1 warning in 268.61s (0:04:28) | 

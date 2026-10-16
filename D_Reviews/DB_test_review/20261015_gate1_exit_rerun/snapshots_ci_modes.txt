@@ -1,0 +1,30 @@
+== push
+Range: c72bb97e10cd70e22aeb92e64cf4b2df1963421a..a4f17ce2bdbce9415c03b203d100eb820ceee7cf  (event push)
+
+Checked 2 non-merge commit(s) between c72bb97e10cd and a4f17ce2bdbc: 5 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+== first_push
+  (before 2026-10-09, reported only) 58a6a718 G1.18: core report seed, FS-25, MUP-29 and BL.6 — held open 
+  (before 2026-10-09, reported only) d18f984e G1.18 Done: close the checkpoint's three High findings, and 
+
+Checked 37 non-merge commit(s) between 0f11fda586d2 and a4f17ce2bdbc: 111 file edit(s) checked.
+8 gap(s) in commits committed before 2026-10-09: reported, not failed.
+Every enforced commit snapshotted what it edited.
+exit=0
+== pull_request
+  (before 2026-10-09, reported only) 58a6a718 G1.18: core report seed, FS-25, MUP-29 and BL.6 — held open 
+  (before 2026-10-09, reported only) d18f984e G1.18 Done: close the checkpoint's three High findings, and 
+
+Checked 37 non-merge commit(s) between 0f11fda586d2 and a4f17ce2bdbc: 111 file edit(s) checked.
+8 gap(s) in commits committed before 2026-10-09: reported, not failed.
+Every enforced commit snapshotted what it edited.
+exit=0
+== workflow_dispatch
+  (before 2026-10-09, reported only) 58a6a718 G1.18: core report seed, FS-25, MUP-29 and BL.6 — held open 
+  (before 2026-10-09, reported only) d18f984e G1.18 Done: close the checkpoint's three High findings, and 
+
+Checked 37 non-merge commit(s) between 0f11fda586d2 and a4f17ce2bdbc: 111 file edit(s) checked.
+8 gap(s) in commits committed before 2026-10-09: reported, not failed.
+Every enforced commit snapshotted what it edited.
+exit=0

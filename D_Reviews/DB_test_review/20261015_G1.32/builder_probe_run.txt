@@ -1,0 +1,3 @@
+samples=3145 elapsed=10.7s
+seed batch Completed (None); documents batch Completed; documents=1116; reports=1
+RESULT PASS

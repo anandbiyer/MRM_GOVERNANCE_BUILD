@@ -471,6 +471,110 @@ score and document completeness are all already computed on read by `governance_
   extraction) can be built until D1–D7 are recorded. That risk is recorded in the plan's §11.
 - `model_risk_report` is added to §48 now; the rest of §12A's tables stay deferred.
 
+**Amendments, 2026-10-06** (before G1.16 was built; both tighten REQ-REG-10A and REG-15).
+
+1. **The report is always for the current business date.** "For a chosen business date" is removed.
+   `app.clock.today()`, which `MRM_TODAY_OVERRIDE` fixes, is the only date; history is the stored
+   copies, which are listed and reopened. *Why:* derived governance state is recomputed on read
+   (Part 0, `governance_view`), so a past date would have to be threaded through `dashboard_service`
+   and `governance_view` — and even then it would reconstruct today's records as they would have been
+   judged on that date, not the portfolio as it actually stood. That is a different and much larger
+   thing than a report. The stored report is the record of the past; **no date parameters are added to
+   `dashboard_service` or `governance_view`**.
+2. **"Models by lifecycle phase" becomes "models by stage, the column the Command Center displays"
+   (LIF-02).** *Why:* REQ-REG-10A also requires every figure to equal the Command Center, and the
+   Command Center's distribution is the *displayed* column — a model in Monitoring whose next due date
+   falls inside the lead time appears in Revalidation. The two requirements could not both hold as
+   written; this was raised as an ambiguity when the core report was specified and is now settled in
+   favour of agreeing with the screen.
+
+Also decided with these: `reportlab` is added to `requirements.txt` and `requirements-lock.txt` as part
+of **G1.16**. It was checked beforehand — it installs as a pure-Python wheel and renders a styled PDF on
+Python 3.14.5 under Windows — so REQ-REG-10A's "stop and ask if no PDF library installs cleanly" branch
+does not apply.
+
+---
+
+## D12 addendum — the content hash, and what a stored report may claim
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A REQ-REG-10A, criteria REG-16 and REG-17, §76A.14 |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-09 |
+| **Decided by** | Anand |
+
+Three spec issues raised by the Gate 1 exit review (`D_Reviews/20261008_summary.md`), decided
+together because they are one question seen from three sides: what is a stored report a statement
+*about*?
+
+**S10 — the predecessor is not part of "the same data".** `changes_since` is excluded from the content
+hash, and REG-16 is reworded to say so: *"Generating twice from the same data and business date gives
+the same content hash over the report's figures; the changes-since section is excluded from the
+hash."*
+
+*Why.* The old wording could not be satisfied once any predecessor existed. The first generation of a
+day diffs the previous stored report; the second diffs the first. The change lists therefore differ by
+construction, so a hash covering them differs too — review finding **FT-09**, which failed REG-16 in
+production terms, not only in a demo. The code already held the right principle and then contradicted
+it four lines later: it excluded `previous_report_id` and `previous_generated_at` as "provenance, not
+content" while keeping the lists derived *solely* from that predecessor. If the predecessor's identity
+is provenance, so is everything computed from it.
+
+*What the hash still covers.* Every figure about the portfolio: inventory by tier and stage,
+revalidation, findings, approvals, score, documentation, and the baseline. So two reports that say
+different things about the portfolio still hash differently; two reports that say the same thing about
+it no longer differ because one happened to be second.
+
+**S11 — a stored report never holds a figure that was not real.** Every stored report is produced by
+the report service from the portfolio as it stood at generation, and no figure is shaped by hand. The
+seeded example is generated the same way and **after the seed evidence is loaded**, so its figures are
+a real portfolio state. Its baseline stays shaped — that is diff input, not a reported figure, and it
+is what gives the next report a non-empty "changes since".
+
+*Why.* The seeded report was being generated before the evidence loaded, so `completeness` returned
+`score=0` rather than `None` and the 25%-weight documentation component scored zero for every model.
+On screen that read as **0% documentation, 250 of 256 models missing documents, portfolio score 64.5**
+against today's 92.9, with every other section showing today's numbers — a credible-looking governance
+collapse that "recovered" with nothing in the section whose job is to explain it (**CR-41**, **MP-18**).
+
+**S12 — a reopened report states what was true at generation.** The footer reads *"Figures reconciled
+with the Command Center at generation, &lt;timestamp&gt;"*, and the seeded example is labelled
+**"Seeded example"** wherever reports are listed or reopened.
+
+*Why.* The footer was rendered at page level, outside the report view, so it asserted
+*"Figures reconcile with the Command Center for the same business date"* over whichever report was
+open. For a historical report that is false, and **unverifiable by construction**: the Command Center
+has no as-of control and always renders `app.clock.today()`, so no Command Center for an earlier
+business date can be produced at all. A governance tool asserting a reconciliation it cannot
+demonstrate is worse than one saying nothing.
+
+**Consequences.** Plan rows **G1.25** (S10) and **G1.26** (S11, S12). REG-16's rewording is in
+§76D; REQ-REG-10A carries the stored-report rules. REG-17 is unaffected in wording but needed
+**G1.27** to reach Proven. The §76A.14 note that REG-16 is *Failing* is replaced by the Gate 1 re-run.
+*(Corrected 2026-10-15: this paragraph first named G1.21–G1.23, the IDs proposed before the rows were
+renumbered; the work landed as G1.25–G1.28, as the plan's 2026-10-09 change log records.)*
+
+**S13 — every predecessor-derived figure lives in the changes section** (decided 2026-10-15, review
+finding **CR-52**). G1.25 excluded `changes_since` from the hash, but one more figure derived solely
+from the previous report, `approvals.decisions_since_previous`, sat in the `approvals` section and so
+stayed inside it: record one approval, generate twice, and identical data gives two hashes. Two fixes
+were on the table — hash an explicit allowlist of figure keys, or move every "since the previous
+report" figure into the changes section. **The second is chosen**: the decisions recorded since the
+previous report become part of `changes_since`, the approvals section keeps only conditional approvals
+with open conditions, and the single rule "the changes section is out of the hash" stays the whole rule.
+
+*Why.* S10's principle is "if the predecessor's identity is provenance, so is everything computed from
+it". An allowlist would enforce that in the hash function while leaving predecessor-derived figures
+scattered across sections; moving them puts the principle in the report's *shape*, where a reader can
+see it, and makes the next such figure's correct home obvious. REQ-REG-10A now says so in its section
+list. Plan row **G1.29**; regression test: record an approval between two generations and assert the
+hashes agree while the changes section differs.
+
+*Recorded as an addendum to **D12** rather than a new ID, because all four sit inside the core
+report D12 scoped.*
+
 ---
 
 ## D13 — AI provider for AI extraction (Gate 5) and the Copilot (Gate 6)
@@ -514,6 +618,131 @@ row and no `B_Inputs/` change.
 **Note.** §60's provenance fields (`provider`, `model_used`, `prompt_version`) record which provider
 produced each result, whichever option is chosen. Those fields sit on `document_extraction` (§48) for
 Gate 5, and in the Copilot's audit event (COP-06) for Gate 6.
+
+---
+
+## D14 — What the seeded example report discloses, and whether the PDF must carry it
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A REQ-REG-10A, REG-15, REG-17; extends S11 and S12 (D12 addendum) |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** The seeded example is stored with a business date one month before the seed's
+(`SEED_REPORT_AGE_DAYS`), while S11 requires its figures to be computed from the portfolio as it is —
+so it reads "Business date 2026-08-31" over 2026-09-30 figures, and nothing says so (**TR-48**). And
+S12's disclosures are on the screen only: the downloaded PDF carries neither the "Seeded example" label
+nor the reconciliation line, although it is the artefact that leaves the system (**CR-55**).
+
+**Options.** (a) Date the seeded report on its generation date and move the "a month earlier" framing
+into the label. (b) Keep the earlier business date and disclose both dates.
+
+**Decision.** Option (b). The seeded example keeps its earlier business date and is labelled
+*"Seeded example: figures computed from current seed data on &lt;generation date&gt;, dated
+&lt;business date&gt; for illustration."* **The PDF counts as a surface**: it carries that label on the
+seeded report, and the line *"Figures reconciled with the Command Center at generation,
+&lt;timestamp&gt;"* on every report.
+
+**Why.** The earlier date is what makes the seeded example useful — the first real report shows a month
+of "changes since" — so (a) would remove the reason the example exists. What was wrong was the silence,
+not the date. The PDF is the copy a board reader holds; a disclosure that stops at the screen does not
+reach the person S12 was written for.
+
+**Consequences.** Plan row **G1.31**: the label on the screen, in the list and in the PDF, with the
+reconciliation line in the PDF header; tests assert the label's two dates and the PDF's text.
+REQ-REG-10A carries the wording.
+
+**Clarified 2026-10-15 (owner), before G1.31 was built.** The wording left "&lt;generation date&gt;"
+open between the wall-clock date the reset ran, `generated_at` (which on the seeded example is itself
+set to the earlier illustrative date), and the business date the figures belong to. **It is the business
+date the figures were computed for**, stored as a new column `model_risk_report.figures_as_of`
+(migration 0009) rather than derived from the seeding offset, so changing that offset can never misdate
+a report already stored. For every report a user generates it equals `business_date`; only the seeded
+example differs. Recorded here after the G1.31 schema checkpoint found the clarification written
+nowhere (CR-66).
+
+---
+
+## D15 — Acceptance criteria for platform and build controls
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | Part 0 (snapshot convention), §64, §76A.14; new §76E |
+| **Needed before** | Any |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** The snapshot control (G3.0), the merge hook and the UTC-timestamp invariant (BL.31) have
+no acceptance criteria, so they appear in no §76A.14 row and their coverage has no signal that can go
+stale (**TR-56**). The snapshot convention was broken and found by eye at five consecutive reviews for
+exactly that reason.
+
+**Decision.** Add **§76E "Platform and build controls"** with **PLT-01** (every API timestamp is UTC,
+from BL.31), **PLT-02** (every hand-edited file's pre-change content is recoverable from `_OLD/`) and
+**PLT-03** (the snapshot control cannot pass vacuously). §76A.14's total goes 149 → **152**.
+
+**Consequences.** BL.31 cites PLT-01. The tests in `A_Codes/AZ_tools/test_check_snapshots.py` are
+tagged PLT-02/PLT-03 when that file is next edited, and the Gate 1 exit review grades all three. The
+merge hook is not given a criterion here; it can join §76E when it next changes.
+
+---
+
+## D16 — GEN-04 and GEN-05 describe the reset lock
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §76A.12 GEN-04, GEN-05; §48 `reset_lock` |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** Spec issue SI-1 (Gate 1 exit, requirements-reviewer): both criteria still described the
+batch-status mechanism plan G1.32 replaced with an explicit reset lock. GEN-05's escape hatch — cancel
+a batch left non-terminal through the API — no longer frees anything, and GEN-04's "names the batch in
+flight" cannot hold before the batch exists.
+
+**Decision.** Reword both to the lock. GEN-04: the 409 names the running reset's batch (or says it is
+being created) and its stage; nothing is deleted, regenerated or submitted; a held lock is answered
+from a read and a locked claim is the same 409, never a 500. GEN-05: the status signal is the lock
+alone; any failing stage releases it with the outcome and stage; a lock left by an application that
+stopped mid-reset is released, with the reason, when it next starts — confirmed in code
+(`app/main.py` startup → `reset_service.recover_interrupted_reset`, test
+`test_g1_32_starting_the_application_releases_an_interrupted_lock`) — and there is no API release.
+
+**Consequences.** §76A.12 reworded; no code change, because the behaviour already exists.
+
+---
+
+## D17 — The seeded example's reconciliation time
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | §12A REQ-REG-10A, S12, D14 |
+| **Needed before** | Gate 1 merging to `main` |
+| **Decided on** | 2026-10-15 |
+| **Decided by** | Anand |
+
+**Question.** TR-83 (G1.31 risk checkpoint, re-observed by all three runtime agents at the Gate 1
+exit): the seeded example's reconciliation line reads "at generation, 2026-08-31 09:00" — its shaped
+`generated_at` — one line above "figures computed … on 2026-09-30". TR-48's silent date disagreement,
+moved one line down.
+
+**Options.** (a) The real time the seeded example was computed. (b) `figures_as_of`. (c) Omit the line
+on the seeded example.
+
+**Decision.** Option (a). The seeded example's `generated_at` becomes the real time it was computed,
+no longer shaped to its illustrative date, so both its reconciliation line and its "generated at" are
+true statements. Its `business_date` keeps the illustrative earlier date and its label (D14) says so.
+
+**Consequences.** Plan row **G1.34**, which also refuses report generation with 409 while the reset
+lock is held (CR-67). Tests assert the seeded reconciliation timestamp in full (closing TR-84 for the
+seeded case).
 
 ---
 

@@ -1,0 +1,7 @@
+Python 3.14.5
+Thu Oct 15 23:45:25 EDT 2026
+v24.16.0
+11.13.0
+Python 3.14.5
+git version 2.54.0.windows.1
+true

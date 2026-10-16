@@ -8,9 +8,9 @@ import shutil
 
 import pytest
 from openpyxl import load_workbook
-from sqlalchemy import delete as sa_delete
 
 from app.auth.security import Principal
+from app.db import get_session_factory
 from app.models import ImportBatch
 from app.services import reset_service
 from app.services.errors import ForbiddenError
@@ -381,53 +381,53 @@ def test_reset_disabled(client, test_settings):
 
 
 def test_a_second_reset_is_refused_while_one_is_running(client, db_session, test_settings):
-    """GEN-04, GEN-02 (FT-02): a reset clears every governance table and reloads it, so two overlapping runs
-    would interleave one run's deletes with the other's inserts.
+    """GEN-04, GEN-02 (FT-02, G1.32): a reset clears every governance table and reloads it, so two
+    overlapping runs would interleave one run's deletes with the other's inserts.
 
-    The batch the caller is handed is not a sufficient signal on its own: a reset creates the seed
-    import batch *and then* a documents batch for the evidence files, so the first reports Completed
-    while the reset is still writing. Both are covered.
+    The signal is the reset lock (G1.32), not any batch's status: batch statuses were what the guard
+    used to infer from, and that inference failed twice (CR-53, TR-65). The refusal names the batch
+    and the stage the running reset is at.
     """
     h = login(client, *ADMIN)
     with db_session() as db:
-        for status, source in (("Processing", "reset"), ("Ready", "seed")):
-            db.add(ImportBatch(batch_id=f"B-TEST-{source}", batch_type="seed", source=source,
-                               status=status, options={}))
-            db.commit()
+        assert reset_service.acquire_reset_lock(db, "running", "U-001")
+        reset_service.set_reset_stage(db_session, "running", "Seed load", batch_id="B-TEST-reset")
 
-            resp = client.post("/api/admin/reset", headers=h)
-            assert resp.status_code == 409, f"{source} batch in {status} must block a reset"
-            assert f"B-TEST-{source}" in resp.json()["detail"], "the message must name the batch to watch"
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 409
+    assert "B-TEST-reset" in resp.json()["detail"], "the message must name the batch to watch"
+    assert "Seed load" in resp.json()["detail"], "and the stage the running reset is at"
 
-            db.execute(sa_delete(ImportBatch).where(ImportBatch.batch_id == f"B-TEST-{source}"))
-            db.commit()
+    reset_service.release_reset_lock(db_session, "running", "Completed")
+    assert client.post("/api/admin/reset", headers=h).status_code == 202, "released, the next is accepted"
 
 
 def test_a_finished_reset_does_not_block_the_next_one(client, db_session, test_settings):
-    """GEN-04, GEN-05: the guard must not latch. Every terminal status leaves a reset startable.
+    """GEN-04, GEN-05: the guard must not latch. Every way a reset can end leaves the next startable.
 
-    The statuses are written out rather than read from `reset_service.TERMINAL_BATCH_STATUSES`: a
-    test that iterates the constant it is checking cannot fail when that constant is wrong. This
-    list is the §42 contract, so it belongs in the test.
+    The outcomes are written out rather than read from a constant: a test that iterates the constant
+    it is checking cannot fail when that constant is wrong.
     """
     h = login(client, *ADMIN)
-    with db_session() as db:
-        for status in ("Completed", "Partially Completed", "Failed", "Validation Failed", "Cancelled"):
-            db.add(ImportBatch(batch_id="B-TEST-done", batch_type="seed", source="reset",
-                               status=status, options={}))
-            db.commit()
-            assert reset_service.reset_in_progress(db) is None, f"{status} must count as finished"
-            db.execute(sa_delete(ImportBatch).where(ImportBatch.batch_id == "B-TEST-done"))
-            db.commit()
-
+    for outcome in ("Completed", "Failed", "Interrupted"):
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, f"ended-{outcome}", "U-001")
+        reset_service.release_reset_lock(db_session, f"ended-{outcome}", outcome, "probe")
+        with db_session() as db:
+            assert reset_service.reset_in_progress(db) is None, f"{outcome} must count as finished"
     assert client.post("/api/admin/reset", headers=h).status_code == 202
 
 
 def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, test_settings):
-    """GEN-04: a batch waiting for a user's review is not a reset, and must not stand in the way of one."""
+    """GEN-04: a batch waiting for a user's review is not a reset, and must not stand in the way of one.
+
+    Nor does any batch status, of any source: only the reset lock means a reset is running (G1.32).
+    """
     with db_session() as db:
-        db.add(ImportBatch(batch_id="B-TEST-upload", batch_type="documents", source="upload",
-                           status="Ready", options={}))
+        for batch_id, source, status in (("B-TEST-upload", "upload", "Ready"),
+                                         ("B-TEST-orphan", "reset", "Processing")):
+            db.add(ImportBatch(batch_id=batch_id, batch_type="documents", source=source,
+                               status=status, options={}))
         db.commit()
         assert reset_service.reset_in_progress(db) is None
 
@@ -435,20 +435,23 @@ def test_a_users_own_document_batch_does_not_block_a_reset(client, db_session, t
 
 
 def test_reset_status_reports_the_batch_to_watch(client, db_session, test_settings):
-    """GEN-05 (FT-02): the signal that covers the whole reset, which POST /reset's batch id does not."""
+    """GEN-05 (FT-02, G1.32): the signal that covers the whole reset, which POST /reset's batch id does not."""
     h = login(client, *ADMIN)
     idle = client.get("/api/admin/reset/status", headers=h)
     assert idle.status_code == 200
-    assert idle.json() == {"in_progress": False, "batch": None}
+    assert idle.json()["in_progress"] is False and idle.json()["batch"] is None
 
     with db_session() as db:
-        db.add(ImportBatch(batch_id="B-TEST-docs", batch_type="documents", source="seed",
-                           status="Processing", options={}))
+        db.add(ImportBatch(batch_id="B-TEST-reset", batch_type="seed", source="reset",
+                           status="Completed", options={}))
         db.commit()
+        assert reset_service.acquire_reset_lock(db, "running", "U-001")
+    reset_service.set_reset_stage(db_session, "running", "Seed evidence analysis", batch_id="B-TEST-reset")
 
     busy = client.get("/api/admin/reset/status", headers=h).json()
-    assert busy["in_progress"] is True
-    assert busy["batch"]["batch_id"] == "B-TEST-docs", "names the documents batch, not just the seed one"
+    assert busy["in_progress"] is True, "in progress although the batch itself reads Completed (TR-65)"
+    assert busy["batch"]["batch_id"] == "B-TEST-reset"
+    assert busy["stage"] == "Seed evidence analysis"
 
 
 def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session, test_settings):
@@ -460,9 +463,7 @@ def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session
     because the CLI and the seed loader call it directly, and that is the order under test here.
     """
     with db_session() as db:
-        db.add(ImportBatch(batch_id="B-TEST-reset", batch_type="seed", source="reset",
-                           status="Processing", options={}))
-        db.commit()
+        assert reset_service.acquire_reset_lock(db, "running", "U-001")
 
         auditor = Principal(user_id="U-041", role="Auditor", full_name="Grace Liu")
         with pytest.raises(ForbiddenError):
@@ -471,14 +472,11 @@ def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session
 
 def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
         client, db_session, test_settings, monkeypatch):
-    """GEN-05 (FT-02): loading the evidence is part of the reset, so the batch must not read as
+    """GEN-05 (FT-02, G1.32): loading the evidence is part of the reset, so the reset must not read as
     finished while it is still happening.
 
-    Two things used to go wrong in the gap between the seed load finishing and the documents batch
-    being created: a caller polling the batch id it was handed saw "Completed" while the reset was
-    still writing, and `reset_in_progress` saw nothing in flight — so a second reset could start
-    inside the gap. This observes the status at the moment the evidence load runs, which is the only
-    point where the invariant can be checked.
+    The gap between the seed load finishing and the documents batch being created was where the
+    status inference first failed. This observes the lock at the moment the evidence is staged.
     """
     observed = {}
 
@@ -486,8 +484,8 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
         with session_factory() as db:
             running = reset_service.reset_in_progress(db)
             observed["batch_id"] = running.batch_id if running else None
-            observed["status"] = running.status if running else None
-        return None  # the real stager is skipped: the invariant is about the status, not the files
+            observed["stage"] = running.stage if running else None
+        return None  # the real stager is skipped: the invariant is about the lock, not the files
 
     monkeypatch.setattr(reset_service, "stage_seed_documents", spy)
 
@@ -495,13 +493,84 @@ def test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded(
     assert resp.status_code == 202
     batch_id = resp.json()["batch_id"]
 
-    assert observed["batch_id"] == batch_id, "the batch the caller was given is the one still in flight"
-    assert observed["status"] == "Processing", "the reset batch must not be terminal yet"
+    assert observed["batch_id"] == batch_id, "the reset in flight is the one the caller was given"
+    assert observed["stage"] == "Seed evidence staging"
 
-    # And once the evidence load is done, the reset is finished and another may start.
     with db_session() as db:
         assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
         assert reset_service.reset_in_progress(db) is None
+
+
+def test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written(
+        client, db_session, test_settings, monkeypatch):
+    """GEN-05, GEN-04 (CR-53): the reset is not finished until the example report is written.
+
+    G1.26 moved the example report after the evidence load (S11), into the job that stores the
+    evidence. By the time it ran, that job had already committed the documents batch `Completed` and
+    the seed batch had been restored to `Completed` before the handover — so for the length of a full
+    portfolio recompute both reset batches were terminal, `reset/status` said finished, and a second
+    reset would have been accepted with its deletes racing the report's write. This observes the
+    status at the moment the report is written, the only point where that window can be checked.
+    """
+    from app.services import report_service
+
+    real = report_service.seed_previous_report
+    observed = {}
+
+    def spy(session_factory):
+        with session_factory() as db:
+            running = reset_service.reset_in_progress(db)
+            observed["batch_id"] = running.batch_id if running else None
+        return real(session_factory)
+
+    monkeypatch.setattr(report_service, "seed_previous_report", spy)
+    resp = client.post("/api/admin/reset", headers=login(client, *ADMIN))
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    assert observed, "the example report was never written"
+    assert observed["batch_id"] == batch_id, (
+        "while the example report is written the reset must still be in flight, or a second reset "
+        "is accepted and its deletes race the write (CR-53)")
+    with db_session() as db:
+        assert db.get(ImportBatch, batch_id).status in ("Completed", "Partially Completed")
+        assert reset_service.reset_in_progress(db) is None, "and once it is written, the reset is over"
+
+
+def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+                                                                           monkeypatch):
+    """GEN-05 (CR-57, FT-05's class): a crash in the example report's write is recorded, not lost.
+
+    The report is written by a background job after the documents batch is already `Completed`, so
+    `record_job_failure` was never reached for it and `runner.submit` only logs: the reset read as
+    fully successful with no example and no reason anywhere a user could see.
+    """
+    from app.services import report_service
+
+    h = login(client, *ADMIN)
+    resp = client.post("/api/admin/reset", headers=h)
+    assert resp.status_code == 202, resp.text
+    batch_id = resp.json()["batch_id"]
+
+    def boom(_session_factory):
+        raise RuntimeError("report write exploded")
+
+    # Driven directly, as in the FT-05 tests: inline job mode would otherwise surface the exception as
+    # an HTTP 500 rather than as the batch state this criterion is about. The lock is held first,
+    # because `_reset_job` runs only inside a reset that holds it.
+    factory = client.app.dependency_overrides[get_session_factory]()
+    monkeypatch.setattr(report_service, "seed_previous_report", boom)
+    with factory() as db:
+        assert reset_service.acquire_reset_lock(db, "rerun", "U-001")
+    with pytest.raises(RuntimeError):
+        reset_service._reset_job(factory, batch_id, None, "rerun")
+
+    batch = client.get(f"/api/imports/batches/{batch_id}", headers=h).json()
+    assert batch["status"] == "Failed", batch
+    assert "Seeded example report failed" in (batch["error_message"] or ""), batch
+    assert "report write exploded" in batch["error_message"]
+    assert client.get("/api/admin/reset/status", headers=h).json()["in_progress"] is False, \
+        "the failure releases the lock, so it cannot latch the reset guard (FT-05)"
 
 
 def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(
@@ -544,10 +613,15 @@ def test_ft_04_the_reset_writes_nothing_after_starting_the_evidence_analysis(
         sa_event.remove(SASession, "after_commit", on_commit)
 
     assert resp.status_code == 202, resp.text
-    assert "submit:analyse_job" in events, f"the reset never handed the evidence over: {events}"
-    after = events[events.index("submit:analyse_job") + 1:]
+    # The *last* handover, found rather than named: G1.26 renamed the job the reset submits
+    # (`analyse_job` -> `_store_evidence_then_seed_report`) and this assertion failed on the name
+    # while the invariant it exists for still held. The invariant is what matters — whatever the
+    # reset still has to write, it writes before it starts anything else writing.
+    submits = [i for i, e in enumerate(events) if e.startswith("submit:") and e != "submit:_reset_job"]
+    assert submits, f"the reset never handed the evidence over: {events}"
+    after = events[submits[-1] + 1:]
     assert after == [], (
-        f"the reset committed {after.count('commit')} time(s) after submitting the evidence analysis; "
+        f"the reset committed {after.count('commit')} time(s) after {events[submits[-1]]}; "
         f"in thread mode those writes race the job and lose the evidence (FT-04)"
     )
 

@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.core import Utc
+
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -67,10 +69,10 @@ class ImportBatchOut(ORMModel):
     uploaded_by: str | None
     status: str
     options: dict
-    created_at: datetime | None
-    started_at: datetime | None
-    validated_at: datetime | None
-    completed_at: datetime | None
+    created_at: Utc | None
+    started_at: Utc | None
+    validated_at: Utc | None
+    completed_at: Utc | None
     total_files: int
     successful_files: int
     failed_files: int
@@ -87,9 +89,18 @@ class ImportBatchDetail(ImportBatchOut):
 
 
 class ResetStatusOut(ORMModel):
-    """Whether a reset is still running. `batch` is the one to watch, or null when idle."""
+    """Whether a reset is running, read from the reset lock (G1.32), and how the last one ended.
+
+    `batch` is the running reset's seed batch, or null when idle. Its own status is *not* the signal:
+    it reads Completed once the seed is loaded, long before the reset has finished (CR-53, TR-65).
+    """
     in_progress: bool
     batch: ImportBatchOut | None
+    stage: str | None = None
+    acquired_at: Utc | None = None
+    released_at: Utc | None = None
+    last_outcome: str | None = None
+    last_reason: str | None = None
 
 
 class ImportIssueOut(ORMModel):

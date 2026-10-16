@@ -1,0 +1,5 @@
+P1 submit raises in start_reset: held=True stage=Clearing data outcome=None batch=Uploaded
+P2 submit raises at the handover: held=True stage=Seed evidence analysis outcome=None batch=Completed
+P3 release commit fails: held=True stage=Seeded example report outcome=None batch=Completed
+P4 stage write before report fails: held=False stage=Seed evidence analysis outcome=Failed batch=Failed
+4 passed in 73.95s (0:01:13)

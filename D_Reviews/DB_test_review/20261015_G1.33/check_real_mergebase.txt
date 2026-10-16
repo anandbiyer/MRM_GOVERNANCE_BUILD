@@ -1,0 +1,28 @@
+  (before 2026-10-09, reported only) 26bd74ac Record what this session noticed but had not written down
+      A_Codes/AB_backend/app/services/report_service.py
+          pre-change sha256 e1ca9bd5e000f10a…  _OLD/ present: report_service_v1_20261007.py, report_service_v2_20261007.py, report_service_v3_20261007.py, report_service_v4_20261007.py, report_service_v5_20261009.py, report_service_v6_20261009.py, report_service_v7_20261015.py, report_service_v8_20261015.py, report_service_v9_20261015.py
+  (before 2026-10-09, reported only) c2eb7e99 G1.17: Model Risk Report screen (REG-15, REG-17)
+      A_Codes/AB_backend/app/reports/pdf.py
+          pre-change sha256 71fe2221012cdb01…  _OLD/ present: pdf_v1_20261007.py, pdf_v2_20261015.py, pdf_v3_20261015.py, pdf_v4_20261015.py
+      A_Codes/AB_backend/app/services/report_service.py
+          pre-change sha256 6a0756bc1ab3f0d2…  _OLD/ present: report_service_v1_20261007.py, report_service_v2_20261007.py, report_service_v3_20261007.py, report_service_v4_20261007.py, report_service_v5_20261009.py, report_service_v6_20261009.py, report_service_v7_20261015.py, report_service_v8_20261015.py, report_service_v9_20261015.py
+      A_Codes/AB_backend/tests/test_reports.py
+          pre-change sha256 aad4e3270b9a748a…  _OLD/ present: test_reports_v1_20261007.py, test_reports_v2_20261007.py, test_reports_v3_20261007.py, test_reports_v4_20261009.py, test_reports_v5_20261009.py, test_reports_v6_20261009.py, test_reports_v7_20261015.py, test_reports_v8_20261015.py, test_reports_v9_20261015.py
+  (before 2026-10-09, reported only) 58a6a718 G1.18: core report seed, FS-25, MUP-29 and BL.6 — held open 
+      A_Codes/AB_backend/app/services/report_service.py
+          pre-change sha256 87e05a7bfcfc5eb1…  _OLD/ present: report_service_v1_20261007.py, report_service_v2_20261007.py, report_service_v3_20261007.py, report_service_v4_20261007.py, report_service_v5_20261009.py, report_service_v6_20261009.py, report_service_v7_20261015.py, report_service_v8_20261015.py, report_service_v9_20261015.py
+      A_Codes/AB_backend/tests/test_reports.py
+          pre-change sha256 56a5b15224aa61be…  _OLD/ present: test_reports_v1_20261007.py, test_reports_v2_20261007.py, test_reports_v3_20261007.py, test_reports_v4_20261009.py, test_reports_v5_20261009.py, test_reports_v6_20261009.py, test_reports_v7_20261015.py, test_reports_v8_20261015.py, test_reports_v9_20261015.py
+  (before 2026-10-09, reported only) d18f984e G1.18 Done: close the checkpoint's three High findings, and 
+      A_Codes/AB_backend/app/services/report_service.py
+          pre-change sha256 0a0c49698c4ab5f6…  _OLD/ present: report_service_v1_20261007.py, report_service_v2_20261007.py, report_service_v3_20261007.py, report_service_v4_20261007.py, report_service_v5_20261009.py, report_service_v6_20261009.py, report_service_v7_20261015.py, report_service_v8_20261015.py, report_service_v9_20261015.py
+      A_Codes/AB_backend/tests/test_reports.py
+          pre-change sha256 35fe78d1aecaea33…  _OLD/ present: test_reports_v1_20261007.py, test_reports_v2_20261007.py, test_reports_v3_20261007.py, test_reports_v4_20261009.py, test_reports_v5_20261009.py, test_reports_v6_20261009.py, test_reports_v7_20261015.py, test_reports_v8_20261015.py, test_reports_v9_20261015.py
+
+Checked 36 non-merge commit(s) between 0f11fda586d2 and 3994f43: 108 file edit(s) checked.
+8 gap(s) in commits committed before 2026-10-09: reported, not failed.
+Every enforced commit snapshotted what it edited.
+
+real	0m23.166s
+user	0m0.015s
+sys	0m0.000s

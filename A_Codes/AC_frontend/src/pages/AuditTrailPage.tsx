@@ -3,6 +3,7 @@ import { Fragment, useState } from "react";
 import { api } from "../api/client";
 import type { AuditEvent } from "../api/types";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../components/States";
+import { formatDateTime} from "../format";
 
 const FILTERS = [
   { key: "user_id", label: "User", placeholder: "U-001" },
@@ -98,7 +99,7 @@ export function AuditTrailPage() {
               {events.data.map((e) => (
                 <Fragment key={e.event_id}>
                   <tr className="click" onClick={() => setOpen(open === e.event_id ? null : e.event_id)}>
-                    <td className="mono">{new Date(e.occurred_at).toLocaleString()}</td>
+                    <td className="mono">{formatDateTime(e.occurred_at)}</td>
                     <td className="mono">{e.user_id ?? "system"}</td>
                     <td>{e.role}</td>
                     <td><span className={`pill ${ACTION_TONE[e.action] ?? "p-mute"}`}>{e.action}</span></td>

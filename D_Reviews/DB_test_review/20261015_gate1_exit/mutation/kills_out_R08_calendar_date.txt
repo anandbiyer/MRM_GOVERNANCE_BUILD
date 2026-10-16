@@ -1,0 +1,4 @@
+        TR-03. Nothing asserted this, so a service reading `date.today()` passed all 195 tests even
+FAILED tests/test_reports.py::test_reg_15_the_business_date_is_the_business_date_not_the_calendar_date
+FAILED tests/test_reports.py::test_d14_a_generated_report_is_as_of_its_business_date_and_carries_no_label
+2 failed, 34 passed, 1 warning in 126.79s (0:02:06)

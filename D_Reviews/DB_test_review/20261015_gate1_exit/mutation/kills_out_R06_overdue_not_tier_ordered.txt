@@ -1,0 +1,2 @@
+FAILED tests/test_reports.py::test_reg_15_figures_equal_the_command_center
+1 failed, 35 passed, 1 warning in 144.64s (0:02:24)

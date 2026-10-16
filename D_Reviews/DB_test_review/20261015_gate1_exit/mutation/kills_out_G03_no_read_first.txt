@@ -1,0 +1,2 @@
+FAILED tests/test_reset_lock.py::test_g1_32_a_held_lock_is_answered_from_a_read_without_claiming
+1 failed, 79 passed, 1 warning in 303.72s (0:05:03)

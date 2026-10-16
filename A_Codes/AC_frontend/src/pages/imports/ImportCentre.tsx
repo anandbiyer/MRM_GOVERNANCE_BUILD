@@ -6,6 +6,7 @@ import type { ImportBatch, ImportBatchDetail, ImportTemplate } from "../../api/t
 import { useAuth } from "../../auth/AuthContext";
 import { EmptyState, ErrorState, Loading, PageHeader } from "../../components/States";
 import { BatchStatus } from "./BatchDetail";
+import { formatDateTime} from "../../format";
 
 const TABS = ["Upload", "Templates", "History"] as const;
 type Tab = (typeof TABS)[number];
@@ -181,7 +182,7 @@ function History() {
           {batches.data!.map((b) => (
             <tr key={b.batch_id}>
               <td className="mono"><Link to={`/imports/${b.batch_id}`}>{b.batch_id}</Link></td>
-              <td className="mono">{b.created_at ? new Date(b.created_at).toLocaleString() : "—"}</td>
+              <td className="mono">{b.created_at ? formatDateTime(b.created_at) : "—"}</td>
               <td className="mono">{b.uploaded_by ?? "system"}</td>
               <td>{b.source}</td>
               <td className="mono">{b.total_files}</td>

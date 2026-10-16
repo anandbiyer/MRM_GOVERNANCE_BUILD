@@ -1,0 +1,61 @@
+MUTANT LOADED C:/Users/anand/AppData/Local/Temp/claude/C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build/7475a71c-ccaa-41be-b1e5-87e13ffed8ec/scratchpad/mut32/I_claim_before_permission.py
+........................F............................................... [ 73%]
+..........................                                               [100%]
+================================== FAILURES ===================================
+______ test_an_unauthorised_caller_is_refused_before_the_in_flight_check ______
+
+db_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+test_settings = Settings(app_name='MRM Governance MIS', environment='dev', database_url='postgresql+psycopg://mrm:mrm_dev_password@loc...ocal/Temp/pytest-of-anand/pytest-561/test_an_unauthorised_caller_is0/demo'), today_override=datetime.date(2026, 9, 30))
+
+    def test_an_unauthorised_caller_is_refused_before_the_in_flight_check(db_session, test_settings):
+        """GEN-04, GEN-02: 403 beats 409 — a non-Admin must not learn from the error message whether a reset is running.
+    
+        Called at the service, not through the API: the route's `require(Permission.POLICY_EDIT)`
+        dependency already refuses an Auditor before `start_reset` runs, so an API-level test passes
+        whichever order the two checks are in and proves nothing. `start_reset` re-checks the permission
+        because the CLI and the seed loader call it directly, and that is the order under test here.
+        """
+        with db_session() as db:
+            assert reset_service.acquire_reset_lock(db, "running", "U-001")
+    
+            auditor = Principal(user_id="U-041", role="Auditor", full_name="Grace Liu")
+            with pytest.raises(ForbiddenError):
+>               reset_service.start_reset(db, db_session, auditor)
+
+tests\test_imports.py:470: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+db = <sqlalchemy.orm.session.Session object at 0x000001FFAAD72490>
+session_factory = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+principal = Principal(user_id='U-041', role='Auditor', full_name='Grace Liu')
+directory = None
+
+    def start_reset(db: Session, session_factory: Callable[[], Session], principal: Principal | None,
+                    directory: Path | None = None) -> ImportBatch:
+        if not get_settings().allow_reset:
+            raise ForbiddenError("Reset is disabled in this environment (MRM_ALLOW_RESET=false).")
+        # Claim the lock before regenerating the seed or deleting anything: a reset clears every
+        # governance table and reloads it, so two overlapping runs would interleave one's deletes with
+        # the other's inserts. After the permission checks, so an unauthorised caller still gets 403 and
+        # learns nothing about whether a reset is running (GEN-04).
+        holder = uuid.uuid4().hex
+        if not acquire_reset_lock(db, holder, principal.user_id if principal else None):
+            running = reset_in_progress(db)
+            started = running.acquired_at.strftime("%Y-%m-%d %H:%M:%S UTC") if running and running.acquired_at else "earlier"
+>           raise ConflictError(
+                f"A reset is already running: batch {(running.batch_id if running else None) or '(being created)'}, "
+                f"stage {(running.stage if running else None) or 'unknown'}, started {started}. "
+                f"Wait for it to finish and try again (GET /api/admin/reset/status)."
+            )
+E           app.services.errors.ConflictError: A reset is already running: batch (being created), stage Starting, started 2026-10-15 21:06:31 UTC. Wait for it to finish and try again (GET /api/admin/reset/status).
+
+C:\Users\anand\AppData\Local\Temp\claude\C--Users-anand-OneDrive-Documents-AI-Projects-MRM-Governance-Build\7475a71c-ccaa-41be-b1e5-87e13ffed8ec\scratchpad\mut32\I_claim_before_permission.py:260: ConflictError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_imports.py::test_an_unauthorised_caller_is_refused_before_the_in_flight_check
+1 failed, 97 passed, 1 warning in 218.66s (0:03:38)

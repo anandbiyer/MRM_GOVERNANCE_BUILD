@@ -457,3 +457,59 @@ export interface DocumentBatch extends ImportBatch {
   manifest_errors: string[];
   manifest_files: string[];
 }
+
+/** A stored model risk report's header (BRD §48 `model_risk_report`, §12A REQ-REG-10A). */
+export interface ModelRiskReport {
+  report_id: string;
+  business_date: string;
+  generated_by: string | null;
+  generated_at: string;
+  framework_label: string;
+  content_hash: string;
+  previous_report_id: string | null;
+  /** True only for the example a reset seeds (S11, S12). */
+  is_seeded: boolean;
+  /** The business date the figures were computed for (D14); equals business_date except on the seeded example. */
+  figures_as_of: string | null;
+  /** D14's disclosure, worded by the API so the list, the reopened report and the PDF agree; null unless seeded. */
+  seeded_label: string | null;
+}
+
+/**
+ * One row of a report distribution. Score bands carry a `label` ("Below 60"), stored with the
+ * report so a reopened one shows the label that applied then, not today's boundaries.
+ */
+export interface ReportCount {
+  key: string;
+  label?: string;
+  count: number;
+}
+
+/**
+ * The stored content. Typed loosely on purpose: the sections are a record of what the report said
+ * when it was generated, so a reopened old report may not match today's shape, and the screen must
+ * render what is there rather than assume. `baseline` is present but not displayed — it exists so the
+ * next report can diff against this one (REQ-REG-10A).
+ */
+export interface ReportSections {
+  inventory: { total: number; by_tier: ReportCount[]; by_stage: ReportCount[] };
+  validation: { by_status: ReportCount[]; overdue: Record<string, unknown>[] };
+  findings: { open_by_severity: ReportCount[]; overdue_by_severity: ReportCount[]; critical_overdue: Record<string, unknown>[] };
+  approvals: { conditional_open: Record<string, unknown>[] };
+  score: { by_band: ReportCount[]; portfolio_score: number | null; scored_models: number; lowest: Record<string, unknown>[] };
+  documentation: { completeness_pct: number; models_missing_documents: Record<string, unknown>[] };
+  changes_since: {
+    previous_report_id: string | null;
+    models_added: Record<string, unknown>[];
+    models_retired: Record<string, unknown>[];
+    phase_changes: Record<string, unknown>[];
+    findings_opened: Record<string, unknown>[];
+    findings_closed: Record<string, unknown>[];
+    /** S13: every predecessor-derived figure lives in this section. Pre-S13 copies are carried here on read (TR-61). */
+    decisions_recorded: Record<string, unknown>[];
+  };
+}
+
+export interface ModelRiskReportDetail extends ModelRiskReport {
+  sections: ReportSections;
+}
