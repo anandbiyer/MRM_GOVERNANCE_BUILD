@@ -127,12 +127,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3276,
+                  "duration": 498,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:00.628Z",
+                  "startTime": "2026-10-16T00:14:32.537Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -142,7 +142,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-75defd93619111abad42",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -161,12 +161,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1300,
+                  "duration": 423,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:04.862Z",
+                  "startTime": "2026-10-16T00:14:33.129Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -176,7 +176,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-d271e7627aed65231588",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -195,12 +195,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1310,
+                  "duration": 427,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:06.173Z",
+                  "startTime": "2026-10-16T00:14:33.561Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -210,7 +210,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-ca86f9ca179a5bc7c418",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -229,12 +229,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1289,
+                  "duration": 448,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:07.488Z",
+                  "startTime": "2026-10-16T00:14:33.994Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -244,7 +244,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-de6e37ee35692f4eaffe",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -263,12 +263,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1298,
+                  "duration": 508,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:08.788Z",
+                  "startTime": "2026-10-16T00:14:34.448Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -278,7 +278,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-b4267b3dd84605992adf",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -297,12 +297,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1307,
+                  "duration": 473,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:10.092Z",
+                  "startTime": "2026-10-16T00:14:34.963Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -312,7 +312,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-fdc8fe15d860e6ededad",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -331,12 +331,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1348,
+                  "duration": 500,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:11.405Z",
+                  "startTime": "2026-10-16T00:14:35.443Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -346,7 +346,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-3ff0e73affb8ce6bc9d2",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -365,12 +365,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1330,
+                  "duration": 540,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:12.758Z",
+                  "startTime": "2026-10-16T00:14:35.957Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -380,7 +380,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-3ad1e27e8e3d99ac2f5d",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -399,12 +399,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1423,
+                  "duration": 561,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:14.095Z",
+                  "startTime": "2026-10-16T00:14:36.502Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -414,7 +414,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-c04925fec3c75e2c3e37",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -433,12 +433,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1443,
+                  "duration": 593,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:15.523Z",
+                  "startTime": "2026-10-16T00:14:37.068Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -448,7 +448,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-5937a84a2b7e4a792ff0",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -467,12 +467,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1411,
+                  "duration": 617,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:16.972Z",
+                  "startTime": "2026-10-16T00:14:37.667Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -482,7 +482,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a9a2825c11a16fbd0318",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -501,12 +501,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1478,
+                  "duration": 598,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:18.389Z",
+                  "startTime": "2026-10-16T00:14:38.289Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -516,7 +516,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-7346246be81751af7f6f",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -535,12 +535,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1446,
+                  "duration": 607,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:19.873Z",
+                  "startTime": "2026-10-16T00:14:38.893Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -550,7 +550,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-12223898a09f35645293",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -569,12 +569,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1409,
+                  "duration": 572,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:21.324Z",
+                  "startTime": "2026-10-16T00:14:39.505Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -584,7 +584,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a6195526b35670045cf7",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -603,12 +603,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1416,
+                  "duration": 597,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:22.738Z",
+                  "startTime": "2026-10-16T00:14:40.082Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -618,7 +618,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-fa22da92afd036a3fdad",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -637,12 +637,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1542,
+                  "duration": 564,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:24.159Z",
+                  "startTime": "2026-10-16T00:14:40.685Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -652,7 +652,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-763b4b6aebad62abf6b6",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -671,12 +671,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1459,
+                  "duration": 600,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:25.708Z",
+                  "startTime": "2026-10-16T00:14:41.257Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -686,7 +686,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-b109fcf7932dacc158c2",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -705,12 +705,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1291,
+                  "duration": 404,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:27.175Z",
+                  "startTime": "2026-10-16T00:14:41.861Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -720,7 +720,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a49a0bb7065048584094",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -739,12 +739,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1240,
+                  "duration": 402,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:28.472Z",
+                  "startTime": "2026-10-16T00:14:42.271Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -754,7 +754,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-d0a48fd643054e34cc74",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -773,12 +773,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1265,
+                  "duration": 400,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:29.717Z",
+                  "startTime": "2026-10-16T00:14:42.678Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -788,7 +788,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-2b0eed763571794b8422",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -807,12 +807,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1463,
+                  "duration": 628,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:30.988Z",
+                  "startTime": "2026-10-16T00:14:43.084Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -822,7 +822,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-35893c048c2057ffd9f6",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -841,12 +841,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1254,
+                  "duration": 416,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:32.457Z",
+                  "startTime": "2026-10-16T00:14:43.719Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -856,7 +856,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-b0ae9d9e7062d290f2be",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -875,12 +875,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1469,
+                  "duration": 414,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:33.718Z",
+                  "startTime": "2026-10-16T00:14:44.140Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -890,7 +890,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-6ec82c5121d55d7059ba",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -909,12 +909,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1342,
+                  "duration": 416,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:35.192Z",
+                  "startTime": "2026-10-16T00:14:44.559Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -924,7 +924,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-afd3361a18e8efe99ba3",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -943,12 +943,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1275,
+                  "duration": 411,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:36.540Z",
+                  "startTime": "2026-10-16T00:14:44.981Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -958,7 +958,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-364fbc2087e909f76a7f",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -977,12 +977,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1394,
+                  "duration": 416,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:37.822Z",
+                  "startTime": "2026-10-16T00:14:45.398Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -992,7 +992,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a670606bb148c7ca6517",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1011,12 +1011,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1263,
+                  "duration": 387,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:39.221Z",
+                  "startTime": "2026-10-16T00:14:45.821Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1026,7 +1026,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-e1cfba1fbdcc877c97af",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1045,12 +1045,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1271,
+                  "duration": 372,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:40.490Z",
+                  "startTime": "2026-10-16T00:14:46.213Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1060,7 +1060,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-27aaecbd236b4ba03e77",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1079,12 +1079,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1294,
+                  "duration": 404,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:41.767Z",
+                  "startTime": "2026-10-16T00:14:46.592Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1094,7 +1094,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-3ebef395ad1c0018151a",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1113,12 +1113,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1277,
+                  "duration": 403,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:43.067Z",
+                  "startTime": "2026-10-16T00:14:47.002Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1128,7 +1128,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-e8328c2311085e6f46f6",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1147,12 +1147,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1242,
+                  "duration": 388,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:44.351Z",
+                  "startTime": "2026-10-16T00:14:47.411Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1162,7 +1162,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-674801d930e1556c285f",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1181,12 +1181,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1228,
+                  "duration": 380,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:45.598Z",
+                  "startTime": "2026-10-16T00:14:47.805Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1196,7 +1196,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-281fbd7917bebb080767",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1215,12 +1215,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1283,
+                  "duration": 481,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:46.832Z",
+                  "startTime": "2026-10-16T00:14:48.191Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1230,7 +1230,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-c44330f5bf0bd12b1291",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1249,12 +1249,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1314,
+                  "duration": 470,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:48.120Z",
+                  "startTime": "2026-10-16T00:14:48.677Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1264,7 +1264,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-0f6a8ffa9ee1f72eb0c7",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1283,12 +1283,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1237,
+                  "duration": 412,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:49.441Z",
+                  "startTime": "2026-10-16T00:14:49.152Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1298,7 +1298,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-f937fad24750743d696e",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1317,12 +1317,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1428,
+                  "duration": 394,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:50.682Z",
+                  "startTime": "2026-10-16T00:14:49.572Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1332,7 +1332,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-1339da7dfc0d18cb2129",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1351,12 +1351,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1261,
+                  "duration": 382,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:52.116Z",
+                  "startTime": "2026-10-16T00:14:49.970Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1366,7 +1366,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-2c3ed5584e7922c5e8eb",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1385,12 +1385,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1315,
+                  "duration": 393,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:53.383Z",
+                  "startTime": "2026-10-16T00:14:50.359Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1400,7 +1400,75 @@
           ],
           "id": "ff3b57e4e431ee533ad9-4e1b46b4c210f12333e1",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
+          "column": 7
+        },
+        {
+          "title": "MUP-39 Earlier reports listed, and a stored report reopens as it was",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 412,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T00:14:50.759Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-526153774951f87a7acb",
+          "file": "parity.spec.ts",
+          "line": 31,
+          "column": 7
+        },
+        {
+          "title": "MUP-40 A permitted role generates a report, and it joins the stored history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mockup",
+              "projectName": "mockup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 422,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T00:14:51.176Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-3e9565d27f987d7002c6",
+          "file": "parity.spec.ts",
+          "line": 31,
           "column": 7
         },
         {
@@ -1419,12 +1487,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3154,
+                  "duration": 691,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:55.509Z",
+                  "startTime": "2026-10-16T00:14:52.430Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1434,7 +1502,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-b9e1a946d0ae91856b58",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1453,12 +1521,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1348,
+                  "duration": 467,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:09:59.619Z",
+                  "startTime": "2026-10-16T00:14:53.210Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1468,7 +1536,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-87711ca3c734d286ac84",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1487,12 +1555,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1455,
+                  "duration": 583,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:00.973Z",
+                  "startTime": "2026-10-16T00:14:53.683Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1502,7 +1570,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-dee5de715dfe2ef24caf",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1521,12 +1589,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1346,
+                  "duration": 595,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:02.433Z",
+                  "startTime": "2026-10-16T00:14:54.272Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1536,7 +1604,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-dd635c0e2134d1b71418",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1555,12 +1623,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1443,
+                  "duration": 461,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:03.786Z",
+                  "startTime": "2026-10-16T00:14:54.875Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1570,7 +1638,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-5033108eb4f320b15be0",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1589,12 +1657,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1361,
+                  "duration": 478,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:05.236Z",
+                  "startTime": "2026-10-16T00:14:55.342Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1604,7 +1672,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-9ea408315d75e9985a36",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1623,12 +1691,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1473,
+                  "duration": 646,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:06.603Z",
+                  "startTime": "2026-10-16T00:14:55.827Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1638,7 +1706,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-c2a594062d074db6d646",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1657,12 +1725,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1324,
+                  "duration": 523,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:08.082Z",
+                  "startTime": "2026-10-16T00:14:56.479Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1672,7 +1740,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-0fa89051a46d7dc14b8e",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1691,12 +1759,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1563,
+                  "duration": 720,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:09.412Z",
+                  "startTime": "2026-10-16T00:14:57.008Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1706,7 +1774,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a910e9fd40cee84bed6e",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1725,12 +1793,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1597,
+                  "duration": 636,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:10.980Z",
+                  "startTime": "2026-10-16T00:14:57.733Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1740,7 +1808,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-761536b1084fa2134102",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1759,12 +1827,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1481,
+                  "duration": 598,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:12.583Z",
+                  "startTime": "2026-10-16T00:14:58.376Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1774,7 +1842,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-9488731b611ee2e6b1ef",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1793,12 +1861,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1490,
+                  "duration": 611,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:14.069Z",
+                  "startTime": "2026-10-16T00:14:58.980Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1808,7 +1876,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-66be19a07bcb4a7f9057",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1827,12 +1895,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1700,
+                  "duration": 614,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:15.564Z",
+                  "startTime": "2026-10-16T00:14:59.597Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1842,7 +1910,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-bd0babd487eba4f42e34",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1861,12 +1929,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1587,
+                  "duration": 684,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:17.271Z",
+                  "startTime": "2026-10-16T00:15:00.216Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1876,7 +1944,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-7260a01785050f32640a",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1895,12 +1963,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1528,
+                  "duration": 659,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:18.863Z",
+                  "startTime": "2026-10-16T00:15:00.909Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1910,7 +1978,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-3ca7bb5b546f4168bf8e",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1929,12 +1997,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1492,
+                  "duration": 676,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:20.397Z",
+                  "startTime": "2026-10-16T00:15:01.573Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1944,7 +2012,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-1ea628e7557dfc4d37ac",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1963,12 +2031,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1548,
+                  "duration": 645,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:21.895Z",
+                  "startTime": "2026-10-16T00:15:02.256Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -1978,7 +2046,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-b184dbda6bbd0a14f94c",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -1994,7 +2062,7 @@
                   "description": "Not built (Phase 6)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2007,19 +2075,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 971,
+                  "duration": 88,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:23.448Z",
+                  "startTime": "2026-10-16T00:15:02.906Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 6)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2032,7 +2100,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-7e5597a0cd5789a442c1",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2048,7 +2116,7 @@
                   "description": "Not built (Phase 6)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2061,19 +2129,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 993,
+                  "duration": 99,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:24.425Z",
+                  "startTime": "2026-10-16T00:15:02.999Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 6)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2086,7 +2154,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a58c16e8020a524ae996",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2102,7 +2170,7 @@
                   "description": "Not built (Phase 7)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2115,19 +2183,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 960,
+                  "duration": 92,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:25.424Z",
+                  "startTime": "2026-10-16T00:15:03.103Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 7)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2140,7 +2208,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-fb49ffafb478d040f964",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2159,12 +2227,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2264,
+                  "duration": 715,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:26.391Z",
+                  "startTime": "2026-10-16T00:15:03.201Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2174,7 +2242,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-bf57b99d08a7ea7507f6",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2193,12 +2261,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1536,
+                  "duration": 605,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:28.660Z",
+                  "startTime": "2026-10-16T00:15:03.921Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2208,7 +2276,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-c06595445708f819c338",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2227,12 +2295,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1403,
+                  "duration": 500,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:30.203Z",
+                  "startTime": "2026-10-16T00:15:04.533Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2242,7 +2310,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-d98e15d921eed634e477",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2261,12 +2329,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1420,
+                  "duration": 552,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:31.612Z",
+                  "startTime": "2026-10-16T00:15:05.039Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2276,7 +2344,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-ffa2cbf7e2e076569312",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2295,12 +2363,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1420,
+                  "duration": 553,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:33.037Z",
+                  "startTime": "2026-10-16T00:15:05.597Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2310,7 +2378,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-a96c8a3aba44a307e6cc",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2326,7 +2394,7 @@
                   "description": "Not built (Phase 5)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2339,19 +2407,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 959,
+                  "duration": 117,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:34.462Z",
+                  "startTime": "2026-10-16T00:15:06.156Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 5)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2364,7 +2432,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-f26b33d0130486d94c73",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2380,7 +2448,7 @@
                   "description": "Not built (Phase 7)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2393,19 +2461,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 956,
+                  "duration": 101,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:35.426Z",
+                  "startTime": "2026-10-16T00:15:06.278Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 7)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2418,7 +2486,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-89b93aab73e9ee498fe2",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2434,7 +2502,7 @@
                   "description": "Not built (Phase 7)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2447,19 +2515,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 961,
+                  "duration": 98,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:36.387Z",
+                  "startTime": "2026-10-16T00:15:06.386Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 7)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2472,7 +2540,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-8eda81c3e6fd4abca597",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2482,51 +2550,31 @@
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [
-                {
-                  "type": "fixme",
-                  "description": "Not built (Phase 2A-core)",
-                  "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
-                    "column": 25
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "app",
               "projectName": "app",
               "results": [
                 {
                   "workerIndex": 1,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 945,
+                  "status": "passed",
+                  "duration": 577,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:37.355Z",
-                  "annotations": [
-                    {
-                      "type": "fixme",
-                      "description": "Not built (Phase 2A-core)",
-                      "location": {
-                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
-                        "column": 25
-                      }
-                    }
-                  ],
+                  "startTime": "2026-10-16T00:15:06.489Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "ff3b57e4e431ee533ad9-d34eba01bfa89c0188f2",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2536,51 +2584,31 @@
           "tests": [
             {
               "timeout": 30000,
-              "annotations": [
-                {
-                  "type": "fixme",
-                  "description": "Not built (Phase 2A)",
-                  "location": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
-                    "column": 25
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
+              "annotations": [],
+              "expectedStatus": "passed",
               "projectId": "app",
               "projectName": "app",
               "results": [
                 {
                   "workerIndex": 1,
                   "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 945,
+                  "status": "passed",
+                  "duration": 615,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:38.305Z",
-                  "annotations": [
-                    {
-                      "type": "fixme",
-                      "description": "Not built (Phase 2A)",
-                      "location": {
-                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
-                        "column": 25
-                      }
-                    }
-                  ],
+                  "startTime": "2026-10-16T00:15:07.071Z",
+                  "annotations": [],
                   "attachments": []
                 }
               ],
-              "status": "skipped"
+              "status": "expected"
             }
           ],
           "id": "ff3b57e4e431ee533ad9-47a41c55869c43be2290",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2596,7 +2624,7 @@
                   "description": "Not built (Phase 9)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2609,19 +2637,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 967,
+                  "duration": 104,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:39.255Z",
+                  "startTime": "2026-10-16T00:15:07.692Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 9)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2634,7 +2662,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-7feeba2e7e3316bfd25f",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2650,7 +2678,7 @@
                   "description": "Not built (Phase 9)",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                    "line": 32,
+                    "line": 34,
                     "column": 25
                   }
                 }
@@ -2663,19 +2691,19 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "skipped",
-                  "duration": 925,
+                  "duration": 98,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:40.228Z",
+                  "startTime": "2026-10-16T00:15:07.802Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "description": "Not built (Phase 9)",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\tests\\parity.spec.ts",
-                        "line": 32,
+                        "line": 34,
                         "column": 25
                       }
                     }
@@ -2688,7 +2716,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-dec6713b089700489ee8",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2707,12 +2735,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1355,
+                  "duration": 944,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:41.158Z",
+                  "startTime": "2026-10-16T00:15:07.906Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2722,7 +2750,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-fbe63e261310fa612b1a",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2741,12 +2769,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1887,
+                  "duration": 1065,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:42.520Z",
+                  "startTime": "2026-10-16T00:15:08.856Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2756,7 +2784,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-263961a1247a5fd533ce",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2775,12 +2803,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1419,
+                  "duration": 535,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:44.414Z",
+                  "startTime": "2026-10-16T00:15:09.927Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2790,7 +2818,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-e1e913c407000e12f101",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2809,12 +2837,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1438,
+                  "duration": 622,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:45.840Z",
+                  "startTime": "2026-10-16T00:15:10.470Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2824,7 +2852,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-f32c633d5a60c1f28c7e",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2843,12 +2871,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1570,
+                  "duration": 687,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:47.283Z",
+                  "startTime": "2026-10-16T00:15:11.098Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2858,7 +2886,7 @@
           ],
           "id": "ff3b57e4e431ee533ad9-4677017dabb15369ef5e",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
           "column": 7
         },
         {
@@ -2877,12 +2905,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1914,
+                  "duration": 1095,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T01:10:48.859Z",
+                  "startTime": "2026-10-16T00:15:11.792Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -2892,7 +2920,75 @@
           ],
           "id": "ff3b57e4e431ee533ad9-4544b3b20376a638ac1d",
           "file": "parity.spec.ts",
-          "line": 29,
+          "line": 31,
+          "column": 7
+        },
+        {
+          "title": "MUP-39 Earlier reports listed, and a stored report reopens as it was",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 732,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T00:15:12.893Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-971199378b4ef7254a5e",
+          "file": "parity.spec.ts",
+          "line": 31,
+          "column": 7
+        },
+        {
+          "title": "MUP-40 A permitted role generates a report, and it joins the stored history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "app",
+              "projectName": "app",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 753,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T00:15:13.632Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ff3b57e4e431ee533ad9-b4b7a8ee1186fb921dc0",
+          "file": "parity.spec.ts",
+          "line": 31,
           "column": 7
         }
       ]
@@ -2900,10 +2996,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-08T01:08:59.895Z",
-    "duration": 111035.33,
-    "expected": 66,
-    "skipped": 10,
+    "startTime": "2026-10-16T00:14:31.816Z",
+    "duration": 42714.030000000006,
+    "expected": 72,
+    "skipped": 8,
     "unexpected": 0,
     "flaky": 0
   }

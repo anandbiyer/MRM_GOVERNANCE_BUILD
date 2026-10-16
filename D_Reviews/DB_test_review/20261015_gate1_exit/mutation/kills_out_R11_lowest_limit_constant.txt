@@ -1,0 +1,2 @@
+FAILED tests/test_reports.py::test_reg_15_the_lowest_scoring_count_comes_from_policy
+1 failed, 35 passed, 1 warning in 112.88s (0:01:52)

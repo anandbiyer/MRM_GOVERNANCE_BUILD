@@ -126,12 +126,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3472,
+                  "duration": 3997,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:26.275Z",
+                  "startTime": "2026-10-16T00:00:51.823Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -166,12 +166,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2203,
+                  "duration": 1406,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:30.715Z",
+                  "startTime": "2026-10-16T00:00:59.614Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -214,12 +214,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2472,
+                  "duration": 1804,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:32.929Z",
+                  "startTime": "2026-10-16T00:01:01.042Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -254,12 +254,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1623,
+                  "duration": 931,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:35.406Z",
+                  "startTime": "2026-10-16T00:01:02.853Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -308,7 +308,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:37.035Z",
+                  "startTime": "2026-10-16T00:01:03.791Z",
                   "annotations": [
                     {
                       "type": "fixme",
@@ -346,12 +346,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1623,
+                  "duration": 791,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:38.971Z",
+                  "startTime": "2026-10-16T00:01:04.928Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -394,12 +394,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1929,
+                      "duration": 1130,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-08T11:20:37.036Z",
+                      "startTime": "2026-10-16T00:01:03.791Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -442,12 +442,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2015,
+                      "duration": 970,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-08T11:20:40.601Z",
+                      "startTime": "2026-10-16T00:01:05.726Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -492,12 +492,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1548,
+                  "duration": 715,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:42.627Z",
+                  "startTime": "2026-10-16T00:01:06.705Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -532,12 +532,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2030,
+                  "duration": 1277,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:44.181Z",
+                  "startTime": "2026-10-16T00:01:07.426Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -572,12 +572,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1715,
+                  "duration": 911,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:46.217Z",
+                  "startTime": "2026-10-16T00:01:08.709Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -626,7 +626,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:47.938Z",
+                  "startTime": "2026-10-16T00:01:09.627Z",
                   "annotations": [
                     {
                       "type": "fixme",
@@ -672,12 +672,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1592,
+                  "duration": 794,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:47.943Z",
+                  "startTime": "2026-10-16T00:01:09.633Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -712,12 +712,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4254,
+                  "duration": 3459,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:49.541Z",
+                  "startTime": "2026-10-16T00:01:10.434Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -752,12 +752,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7447,
+                  "duration": 6540,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:20:53.801Z",
+                  "startTime": "2026-10-16T00:01:13.899Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -792,12 +792,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1558,
+                  "duration": 732,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:01.253Z",
+                  "startTime": "2026-10-16T00:01:20.444Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -832,12 +832,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 19336,
+                  "duration": 23186,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:02.818Z",
+                  "startTime": "2026-10-16T00:01:21.182Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -868,7 +868,7 @@
                   "type": "fixme",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                    "line": 238,
+                    "line": 254,
                     "column": 6
                   }
                 }
@@ -886,13 +886,13 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:22.160Z",
+                  "startTime": "2026-10-16T00:01:44.376Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                        "line": 238,
+                        "line": 254,
                         "column": 6
                       }
                     }
@@ -905,7 +905,7 @@
           ],
           "id": "776bafb40ff21b6b6a7d-c0fb3551158b812a7645",
           "file": "../functional/import.spec.ts",
-          "line": 238,
+          "line": 254,
           "column": 6
         },
         {
@@ -920,7 +920,7 @@
                   "type": "fixme",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                    "line": 242,
+                    "line": 258,
                     "column": 6
                   }
                 }
@@ -938,13 +938,13 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:22.160Z",
+                  "startTime": "2026-10-16T00:01:44.377Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                        "line": 242,
+                        "line": 258,
                         "column": 6
                       }
                     }
@@ -957,7 +957,7 @@
           ],
           "id": "776bafb40ff21b6b6a7d-c6bfcea8a6550eca4685",
           "file": "../functional/import.spec.ts",
-          "line": 242,
+          "line": 258,
           "column": 6
         },
         {
@@ -972,7 +972,7 @@
                   "type": "fixme",
                   "location": {
                     "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                    "line": 247,
+                    "line": 263,
                     "column": 6
                   }
                 }
@@ -990,13 +990,13 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:22.160Z",
+                  "startTime": "2026-10-16T00:01:44.377Z",
                   "annotations": [
                     {
                       "type": "fixme",
                       "location": {
                         "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\import.spec.ts",
-                        "line": 247,
+                        "line": 263,
                         "column": 6
                       }
                     }
@@ -1009,7 +1009,7 @@
           ],
           "id": "776bafb40ff21b6b6a7d-a977794fd0301a3f3646",
           "file": "../functional/import.spec.ts",
-          "line": 247,
+          "line": 263,
           "column": 6
         }
       ]
@@ -1036,12 +1036,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2195,
+                  "duration": 1366,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:22.166Z",
+                  "startTime": "2026-10-16T00:01:44.384Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1076,12 +1076,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2684,
+                  "duration": 1990,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:24.369Z",
+                  "startTime": "2026-10-16T00:01:45.755Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1116,12 +1116,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1986,
+                  "duration": 1096,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:27.061Z",
+                  "startTime": "2026-10-16T00:01:47.753Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1156,12 +1156,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1731,
+                  "duration": 942,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:29.052Z",
+                  "startTime": "2026-10-16T00:01:48.858Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1196,12 +1196,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1542,
+                  "duration": 731,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:30.789Z",
+                  "startTime": "2026-10-16T00:01:49.805Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1236,12 +1236,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1808,
+                  "duration": 1041,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:32.336Z",
+                  "startTime": "2026-10-16T00:01:50.543Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1276,12 +1276,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2141,
+                  "duration": 1636,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:34.150Z",
+                  "startTime": "2026-10-16T00:01:51.589Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1316,12 +1316,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1635,
+                  "duration": 853,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:36.297Z",
+                  "startTime": "2026-10-16T00:01:53.238Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1356,12 +1356,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1644,
+                  "duration": 829,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:37.937Z",
+                  "startTime": "2026-10-16T00:01:54.097Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1403,82 +1403,69 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 2120,
-                  "error": {
-                    "message": "Error: REG-16: same data, same business date, same content\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m3b6eff7205688d1\u001b[27m5…\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m09876279811009d\u001b[27m5…\"\u001b[39m",
-                    "stack": "Error: REG-16: same data, same business date, same content\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m3b6eff7205688d1\u001b[27m5…\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m09876279811009d\u001b[27m5…\"\u001b[39m\n    at C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\reports.spec.ts:80:83",
-                    "location": {
-                      "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\reports.spec.ts",
-                      "column": 83,
-                      "line": 80
-                    },
-                    "snippet": "\u001b[0m \u001b[90m 78 |\u001b[39m     expect(dbCount(\u001b[32m\"model_risk_report\"\u001b[39m)\u001b[33m,\u001b[39m \u001b[32m\"REG-16: the second generation stores a second report\"\u001b[39m)\n \u001b[90m 79 |\u001b[39m       \u001b[33m.\u001b[39mtoBe(before \u001b[33m+\u001b[39m \u001b[35m2\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 80 |\u001b[39m     expect(\u001b[36mawait\u001b[39m hashOf()\u001b[33m,\u001b[39m \u001b[32m\"REG-16: same data, same business date, same content\"\u001b[39m)\u001b[33m.\u001b[39mtoBe(firstHash)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                                   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 81 |\u001b[39m     \u001b[90m// \"Each generation writes one audit event\" — the other half of REG-16, previously unchecked here.\u001b[39m\n \u001b[90m 82 |\u001b[39m     expect(dbCount(\u001b[32m\"audit_event\"\u001b[39m\u001b[33m,\u001b[39m \u001b[32m\"entity = 'model_risk_report' AND action = 'generate'\"\u001b[39m)\u001b[33m,\u001b[39m\n \u001b[90m 83 |\u001b[39m       \u001b[32m\"REG-16: one audit event per generation\"\u001b[39m)\u001b[33m.\u001b[39mtoBe(auditBefore \u001b[33m+\u001b[39m \u001b[35m2\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\reports.spec.ts",
-                        "column": 83,
-                        "line": 80
-                      },
-                      "message": "Error: REG-16: same data, same business date, same content\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m3b6eff7205688d1\u001b[27m5…\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m09876279811009d\u001b[27m5…\"\u001b[39m\n\n  78 |     expect(dbCount(\"model_risk_report\"), \"REG-16: the second generation stores a second report\")\n  79 |       .toBe(before + 2);\n> 80 |     expect(await hashOf(), \"REG-16: same data, same business date, same content\").toBe(firstHash);\n     |                                                                                   ^\n  81 |     // \"Each generation writes one audit event\" — the other half of REG-16, previously unchecked here.\n  82 |     expect(dbCount(\"audit_event\", \"entity = 'model_risk_report' AND action = 'generate'\"),\n  83 |       \"REG-16: one audit event per generation\").toBe(auditBefore + 2);\n    at C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\reports.spec.ts:80:83"
-                    }
-                  ],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-08T11:21:39.591Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\reports-FS-25-REG-15-REG-1-3284e--and-read-it-as-other-roles-functional\\test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\reports-FS-25-REG-15-REG-1-3284e--and-read-it-as-other-roles-functional\\error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\reports-FS-25-REG-15-REG-1-3284e--and-read-it-as-other-roles-functional\\trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\functional\\reports.spec.ts",
-                    "column": 83,
-                    "line": 80
-                  }
-                },
-                {
-                  "workerIndex": 1,
-                  "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5114,
+                  "duration": 2468,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
-                  "retry": 1,
-                  "startTime": "2026-10-08T11:21:42.602Z",
+                  "retry": 0,
+                  "startTime": "2026-10-16T00:01:54.939Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "screenshot",
                       "contentType": "image/png",
-                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\reports-FS-25-REG-15-REG-1-3284e--and-read-it-as-other-roles-functional-retry1\\test-finished-1.png"
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\reports-FS-25-REG-15-REG-1-3284e--and-read-it-as-other-roles-functional\\test-finished-1.png"
                     }
                   ]
                 }
               ],
-              "status": "flaky"
+              "status": "expected"
             }
           ],
           "id": "d2ea609703bae19dcdce-1decc141439e1b7bb7ac",
           "file": "../functional/reports.spec.ts",
-          "line": 12,
+          "line": 14,
+          "column": 5
+        },
+        {
+          "title": "FS-25 REG-16 REG-17 D14 S13 the seeded example discloses its dates everywhere; decisions sit in the changes section",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "functional",
+              "projectName": "functional",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2626,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T00:01:57.415Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\anand\\OneDrive\\Documents\\AI_Projects\\MRM_Governance_Build\\A_Codes\\AF_e2e\\test-results\\reports-FS-25-REG-16-REG-1-78a6b--sit-in-the-changes-section-functional\\test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d2ea609703bae19dcdce-ffc89ae5b8b90cd7eddf",
+          "file": "../functional/reports.spec.ts",
+          "line": 124,
           "column": 5
         }
       ]
@@ -1502,15 +1489,15 @@
               "projectName": "functional",
               "results": [
                 {
-                  "workerIndex": 1,
+                  "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2077,
+                  "duration": 1166,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:48.709Z",
+                  "startTime": "2026-10-16T00:02:00.050Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1542,15 +1529,15 @@
               "projectName": "functional",
               "results": [
                 {
-                  "workerIndex": 1,
+                  "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2592,
+                  "duration": 1810,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:50.791Z",
+                  "startTime": "2026-10-16T00:02:01.224Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1582,15 +1569,15 @@
               "projectName": "functional",
               "results": [
                 {
-                  "workerIndex": 1,
+                  "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3838,
+                  "duration": 1899,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:53.389Z",
+                  "startTime": "2026-10-16T00:02:03.040Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1622,15 +1609,15 @@
               "projectName": "functional",
               "results": [
                 {
-                  "workerIndex": 1,
+                  "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1714,
+                  "duration": 868,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-08T11:21:57.234Z",
+                  "startTime": "2026-10-16T00:02:04.944Z",
                   "annotations": [],
                   "attachments": [
                     {
@@ -1654,11 +1641,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-08T11:20:25.505Z",
-    "duration": 93535.74399999999,
-    "expected": 28,
+    "startTime": "2026-10-16T00:00:50.889Z",
+    "duration": 75122.44099999999,
+    "expected": 30,
     "skipped": 5,
     "unexpected": 0,
-    "flaky": 1
+    "flaky": 0
   }
 }

@@ -1,0 +1,15 @@
+== git sees:
+R080	A_Codes/AB_backend/app/old.py	A_Codes/AB_backend/app/new.py
+== as shipped (PLT-02 expects exit 1):
+
+Checked 1 non-merge commit(s) between 8aa5814ffd6f and HEAD.
+Every enforced commit snapshotted what it edited.
+exit=0
+== with -M added (still the destination path as the base path):
+
+Checked 1 non-merge commit(s) between 8aa5814ffd6f and HEAD.
+Every enforced commit snapshotted what it edited.
+exit=0
+== empty base (the script alone; CI guards with test -n):
+No non-merge commits between  and HEAD.
+exit=0

@@ -215,10 +215,16 @@ const browser = await chromium.launch();
   // Reopen the seeded *previous* report — the oldest row, business date 30 days back, generated
   // before the seed's evidence documents were loaded. Deliberately the last row, not the first:
   // the first row is today's report and says nothing about how history reads.
-  await page.getByRole("button", { name: "Open" }).last().click();
+  // Since G1.26/G1.31 (S11, S12, D14) the seeded row carries a label; MP-18's capture is kept
+  // under its old name so the before/after can be compared across runs.
+  await page.getByRole("button", { name: /^(Open|Showing)$/ }).last().click();
   await page.getByRole("heading", { name: /^Inventory —/ }).waitFor();
   await page.waitForTimeout(400);
   await shot(page, "MP-18_stored_report", "app");
+  const header = page.locator("section.panel")
+    .filter({ has: page.getByRole("button", { name: "Download PDF" }) });
+  await header.screenshot({ path: path.join(OUT, "MUP-39_seeded_header_app.png") });
+  console.log("  MUP-39_seeded_header_app.png");
   await page.close();
 }
 {
@@ -230,6 +236,15 @@ const browser = await chromium.launch();
   await page.waitForTimeout(600);
   await shot(page, "MUP-30", "app");       // the pack, against the mock-up's six sections
   await shot(page, "MUP-40", "app");
+  // S13: decisions since the previous report now sit in the Changes-since table.
+  for (const [name, heading] of [["MUP-40_changes_since", "Changes since the previous report"],
+                                 ["MUP-30_approvals", /^Approvals$/],
+                                 ["MUP-29_validation", /^Validation$/],
+                                 ["MUP-29_findings", /^Findings$/]]) {
+    const panel = page.locator("section.panel").filter({ has: page.getByRole("heading", { name: heading }) });
+    await panel.screenshot({ path: path.join(OUT, `${name}_app.png`) });
+    console.log(`  ${name}_app.png`);
+  }
   await page.close();
 }
 

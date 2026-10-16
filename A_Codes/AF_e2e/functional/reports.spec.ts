@@ -1,6 +1,8 @@
 // FS-25 — the core Model Risk Report end to end (§12A REQ-REG-10A; REG-15, REG-16, REG-17).
 import { expect, test } from "@playwright/test";
-import { apiAs, checkpoint, dbCount, openScreen, signInAs } from "./helpers";
+import {
+  apiAs, checkpoint, containsIgnoringSpace, dbCount, dbQuery, openScreen, pdfText, signInAs,
+} from "./helpers";
 
 /** A distribution table on the report, as {label or key: count}. */
 async function section(page: import("@playwright/test").Page, heading: RegExp) {
@@ -113,4 +115,125 @@ test("FS-25 REG-15 REG-16 REG-17 generate the core report, reconcile it, and rea
     await page.getByRole("button", { name: "PDF" }).first().click();
     expect((await auditorDownload).suggestedFilename()).toMatch(/\.pdf$/);
     await checkpoint(page, "FS-25_auditor_download");
+  });
+
+// FS-25 (continued) — what changed after the 2026-10-08 Gate 1 run: D14's seeded-example disclosure on
+// every surface, the PDF's reconciliation line (G1.31), and S13's "decisions since the previous report"
+// moving into the changes section, out of the content hash (G1.29). A second test under the same ID so
+// `-g "FS-25"` still runs the whole scenario. Runs after the first half, which stores generated reports.
+test("FS-25 REG-16 REG-17 D14 S13 the seeded example discloses its dates everywhere; decisions sit in the changes section",
+  async ({ page }) => {
+    test.setTimeout(120_000);
+    const token = async () => page.evaluate(() => localStorage.getItem("mrm.token"));
+    const pdfOf = async (reportId: string) => {
+      const resp = await page.request.get(`/api/reports/model-risk/${reportId}/pdf`,
+        { headers: { Authorization: `Bearer ${await token()}` } });
+      expect(resp.status(), `PDF of ${reportId}`).toBe(200);
+      return pdfText(await resp.body());
+    };
+    type Header = { report_id: string; business_date: string; figures_as_of: string | null;
+      is_seeded: boolean; seeded_label: string | null; generated_at: string; content_hash: string };
+    type Detail = Header & { sections: Record<string, Record<string, unknown>> };
+
+    // --- D14 on the list, as a read role -----------------------------------------------------
+    await signInAs(page, "Auditor");
+    const list = (await apiAs(page, "/api/reports/model-risk")).body as Header[];
+    const seeded = list.filter((r) => r.is_seeded);
+    expect(seeded.length, "a reset seeds exactly one example report (S11)").toBe(1);
+    const ex = seeded[0];
+    const generated = list.filter((r) => !r.is_seeded);
+    expect(generated.length, "the first half of FS-25 stored generated reports").toBeGreaterThan(0);
+    // D14 (clarified 2026-10-15): "<generation date>" is the business date the figures were computed
+    // for — app.clock.today() at the reset — and the example keeps its earlier business date.
+    const businessDate = generated[0].business_date;
+    expect(ex.figures_as_of, "D14: the seeded figures are as of today's business date").toBe(businessDate);
+    expect(ex.business_date < businessDate, "D14 option (b): the example keeps an earlier date").toBe(true);
+    const label = `Seeded example: figures computed from current seed data on ${ex.figures_as_of}, ` +
+      `dated ${ex.business_date} for illustration.`;
+    expect(ex.seeded_label, "D14: the API words the disclosure exactly").toBe(label);
+    for (const r of generated) {
+      expect(r.seeded_label, `${r.report_id} is not seeded and carries no label`).toBeNull();
+      expect(r.figures_as_of, "D14: a generated report's figures are as of its own business date")
+        .toBe(r.business_date);
+    }
+
+    await openScreen(page, "Model Risk Report");
+    const exRow = page.locator("tr", { hasText: ex.report_id });
+    await expect(exRow, "D14: the list carries the pill").toContainText("Seeded example");
+    await expect(exRow, "D14: and the full label").toContainText(label);
+    await checkpoint(page, "FS-25_d14_list");
+
+    // --- D14 on the reopened report ----------------------------------------------------------
+    await exRow.getByRole("button", { name: "Open" }).click();
+    const head = page.locator("section.panel", { has: page.getByText(/Content hash/) }).first();
+    await expect(head).toContainText(ex.report_id, { timeout: 20_000 });
+    await expect(head, "D14: the reopened report carries the label").toContainText(label);
+    await expect(head, "S12: the reconciliation is stated in the past tense, about this report")
+      .toContainText("Figures reconciled with the Command Center at generation");
+    await checkpoint(page, "FS-25_d14_reopened");
+
+    // --- D14: the PDF counts as a surface ----------------------------------------------------
+    const reconciled = "Figures reconciled with the Command Center at generation,";
+    const exPdf = await pdfOf(ex.report_id);
+    expect(containsIgnoringSpace(exPdf, label), "D14: the seeded PDF carries the label").toBe(true);
+    expect(containsIgnoringSpace(exPdf, reconciled), "D14: every PDF carries the reconciliation line")
+      .toBe(true);
+    const genPdf = await pdfOf(generated[0].report_id);
+    expect(containsIgnoringSpace(genPdf, reconciled),
+      "D14: a generated report's PDF carries the reconciliation line too").toBe(true);
+    expect(containsIgnoringSpace(genPdf, "Seeded example"),
+      "a generated report's PDF is not labelled as an example").toBe(false);
+
+    // --- S13: a decision recorded between generations, through the UI ------------------------
+    await signInAs(page, "MRC Member");
+    const generate = async (): Promise<Detail> => {
+      await openScreen(page, "Model Risk Report");
+      const respP = page.waitForResponse((r) => r.url().endsWith("/api/reports/model-risk")
+        && r.request().method() === "POST");
+      await page.getByRole("button", { name: "Generate report" }).click();
+      const resp = await respP;
+      expect(resp.ok(), `generate: ${resp.status()}`).toBe(true);
+      const body = await resp.json() as Detail;
+      await expect(page.locator("section.panel", { has: page.getByText(/Content hash/) }).first())
+        .toContainText(body.report_id, { timeout: 20_000 });
+      return body;
+    };
+    await generate();
+
+    const approvalIds = () => dbQuery("SELECT approval_id FROM approval").map((r) => String(r.approval_id));
+    const before = new Set(approvalIds());
+    const auditBefore = dbCount("audit_event", "entity = 'approval'");
+    await page.goto("/models/M-0030");
+    await page.getByRole("tab", { name: /^Approvals/ }).click();
+    await page.getByRole("button", { name: "Record decision" }).click();
+    const field = (name: string) => page.locator(
+      `xpath=//form[contains(@class,"action-form")]//label[normalize-space(text())="${name}"]`)
+      .locator("input, select, textarea");
+    await field("Decision date").fill("2026-09-29");
+    await field("Forum").selectOption({ index: 1 });
+    await field("Decision type").selectOption({ index: 1 });
+    await field("Decision").selectOption("Approved");
+    await page.getByRole("button", { name: "Save decision" }).click();
+    await expect.poll(() => approvalIds().length, { timeout: 15_000 }).toBe(before.size + 1);
+    const newId = approvalIds().find((id) => !before.has(id)) ?? "";
+    expect(dbCount("audit_event", "entity = 'approval'"), "AUD-01: the decision is audited once")
+      .toBe(auditBefore + 1);
+
+    const seesIt = await generate();
+    const changes = page.locator("section.panel",
+      { has: page.getByText(/^Changes since the previous report/) }).first();
+    const decisionsRow = changes.locator("tr", { hasText: "Approval decisions recorded" });
+    await expect(decisionsRow, "S13: the decision is listed in the changes section").toContainText(newId);
+    const recorded = (seesIt.sections.changes_since.decisions_recorded as { approval_id: string }[])
+      .map((d) => d.approval_id);
+    expect(recorded, "S13: exactly the decision recorded since the previous report").toEqual([newId]);
+    expect(Object.keys(seesIt.sections.approvals),
+      "S13: nothing derived from the predecessor remains in Approvals").not.toContain("decisions_since_previous");
+    await checkpoint(page, "FS-25_s13_changes");
+
+    const afterIt = await generate();
+    expect(afterIt.sections.changes_since.decisions_recorded, "nothing recorded in between").toEqual([]);
+    expect(afterIt.content_hash,
+      "REG-16 (CR-52, S13): same data, same business date, same hash — whatever the predecessor saw")
+      .toBe(seesIt.content_hash);
   });

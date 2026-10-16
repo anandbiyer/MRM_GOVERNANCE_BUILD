@@ -1,0 +1,2 @@
+FAILED tests/test_reports.py::test_reg_15_the_score_section_names_the_weakest_component
+1 failed, 35 passed, 1 warning in 110.91s (0:01:50)

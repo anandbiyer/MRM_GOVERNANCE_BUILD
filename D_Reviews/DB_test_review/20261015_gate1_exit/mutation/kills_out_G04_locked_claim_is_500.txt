@@ -1,0 +1,2 @@
+FAILED tests/test_reset_lock.py::test_g1_32_a_database_lock_on_the_claim_is_a_409_not_a_500
+1 failed, 79 passed, 1 warning in 303.27s (0:05:03)

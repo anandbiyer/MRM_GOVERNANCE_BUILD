@@ -176,3 +176,19 @@ checklist, not the app, was wrong. Corrected to the §55.2 list on 2026-10-07; r
 - **MUP-29 and MUP-30 run for the first time** (phase `2A-core`), and **MUP-39 / MUP-40** are new.
 - Seed policy settings are **72** as of this run (was 70 at Gate 0). Nothing in this harness
   hard-codes the number.
+
+### Gate 1 exit re-run (2026-10-15) — what changed in this file
+
+- **MUP-39's locator was repaired, not relaxed.** Since G1.31 (D14) the Report cell carries the
+  "Seeded example" pill and the disclosure sentence, so reading the whole cell as the report ID
+  failed. The ID is now extracted with `/MRR-\d{8}-\d{3}/` and looked for in the reopened report's
+  header panel.
+- **MUP-39 now asserts S11, S12 and D14**: exactly one seeded row; the D14 sentence ("Seeded example:
+  figures computed from current seed data on <date>, dated <date> for illustration.") on the list
+  **and** on the reopened report; the past-tense "Figures reconciled with the Command Center at
+  generation, …" inside the report view; and the old present-tense footer absent.
+- **MUP-40 now asserts S13**: a report with a predecessor shows "Compared against MRR-…" and a
+  Changes-since table with six rows including **"Approval decisions recorded"**, and MUP-39 checks
+  that the Approvals panel no longer carries a "since the previous report" list. Both assertions
+  fail against the pre-G1.29/G1.31 markup.
+- No item added and none renumbered: the report screen's new behaviour falls under MUP-39 and MUP-40.
