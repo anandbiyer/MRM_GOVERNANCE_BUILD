@@ -744,6 +744,54 @@ true statements. Its `business_date` keeps the illustrative earlier date and its
 lock is held (CR-67). Tests assert the seeded reconciliation timestamp in full (closing TR-84 for the
 seeded case).
 
+**Follow-up 2026-10-16 (SI-2 / CR-72, owner-approved).** One sentence in REQ-REG-10A's D14 paragraph
+still said the seeded `generated_at` was "set to the earlier illustrative date", contradicting this
+decision three lines below. Corrected on `gate-3-monitoring`; the code already followed D17.
+
+---
+
+## D18 — A snapshot is required before deleting a hand-edited file
+
+| | |
+|---|---|
+| **Status** | **Decided** |
+| **Sections** | Part 0 convention 1; §76E PLT-02 |
+| **Needed before** | Gate 3 (first row) |
+| **Decided on** | 2026-10-16 |
+| **Decided by** | Anand |
+
+**Question.** TR-96 (G1.33 risk checkpoint): PLT-02 exempts deleted files, so a file renamed below git's
+50% similarity threshold — or renamed while an identical decoy copy is added — shows as a delete plus
+an add and is never charged. Part 0's convention is "never delete or silently rewrite code".
+
+**Decision.** Yes: deleting a hand-edited file under `A_Codes/` or `B_Inputs/` needs its pre-change
+content in `_OLD/`, exactly as editing one does. PLT-02 is amended to charge deletions (and to say
+"committed", matching the control — TR-97). Built as plan row **G3.18**, the first row of Gate 3.
+
+**Why.** The convention protects recoverability, and a deletion destroys more than an edit does. The
+requirements reviewer confirmed charging deletions does not turn history red: no hand-edited file under
+either root has ever been deleted (`git log --diff-filter=D`).
+
+**Consequences.** `check_snapshots.py` adds `D` to its diff filter, with the base read at the deleted
+path; the self-test gains deletion cases and the TR-96 rename shapes; Part 0 and §76E say so.
+
+---
+
+## D19 — Should REG-16 state that generation is refused during a reset?
+
+| | |
+|---|---|
+| **Status** | **Open** |
+| **Sections** | §76D REG-16; §76A.12 |
+| **Needed before** | Gate 3 exit |
+
+**Question.** From the Gate 1 exit re-run (test-outcome-reviewer §7.5): CR-67 — `POST
+/api/reports/model-risk` answers 409 while the reset lock is held, nothing stored, no audit event — is
+built and tested, but no criterion states it, so its test is tagged REG-16 only.
+
+**Proposed default.** Add to REG-16: "Generation is refused with 409 while a reset holds the reset lock;
+nothing is stored and no audit event is written."
+
 ---
 
 ## Template

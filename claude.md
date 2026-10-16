@@ -16,13 +16,15 @@ All paths are relative to the repository root. PowerShell is the primary shell.
 
 ```powershell
 # Run the whole app (dev mode: SQLite + local file storage, no Docker)
-A_Codes\AE_launcher\start_mrm.ps1        # backend :8000 + frontend :5173, seeds on first run
+A_Codes\AE_launcher\start_mrm.ps1        # backend :8000 + frontend :5173, seeds on first run; on every
+                                         # start runs create_all + app.db.add_missing_columns, so a dev
+                                         # database gains new tables and nullable columns (G1.31, G1.32)
 A_Codes\AE_launcher\stop_mrm.ps1
 A_Codes\AE_launcher\setup_first_time.ps1 # new machine: venv, npm install, .env, shortcuts
 
 # Backend (from A_Codes\AB_backend)
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
-.venv\Scripts\python -m pytest                              # 188 tests: 184 pass, 4 PostgreSQL skip
+.venv\Scripts\python -m pytest                              # 257 tests: 253 pass, 4 PostgreSQL skip (2026-10-16)
 .venv\Scripts\python -m pytest tests/test_rules.py -k tiering -x
 $env:MRM_TEST_POSTGRES_URL="postgresql+psycopg://mrm:mrm_dev_password@localhost:5432/mrm"
 .venv\Scripts\python -m pytest tests/test_postgres.py       # migrations, schema drift, audit immutability
@@ -76,13 +78,15 @@ For readiness checks use `/api/health/live`. `/api/health` is the component repo
 `degraded` whenever Redis is absent, which it always is in dev mode, so it never signals ready.
 
 There is no linter or formatter configured. `npm run build` and `pytest` are the gates, and
-`.github/workflows/ci.yml` runs them on every push to `main` and every pull request in three jobs:
+`.github/workflows/ci.yml` runs them on every push to `main` and to a gate branch, and on every pull
+request, in four jobs:
 
 | Job | What it runs |
 |---|---|
 | `backend` | `pytest -q` on Python 3.14 against `requirements-lock.txt`, SQLite, no infrastructure |
 | `backend-postgres` | `alembic upgrade head` then `pytest tests/test_postgres.py` against a `postgres:16` service — the only coverage for migrations, schema drift and the append-only audit trigger |
 | `frontend` | `npm ci` then `npm run build` (`tsc -b` + `vite build`) on Node 22 |
+| `snapshots` | `A_Codes/AZ_tools/test_check_snapshots.py`, then `check_snapshots.py --ci`: every non-merge commit must have snapshotted the hand-edited files it changed (Part 0 convention 1; PLT-02, PLT-03). The base is resolved inside the script from the CI event, where it is tested |
 
 CI installs the **lock** with no fallback to `requirements.txt`, unlike `setup_first_time.ps1`: a lock
 that no longer installs is a failure worth seeing. The PostgreSQL job treats a *skipped* test as a
@@ -132,7 +136,7 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
    control, so a defect in it fails open. Two limits are deliberate and worth knowing before you rely
    on it: it proves the *committed* parent state is recoverable, so a snapshot taken at an
    **uncommitted** intermediate state matches nothing and cannot be verified by any post-hoc check;
-   and commits authored before 2026-10-09 are reported but not failed, because some of those gaps are
+   and commits committed before 2026-10-09 are reported but not failed, because some of those gaps are
    unrecoverable in principle for exactly that reason.
 
    A snapshot may also be recovered retrospectively with `git show <commit>^:<path>`, which is how
@@ -141,6 +145,9 @@ Top-level folders and the folders inside `A_Codes/` carry a letter prefix in bui
    *now* rather than whether the commit itself did the snapshotting. A recovered file is named for the date of the edit
    it precedes, so `_OLD/` is ordered by *when the content was current*, not by when it was written
    down — `schemas/governance_v2_20261003.py` is therefore older than `governance_v1_20261004.py`.
+   **Deleting** a hand-edited file needs its snapshot too (decision **D18**, 2026-10-16): the
+   convention is "never delete or silently rewrite code", and a rename git reports as a delete plus an
+   add would otherwise pass unchecked (TR-96). Enforced by the control from plan row **G3.18**.
 2. **Do not create files outside the repository folder** (no desktop shortcuts, no system temp output
    the user is expected to find).
 
@@ -179,6 +186,11 @@ Key invariants, all enforced in code and covered by tests:
 - **Derived governance state is computed on read**, not stored: `app/services/governance_view.py`
   recomputes revalidation status, finding ageing, MRC status and the explainable score from the database
   each time, so a policy change shows up immediately.
+- **A reset holds an explicit lock** (`reset_lock`, §48): claimed at its first step with one
+  conditional update, released in a `finally` that records the outcome and failing stage, and released
+  at application startup if a process died holding it. "Is a reset running?" reads the lock and nothing
+  else — never a batch status (GEN-04, GEN-05; plan G1.32). Report generation is refused while it is
+  held (CR-67).
 - **Background jobs** go through `app/workers/runner.submit`. Job functions take a *session factory* plus
   IDs (never a live `Session`) so they can move to Celery/RQ unchanged. `MRM_JOB_MODE=inline` runs them
   synchronously; tests always use `inline`.
@@ -221,7 +233,8 @@ reference only, not an architectural one.
 
 Phase numbers in §81 are identifiers, not the build order.
 
-Implemented: Phases 1–4 and the core of Phase 8 — foundation/RBAC, governance core (inventory, tiering, lifecycle,
+Implemented: Phases 1–4, the core of Phase 8, and the **core Model Risk Report** of Phase 2A (Gate 1,
+merged 2026-10-16) — foundation/RBAC, governance core (inventory, tiering, lifecycle,
 validation, findings, approvals, score), the import engine (T12, T01–T05), the Document Centre
 (single/batch/folder/ZIP, versioning, completeness), Command Center, Operations Board, Model 360, Import
 Centre, Admin, Audit Trail.
@@ -232,7 +245,7 @@ not uniform, so check it before assuming there is a placeholder to replace:
 | # | Capability | Phase | Seam already exists |
 |---|---|---|---|
 | 0 | **Close Gate 0** — the open findings from the first review (`E_ProjectPlan/project_plan.md` §3) | — | Mostly done; see the plan for what remains |
-| 1 | **Core Model Risk Report** — §12A REQ-REG-10A, criteria REG-15…REG-17. Built from data the system already holds, ahead of the rest of §12A (**D12**) | 2A (Gate 1) | Nothing yet — no `model_risk_report` table, no route; but every figure it needs is already computed by `app/services/governance_view.py` and `dashboard_service.py` |
+| 1 | **Core Model Risk Report** — §12A REQ-REG-10A, criteria REG-15…REG-17 (**D12**) | 2A (Gate 1) | **Built** — Gate 1 merged to `main` 2026-10-16: `model_risk_report`, `/api/reports/model-risk`, the report screen and PDF. The rest of §12A stays deferred |
 | 2 | **Monitoring** — templates T13–T16 and T09 (T07/T08 retired, D1) | 6 | Registry entries (`available=False`), the Monitoring Dashboard `PlannedPage`, the Model 360 Monitoring tab, and the score's not-available component |
 | 3 | **Data Audit / CDE-DQ** — templates T06 and T10 | 7 | Registry entries (`available=False`), the Data Audit `PlannedPage`, the Model 360 CDE/DQ tab |
 | 4 | **AI extraction** | 5 | `document.extraction_status` defaults to "Not started"; the documentation score names the dependency |
@@ -346,6 +359,13 @@ Each gate is built on its own branch, `gate-<N>-<short-name>` (for example `gate
 `gate-3-monitoring`), created from `main`. It is merged to `main` only after a Ready
 `/review-build gate <N>`, which the hook enforces. `review-agents` is the Gate 0 branch, and it merges
 once G0.20 is Ready. **Merged 2026-10-07**, G0.20 Ready; `main` now carries Gate 0.
+
+**Gate 1 (core report) merged 2026-10-16**, after a Ready re-run at `a4f17ce`. **`gate-3-monitoring`**
+was cut from `main` the same day; it also carries the functional tester's H-23 harness edits, which
+post-dated Gate 1's reviewed commit and so were held out of that merge for this gate's review.
+
+**Remotes.** `origin` is `github.com/anandbiyer/MRM_GOVERNANCE_BUILD` (from 2026-10-15). The repository
+it was cloned from is kept as `upstream` and is not pushed to.
 
 Exception (2026-10-06): `gate-1-core-report` was branched from `review-agents`, before Gate 0 merged,
 so new development could start. When `review-agents` merges to `main`, merge `main` into
@@ -986,7 +1006,7 @@ illustration."** (**D14**, decided 2026-10-15.) **&lt;generation date&gt; means 
 figures were computed for** — the owner's clarification of D14, the same day — stored as
 `model_risk_report.figures_as_of` (§48, migration 0009). For every report a user generates it equals
 `business_date`; only the seeded example differs. It is not the wall-clock date, and not `generated_at`,
-which on the seeded example is itself set to the earlier illustrative date.
+which records when the report was actually computed (D17; corrected 2026-10-16, SI-2).
 
 A reopened report states what was true when it was generated, not what is true now, so the footer
 reads **"Figures reconciled with the Command Center at generation, &lt;timestamp&gt;"** (**S12**,
@@ -3510,38 +3530,41 @@ current exception: the range `GEN-01..GEN-03` in the `test_imports.py` module do
 fails when the implementation is broken. The `test-outcome-reviewer` mutates the code it is judging;
 a criterion is *proven* only where that mutation makes a named test fail.
 
-Coverage at the Gate 1 exit, 2026-10-15 (`test-outcome-reviewer`, commit `b8cc1f3`): **76 of 152**
-criteria (§76A–§76E, §77, §78, §79) are *proven*. That is **76 of 94** once the 58 unbuilt criteria are
-excluded: 20 monitoring (§77), 13 Data Audit (§76B), 10 Copilot (§76C), 14 regulatory (§76D,
-deferred D12), and DOC-16 (Phase 5). A further **11** have a test that passes without asserting the
-whole expected result, **4** have no test, and **3** are failing: the three §76E build-control
-criteria. All CI gates were green on GitHub at `b8cc1f3`, including `backend-postgres`
-(migrations through `0009`, drift guard, append-only trigger) and the `snapshots` job.
+Coverage at the Gate 1 exit re-run, 2026-10-15 (`test-outcome-reviewer`, commit `a4f17ce`): **77 of
+152** criteria (§76A–§76E, §77, §78, §79) are *proven*. That is **77 of 94** once the 58 unbuilt
+criteria are excluded: 20 monitoring (§77), 13 Data Audit (§76B), 10 Copilot (§76C), 14 regulatory
+(§76D, deferred D12) and DOC-16 (Phase 5). A further **12** have a test that passes without
+asserting the whole expected result, **4** have no test, and **1** is failing: PLT-01. All CI gates
+were green on GitHub at `a4f17ce`, including `backend-postgres` (migrations through `0009`, the
+drift guard and the append-only trigger) and both steps of the `snapshots` job.
 
 By set:
-- §76A **47/60** Proven (10 Weak, 3 Untested)
+- §76A **46/60** Proven (11 Weak, 3 Untested)
 - §76B **0/13** (Phase 7)
 - §76C **0/10** (Phase 9)
 - §76D **3/17** Proven, 14 deferred (D12)
-- §76E **0/3** (3 Failing)
+- §76E **2/3** Proven, 1 Failing (PLT-01)
 - §77 **0/20** (Phase 6)
 - §78 **17/20** (1 Weak, 1 Untested, 1 Phase 5)
 - §79 **9/9**
 
-Gate 1's movement is **+4 Proven** over the Gate 0 exit figure of 72:
-- **REG-15**, **REG-16** and **REG-17** (G1.16–G1.18, G1.25–G1.27, G1.29, G1.31).
-- **GEN-04**: its "nothing is deleted, nothing regenerated, no second job" clause and the TR-70 409
-  path are now each killed by a mutant (G1.32).
+Gate 1's movement is **+5 Proven** over the Gate 0 exit figure of 72:
+- **REG-15**, **REG-16** and **REG-17**, the core Model Risk Report (G1.16–G1.18, G1.25–G1.27,
+  G1.29, G1.31, G1.34).
+- **PLT-02** and **PLT-03**, the snapshot control (G1.33). A rename-and-rewrite is now charged
+  (TR-87), and the CI base resolution is tested.
 
-**GEN-05** stayed Proven on a new mechanism: the explicit reset lock, guarded after every commit.
-**GEN-01** was widened without changing grade. **PLT-01…PLT-03** enter as Failing:
-- PLT-01 because the report's nested `previous_generated_at` is still naive (BL.31).
-- PLT-02 and PLT-03 because a rename-and-rewrite passes the snapshot control (TR-87).
+**GEN-04** moved from Proven to **Weak** when D16 reworded it. Every clause has a killing mutant
+except the new "or says it is still being created" (TR-115). **GEN-05** is Proven under its D16
+wording, including the startup release with a reason. **PLT-01** is still Failing: the report's
+nested `previous_generated_at` is naive (BL.31).
 
 The §76D total is 17. REG-01 to REG-14 are deferred with the rest of Phase 2A (**D12**) and are
 reported as *Not built (Phase 2A, deferred D12)*, never as failures. REG-15 to REG-17, the core
 Model Risk Report, are built on `gate-1-core-report` and Proven. On `main` they stay *Not built*
 until that gate merges.
+
+*(Gate 1 merged to `main` 2026-10-16, so REG-15…REG-17 are built on `main` too.)*
 
 ### Not proven — no test
 
@@ -3566,15 +3589,14 @@ until that gate merges.
 | SCR-05 | `score`, `missing`, `explanation` and — since G0.25 — `effective_weight` on an API response | `weight` and `inputs` are asserted on no response, and **`calculated_at` is in neither `ScoreOut` nor `ScoreComponentOut`**, so §57's "last recalculation time" is not implemented. Derived state is computed on read, so the field may be meaningless as specified: decide whether to add it or amend the criterion. |
 | AUD-01 | A refused write leaves no audit event, at three refusal depths, with a control write and a non-cappable `audit_count` helper; and a failed audit rolls back `policy_service.update_setting` | The coupling for **every other service**. Committing the business change before `audit.record` in `model_service.create_model` — gated on the `commit` flag, so the import engine's SAVEPOINTs are untouched — leaves the whole suite green (verified by mutation, 184 passed). A bare commit there fails 8 tests, but only because it breaks the importer, not because any test observes the coupling. Parametrise the audit-failure test over the writing services. |
 | GEN-01 | One reset matches the documented portfolio figures; the committed seed loads, covers the policy baseline and leaves the dashboard working; an incomplete seed fails the batch loudly; the reset keeps its evidence and leaves its batch terminal; the generator never deletes before writing and does not churn unchanged templates. From 2026-10-07 a **second** reset at the same business date is compared with the first (`test_gen_01_a_reset_clears_the_report_history_and_reseeds_it`, G1.18) | Still partly proven: the comparison is a model risk report's content hash, which covers the inventory, validation, findings, approvals, score, documentation and the report baseline — but says nothing about documents, document versions, tiering answers, phase history, users or policy settings. |
+| GEN-04 | The 409 names the batch and the stage, and both are killed by mutation. Nothing is deleted, regenerated or submitted on refusal. A held lock is answered from a read. A locked claim is a 409. The 403 comes first. | The no-batch branch: dropping "(being created)" from the message passes every test. The test that holds a lock with no batch asserts only the status code (TR-115). |
 | DOC-09 | A batch ID is issued in the documented format | Uniqueness across two batches. |
 
 ### Failing: built, and a test or probe shows the criterion is not met
 
 | Criterion | What fails | Fix |
 |---|---|---|
-| PLT-01 | `sections.changes_since.previous_generated_at` is emitted naive on `POST /api/reports/model-risk` and on a reopened report, because `sections` is an untyped dict that `schemas.core.Utc` never reaches. The sweep walks 11 hard-coded endpoints and omits `/api/reports/*`. | BL.31: serialise `sections` through the same normaliser, sweep every GET route from the app's route table, and tag the tests PLT-01. |
-| PLT-02 | A file renamed and rewritten in one commit, with no snapshot, passes. `diff-tree` runs without `-M`, so the `R` branch is dead, and with `-M` the pre-change content is looked up at the destination path, which does not exist in the parent (TR-87). | Self-test case first; then `-M` and the source path as the base. |
-| PLT-03 | The same renamed-path clause fails. The count line, the non-ASCII path handling and the CI base selection are unasserted: mutants that remove `-z`/`quotePath` or the count both pass all 20 checks, and the script alone exits 0 on an empty base (TR-88). | Non-ASCII and count cases; move base resolution where it can be tested. |
+| PLT-01 | `sections.changes_since.previous_generated_at` is emitted naive on `POST /api/reports/model-risk` and on a reopened report, because `sections` is an untyped dict that `schemas.core.Utc` never reaches. The sweep walks a hard-coded list of endpoints and omits `/api/reports/*`. Re-confirmed by probe at `a4f17ce`. | BL.31: serialise `sections` through the same normaliser, sweep every GET route from the app's route table, and tag the tests PLT-01 (TR-99). |
 
 ### Correctly open — the capability does not exist yet
 
@@ -3590,38 +3612,39 @@ until that gate merges.
 
 Recorded separately because the criterion is proven and the gap is narrow:
 
-- **APR-03.** Unchanged: an `Approved` decision carrying an `Open` condition status is not tested.
+- **APR-03.** Unchanged: no test covers an `Approved` decision that carries an `Open` condition status.
 - **GEN-01 / GEN-05 (FT-04).** The listener is Session-level (BL.26), and it anchors on the *last*
-  hand-off, so an extra hand-off before the last write passes all 80 reset tests (TR-47, re-verified
-  2026-10-15).
+  hand-off. An extra hand-off before the last write still passes all 82 reset tests (TR-47,
+  re-verified at `a4f17ce`).
 - **GEN-04.** Concurrent claim atomicity is shown on neither engine (TR-73, BL.38). SQLite write-lock
-  contention with no reset running is answered "a reset is already running", and the test asserts
-  that message (TR-79). The non-contention `OperationalError` branch is untested (TR-80).
-- **GEN-05.** `runner.submit` raising leaves the lock held until restart (TR-75, BL.38).
+  contention with no reset running is answered "a reset is already running" (TR-79). The
+  non-contention `OperationalError` branch is untested (TR-80).
+- **GEN-05.** If `runner.submit` raises, the lock stays held until restart (TR-75, BL.38). "There
+  is no API to release it" is true but has no guard test (TR-116).
 - **REG-15.** Four Command Center equalities are tautological (TR-07). The seeded example is
-  compared with a fresh report for `documentation` only, so shaping any other figure passes (TR-92).
-  The overdue-findings boundary on the business date is unpinned (TR-93).
-- **REG-16 (hash breadth).** Each content key can still be dropped from the digest individually
-  (TR-38/TR-62, BL.30). The exclusion of `changes_since`, and of every predecessor-derived figure
-  anywhere else (S13), is pinned in both directions. Committing the report before its audit event
-  passes every report test: AUD-01's per-service coupling (BL.13), observed here too.
+  compared with a fresh report for `documentation` only (TR-92). The overdue-findings boundary on
+  the business date is unpinned (TR-93).
+- **REG-16.**
+  - Hash breadth: each content key can still be dropped from the digest individually (TR-38/TR-62,
+    BL.30).
+  - Audit coupling: committing the report before its audit event passes every report test, which
+    is AUD-01's per-service coupling (BL.13).
+  - CR-67, the report refused during a reset: guarded at the API.
+  - The service-level permission-before-lock order is unasserted (TR-110).
+  - An object stored before a late refusal is not checked (TR-111).
+  - The check is check-then-act (TR-114).
 - **REG-17.** Ordering by `generated_at` is unasserted (TR-09). A reopen that alters a stored figure
-  passes; only `score.by_band`, the seeded `documentation` and the pre-S13 decisions are compared
-  after reopening (TR-91). The PDF's reconciliation timestamp is unasserted (TR-84).
+  passes (TR-91). The seeded example's reconciliation line is asserted in full, timestamp included
+  (TR-84 closed, D17). The window check would not catch naive local time on a UTC host (TR-112).
+- **PLT-02.**
+  - A rename that git reports as delete plus add is uncharged, pending a decision on deletes
+    (TR-96).
+  - A rename out of `A_Codes/` with a rewrite is charged but untested (TR-97).
+  - The criterion still says "authored" where the code uses the committer date (TR-97).
+- **PLT-03.** A manual run on the default branch is an empty range that exits 0 (TR-98).
 
 ### Tagging and spec gaps
 
-- **GEN-04 and GEN-05 tagging: fixed 2026-10-07.** GEN-04 had been the only criterion in §76A whose
-  ID appeared in no test, while this section's prose claimed otherwise — so the grep contract said
-  "uncovered" and the prose said "covered", and both were wrong. GEN-04 is now on
-  `test_a_second_reset_is_refused_while_one_is_running`,
-  `test_a_finished_reset_does_not_block_the_next_one`,
-  `test_a_users_own_document_batch_does_not_block_a_reset` and
-  `test_an_unauthorised_caller_is_refused_before_the_in_flight_check`; GEN-05 on the second of those,
-  `test_reset_status_reports_the_batch_to_watch` and
-  `test_the_reset_batch_stays_in_flight_until_the_evidence_is_loaded`. GEN-04 stays **partly proven**:
-  the tag was the easy half, and its "nothing is deleted and no second job is submitted" clause is
-  still unasserted.
 - **GEN-03** is substantively proven by `test_tc_imp_03_1_preview_then_partial_load` and
   `test_row_level_errors_by_type`, but neither names the ID; the grep hit comes from the module
   docstring range. Tag the two tests. The "documented" valid/rejected split is also not documented
@@ -3631,23 +3654,21 @@ Recorded separately because the criterion is proven and the gap is narrow:
 - **Five further tests are untagged but substantively prove a criterion**: `test_cr_07_…` (DOC-13),
   `test_d5_and_d10_decided_keys_are_configured` (CFG-01, FND-03) and
   `test_displayed_columns_degrades_when_the_monitoring_phase_is_absent` (LIF-02).
-- **Untraced tests are 37 of 215 test functions** (255 collected), the same count as at `ab2adbc`
-  with a different mix. All 13 tests in `test_reset_lock.py` are traced. New untraced:
-  `test_db_config.py::test_a_dev_database_gains_a_nullable_column_…` (§64) and
-  `test_reports.py::test_d14_a_generated_report_is_as_of_…` (D14 only). Still structural: §64, §65,
-  the seed generator's file safety, and migrations (`test_migrations.py`, BL.35) have no criteria.
-- **No test names a PLT ID** (TR-90). The three `test_bl_28_*` tests are PLT-01's and should say so;
-  `A_Codes/AZ_tools/test_check_snapshots.py` should name PLT-02/PLT-03 per case. Its CRLF case is
-  vacuous on a machine with `core.autocrlf=true` (TR-89).
+- **Untraced tests are 37 of 217 test functions** (257 collected). Two new tests arrived since the
+  Gate 1 exit, `test_d17_…` and `test_cr_67_…`, and both are traced. Still structural: §64, §65, the
+  seed generator's file safety, and migrations (`test_migrations.py`, BL.35) have no criteria.
+- **PLT-01 is named by no backend test** (TR-99). The three `test_bl_28_*` tests are PLT-01's.
+  PLT-02 and PLT-03 are named per case in `A_Codes/AZ_tools/test_check_snapshots.py` (37 checks).
+- **CR-67** (no report while a reset holds the lock) belongs to no criterion's wording. Its test is
+  tagged REG-16 only (TR-113, closed). Decide whether REG-16 should state it.
 - **SEC-07** has no CI-gated test and cannot get one until the frontend harness (G7.5) exists. Record
   in the G0.21 row that its evidence is non-CI, and write an `FS-` scenario for the **role switch**
   path specifically rather than relying on FS-23, which tests SEC-05.
 
-The four untested and eleven partly proven criteria are real gaps in built functionality. The three
-failing build-control criteria come first, because each currently passes against a broken
-implementation: **TR-87** (rename-and-rewrite) before any further use of the snapshot check as
-evidence, and **PLT-01** (BL.31). Then **AUD-01's per-service coupling** (now observed in
-`report_service` too) and **GEN-01's row-count comparison**, before Phase 6 adds more surface area.
+The four untested criteria and twelve partly proven ones are real gaps in built functionality.
+**PLT-01** (BL.31) comes first, because it is the only built criterion that fails outright. Then
+**AUD-01's per-service coupling** (observed in `report_service` as well) and **GEN-01's row-count
+comparison**, before Phase 6 adds more surface area. GEN-04's TR-115 is a one-assertion fix.
 
 The `test-outcome-reviewer` agent recalculates this table on every run and proposes replacement text
 in its report. Update this section from that report rather than by hand.
@@ -3883,10 +3904,15 @@ section, including untyped ones such as a stored report's `sections`. A new time
 without editing a list of endpoints.
 
 ### PLT-02 Every hand-edited file's pre-change content is recoverable
-For every non-merge commit, each hand-edited file it modifies (or renames and modifies) under
+For every non-merge commit, each hand-edited file it modifies, renames, or **deletes** under
 `A_Codes/` or `B_Inputs/` has its pre-change content in `_OLD/`, matched by content. Merge commits,
-generated seed artefacts, `_OLD/` itself, added and deleted files, and mode-only changes are not
-charged. Commits authored before 2026-10-09 are reported, not failed.
+generated seed artefacts, `_OLD/` itself, added files, pure renames and mode-only changes are not
+charged. Commits **committed** before 2026-10-09 are reported, not failed.
+
+*Amended 2026-10-16, decision **D18** (TR-96): deletions are charged, so a rename that git reports as a
+delete plus an add — below its similarity threshold, or paired with a decoy copy — cannot pass unseen.
+"Committed" replaces "authored" to match the control, which a rebase cannot fool (CR-69, TR-97). Built
+in plan **G3.18**; until then the deletion clause is not yet enforced.*
 
 ### PLT-03 The snapshot control cannot pass vacuously
 The CI job resolves a non-empty base on every trigger (push, first push, pull request, manual run),
@@ -4226,6 +4252,8 @@ outcome is copied into the Decision column below. A decision is not made until t
 | D15 | Build controls (the snapshot check, the merge hook) and the UTC-timestamp invariant have no acceptance criteria, so no coverage signal can go stale for them | Part 0, §64, §76A.14 | Add §76E | Any | **Add §76E "Platform and build controls"** with **PLT-01** (every API timestamp is UTC), **PLT-02** and **PLT-03** (the snapshot control). §76A.14's total becomes 152. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
 | D16 | GEN-04 and GEN-05 still describe the batch-status mechanism G1.32 replaced with the reset lock | §76A.12, §48 `reset_lock` | Reword both to the lock | Gate 1 merging to `main` | **Reworded to the reset lock**, stating that startup releases a lock left by a stopped application and that there is no API release. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
 | D17 | The seeded example's reconciliation line shows its shaped `generated_at` (TR-83) | §12A REQ-REG-10A, S12, D14 | (a) the real computation time; (b) `figures_as_of`; (c) omit the line on the seeded example | Gate 1 merging to `main` | **Option (a)**: the seeded example's `generated_at` is the real time it was computed, no longer shaped, so its reconciliation line and "generated at" are true. Built as plan **G1.34**. Decided 2026-10-15; see `E_ProjectPlan/decision_log.md` |
+| D18 | PLT-02 exempts deleted files, so a rename git reports as delete + add is never charged; Part 0 says "never delete or silently rewrite code" (TR-96) | Part 0 convention 1, §76E PLT-02 | Charge deletions of hand-edited files | Gate 3 (first row) | **Yes: a snapshot is required before deleting a hand-edited file.** PLT-02 amended; built as plan **G3.18**, the first Gate 3 row. Decided 2026-10-16; see `E_ProjectPlan/decision_log.md` |
+| D19 | No criterion states that report generation is refused while a reset holds the lock (CR-67); its test is tagged REG-16 only | §76D REG-16, §76A.12 | Add the clause to REG-16: "refused with 409 while the reset lock is held; nothing stored, no audit event" | Gate 3 exit | — |
 
 ---
 
