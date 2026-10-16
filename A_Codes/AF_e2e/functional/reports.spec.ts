@@ -121,7 +121,7 @@ test("FS-25 REG-15 REG-16 REG-17 generate the core report, reconcile it, and rea
 // every surface, the PDF's reconciliation line (G1.31), and S13's "decisions since the previous report"
 // moving into the changes section, out of the content hash (G1.29). A second test under the same ID so
 // `-g "FS-25"` still runs the whole scenario. Runs after the first half, which stores generated reports.
-test("FS-25 REG-16 REG-17 D14 S13 the seeded example discloses its dates everywhere; decisions sit in the changes section",
+test("FS-25 REG-16 REG-17 D14 D17 S13 the seeded example discloses its dates everywhere; decisions sit in the changes section",
   async ({ page }) => {
     test.setTimeout(120_000);
     const token = async () => page.evaluate(() => localStorage.getItem("mrm.token"));
@@ -170,6 +170,34 @@ test("FS-25 REG-16 REG-17 D14 S13 the seeded example discloses its dates everywh
     await expect(head, "D14: the reopened report carries the label").toContainText(label);
     await expect(head, "S12: the reconciliation is stated in the past tense, about this report")
       .toContainText("Figures reconciled with the Command Center at generation");
+    // --- D17 (G1.34): the seeded example's generation time is real, not shaped ---------------
+    //
+    // Until G1.34 the seed shaped `generated_at` to 09:00 on the illustrative business date, so the
+    // reconciliation line said "at generation, 2026-08-31 09:00" one line above "figures computed …
+    // on 2026-09-30" (TR-83). D17 (a): it is the real time the example was computed. The only
+    // independent record of *when* that was is the reset lock (G1.32), whose window opens when the
+    // reset starts and closes after the seeded example is written — so the example's time must fall
+    // inside the last reset's window, and the screen must show that same instant.
+    const resetStatus = (await apiAs(page, "/api/admin/reset/status")).body as {
+      acquired_at: string | null; released_at: string | null; last_outcome: string | null };
+    expect(resetStatus.last_outcome, "the last reset completed").toBe("Completed");
+    const exAt = Date.parse(ex.generated_at);
+    expect(Number.isNaN(exAt), `D17: generated_at parses (${ex.generated_at})`).toBe(false);
+    expect(ex.generated_at.startsWith(`${ex.business_date}T09:00`),
+      "D17: generated_at is no longer shaped to 09:00 on the illustrative date").toBe(false);
+    // `generated_at` has one-second granularity (`func.now()` on SQLite), the lock's times do not.
+    const windowStart = Math.floor(Date.parse(resetStatus.acquired_at ?? "") / 1000) * 1000;
+    const windowEnd = Date.parse(resetStatus.released_at ?? "");
+    expect(exAt >= windowStart && exAt <= windowEnd,
+      `D17: the example was computed during the last reset (${resetStatus.acquired_at} … ` +
+      `${resetStatus.released_at}), not at ${ex.generated_at}`).toBe(true);
+    for (const r of generated) {
+      expect(Date.parse(r.generated_at) >= exAt,
+        `${r.report_id} was generated after the example it diffs against`).toBe(true);
+    }
+    const exShown = await page.evaluate((v) => new Date(v).toLocaleString(), ex.generated_at);
+    await expect(head, "D17: the reconciliation line shows the example's real generation time")
+      .toContainText(`Figures reconciled with the Command Center at generation, ${exShown}.`);
     await checkpoint(page, "FS-25_d14_reopened");
 
     // --- D14: the PDF counts as a surface ----------------------------------------------------
@@ -178,6 +206,13 @@ test("FS-25 REG-16 REG-17 D14 S13 the seeded example discloses its dates everywh
     expect(containsIgnoringSpace(exPdf, label), "D14: the seeded PDF carries the label").toBe(true);
     expect(containsIgnoringSpace(exPdf, reconciled), "D14: every PDF carries the reconciliation line")
       .toBe(true);
+    // D17 on the copy that leaves the system: the PDF prints `generated_at` as "YYYY-MM-DD HH:MM:SS",
+    // and it is the same real instant the API reports — never the shaped 09:00 on the example's date.
+    const exPdfAt = ex.generated_at.slice(0, 19).replace("T", " ");
+    expect(containsIgnoringSpace(exPdf, `${reconciled} ${exPdfAt}`),
+      `D17: the seeded PDF's reconciliation line reads ${exPdfAt}`).toBe(true);
+    expect(containsIgnoringSpace(exPdf, `${ex.business_date} 09:00`),
+      "D17: the shaped 09:00 timestamp is gone from the PDF").toBe(false);
     const genPdf = await pdfOf(generated[0].report_id);
     expect(containsIgnoringSpace(genPdf, reconciled),
       "D14: a generated report's PDF carries the reconciliation line too").toBe(true);

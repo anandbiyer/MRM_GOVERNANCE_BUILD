@@ -188,10 +188,49 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
       "GEN-04: the refused reset must not have created a batch").toBe(batchesBefore);
   };
 
-  const reset = async (probe = false) => {
+  /**
+   * CR-67 (G1.34): generating the model risk report while the reset lock is held is refused with a
+   * conflict. A report generated then would be stored for good over a half-loaded portfolio and, as
+   * the newest, become the predecessor the next report diffs against. Admin holds REPORT_GENERATE,
+   * so the permission check passes and the answer is the lock's. "Nothing stored" is read twice: no
+   * `generate` audit event (the audit trail survives a reset), and once the reset is idle the only
+   * stored report is the seeded example (checked in `reset()` below). Same retry rules as GEN-04.
+   */
+  const probeReportDuringReset = async () => {
+    const generateEvents = () =>
+      dbCount("audit_event", "entity = 'model_risk_report' AND action = 'generate'");
+    const auditBefore = generateEvents();
+    let verdict = "the reset finished before a report could be attempted";
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline) {
+      if (resetInFlight() === 0) break;
+      const resp = await page.request.post("/api/reports/model-risk", { headers: await asAdmin() });
+      const text = await resp.text();
+      if (resp.status() === 409) {
+        expect(text, "CR-67: the refusal says a reset is running").toMatch(/reset is running/i);
+        verdict = "refused";
+        break;
+      }
+      if (resp.ok()) {
+        verdict = `a report was generated while a reset was running: ${text.slice(0, 200)}`;
+        break;
+      }
+      if (resp.status() >= 500) {
+        verdict = `report generation during a reset answered ${resp.status()}: ${text.slice(0, 200)}`;
+        break;
+      }
+      await page.waitForTimeout(300);  // 401/403: mid-delete, ask again (BL.1)
+    }
+    expect(verdict, "CR-67: report generation during a reset must be refused with a conflict")
+      .toBe("refused");
+    expect(generateEvents(), "CR-67: the refused generation wrote no audit event").toBe(auditBefore);
+  };
+
+  const reset = async (probe: "reset" | "report" | false = false) => {
     const resp = await page.request.post("/api/admin/reset", { headers: await asAdmin() });
     expect(resp.status(), await resp.text()).toBe(202);
-    if (probe) await probeConcurrentReset();
+    if (probe === "reset") await probeConcurrentReset();
+    if (probe === "report") await probeReportDuringReset();
 
     // Wait for the *reset*, not for the batch the caller is handed. A reset creates two batches —
     // the seed import and then one for the 1116 evidence files — so the id in the response reports
@@ -225,11 +264,14 @@ test("FS-21 GEN-01 GEN-04 GEN-05 two resets at the same business date give the s
     // The reset's last write is the seeded example report (G1.26); it must exist once idle.
     expect(dbCount("model_risk_report", "is_seeded = 1"),
       "GEN-05: idle only after the seeded example is written").toBe(1);
+    // A reset clears the report history and seeds one example, so anything else stored here was
+    // generated during the reset — which CR-67 forbids.
+    expect(dbCount("model_risk_report"), "CR-67: no report was stored during the reset").toBe(1);
   };
 
-  await reset(true);   // the first reset also carries the GEN-04 concurrency probe
+  await reset("reset");   // the first reset carries the GEN-04 concurrency probe
   const first = snapshot();
-  await reset();
+  await reset("report");  // the second carries CR-67's report-during-reset probe (G1.34)
   const second = snapshot();
   // The Command Center has been open since sign-in and still shows what it fetched *before* the
   // first reset — 260 models, because FS-03 and FS-04 added four. Reload, so the saved evidence is
