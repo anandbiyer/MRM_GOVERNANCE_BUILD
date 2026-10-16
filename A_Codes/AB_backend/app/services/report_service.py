@@ -13,7 +13,7 @@ The stored reports are the history.
 import hashlib
 import json
 from collections.abc import Callable, Sequence
-from datetime import datetime, time, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -27,7 +27,7 @@ from app.clock import today
 from app.models import Approval, Finding, Model, ModelRiskReport
 from app.rules import revalidation
 from app.services import dashboard_service, governance_view
-from app.services.errors import ForbiddenError, NotFoundError
+from app.services.errors import ConflictError, ForbiddenError, NotFoundError
 from app.services.policy_access import Policy
 from app.storage import get_store
 
@@ -364,6 +364,17 @@ def generate(db: Session, principal: Principal | None) -> tuple[ModelRiskReport,
     """
     if principal and not has_permission(principal.role, Permission.REPORT_GENERATE):
         raise ForbiddenError("Generating the model risk report requires the report:generate permission.")
+    # CR-67: not while a reset is deleting and reloading the portfolio. A report generated then is
+    # stored for good over a half-loaded portfolio and, being the newest, becomes the predecessor the
+    # next report diffs against. After the permission check, so an unauthorised caller learns nothing
+    # about whether a reset is running. Imported here: reset_service imports this module.
+    from app.services import reset_service
+    running = reset_service.reset_in_progress(db)
+    if running is not None:
+        raise ConflictError(
+            f"A reset is running (stage {running.stage or 'unknown'}), so the portfolio is being reloaded. "
+            f"Generate the report once it has finished (GET /api/admin/reset/status)."
+        )
 
     on = today()
     previous = latest(db)
@@ -456,7 +467,10 @@ def seed_previous_report(session_factory: Callable[[], Session]) -> str | None:
                         .encode("utf-8"), content_type="application/json")
         db.add(ModelRiskReport(
             report_id=report_id, business_date=on, generated_by=None,
-            generated_at=datetime.combine(on, time(9, 0)),
+            # D17: no explicit `generated_at`. It used to be shaped to 09:00 on the illustrative date,
+            # which made the reconciliation line ("at generation, <timestamp>") false (TR-83). The
+            # server default records when the example was really computed; `business_date` and the
+            # D14 label carry the illustrative date.
             framework_label=policy.text("regulatory_framework"),
             content_hash=content_hash(content), storage_path=path, previous_report_id=None,
             is_seeded=True,

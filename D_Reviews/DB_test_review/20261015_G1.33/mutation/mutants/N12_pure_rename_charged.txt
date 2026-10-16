@@ -1,0 +1,70 @@
+
+A commit that snapshots what it edits passes:
+  PASS  clean: 0
+
+A commit that edits without snapshotting fails, and names the file:
+  PASS  missing snapshot: 1
+  PASS  names the file: True
+
+The near misses the hand checks kept having to rule out:
+  PASS  right name, wrong bytes: 1
+  PASS  right bytes, wrong directory: 1
+
+Line endings are normalised, so CRLF in _OLD/ still matches:
+  PASS  CRLF snapshot of an LF file: 0
+
+Part 0's exclusions:
+  PASS  AC_seed excluded, bootstrap covered: 0
+  PASS  bootstrap CSV is covered: 1
+
+Added and deleted files are not edits:
+  PASS  an added file needs no snapshot: 0
+
+Merge commits are skipped — a merge-brought change was never a hand edit:
+  PASS  the side edit is still caught: 1
+  PASS  the merge commit is not charged: 1
+
+A mode-only change is not an edit:
+  PASS  mode-only change: 0
+
+A file edited twice needs the second edit snapshotted too:
+  PASS  the second edit is caught: 1
+  PASS  only the second commit fails: 1
+
+Recovering a snapshot afterwards satisfies the earlier commit:
+  PASS  before recovery: 1
+  PASS  after recovery: 0
+
+Commits before the enforcement date are reported, not failed:
+  PASS  grandfathered exit: 0
+  PASS  but it is reported: True
+
+PLT-02: a file renamed and rewritten in one commit is an edit (TR-87):
+  PASS  PLT-02 rename + rewrite without a snapshot fails: 1
+  PASS  PLT-02 names the new path: True
+  PASS  PLT-02 rename + rewrite with the source snapshotted passes: 0
+  FAIL  PLT-02 a pure rename is not an edit: 1  (expected 0)
+
+PLT-03: a non-ASCII path is checked, not silently dropped:
+  PASS  PLT-03 non-ASCII edit without a snapshot fails: 1
+  PASS  PLT-03 names the non-ASCII path: True
+
+PLT-03: the number of file edits checked is reported, so a skip cannot be silent:
+  PASS  PLT-03 count line: True
+
+PLT-03: the enforcement cut-off reads the committer date, which a rebase resets (CR-69):
+  PASS  PLT-03 an old author date does not grandfather a new commit: 1
+
+PLT-03: CI resolves a non-empty base on every trigger, and fails closed (TR-88):
+  PASS  PLT-03 push uses `before`: (1, True)
+  PASS  PLT-03 first push falls back to the merge base: (1, True)
+  PASS  PLT-03 manual run uses the merge base, not a vacuous pass: (1, True)
+  PASS  PLT-03 pull request uses the merge base, not base.sha: True
+  PASS  PLT-03 an unresolvable base fails closed: True
+  PASS  PLT-03 an empty base on the command line fails closed: True
+
+An empty range, and failing closed on nonsense:
+  PASS  no commits in range: 0
+  PASS  unknown ref fails closed: True
+
+1 FAILED: PLT-02 a pure rename is not an edit

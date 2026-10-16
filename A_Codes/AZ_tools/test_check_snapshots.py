@@ -75,9 +75,12 @@ def new_repo(tmp: Path, name: str) -> Path:
 
 
 def run(cwd: Path, base: str, head: str = "HEAD") -> tuple[int, str]:
+    # TR-94: the child must *write* UTF-8 as well as this side reading it, or on Windows its cp1252
+    # output (the "..." character in a failure line) crashes the reader. `run_ci` already did this.
+    env = dict(os.environ) | {"PYTHONIOENCODING": "utf-8"}
     out = subprocess.run([sys.executable, str(cwd / "A_Codes" / "AZ_tools" / "check_snapshots.py"),
                           base, head], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
-                         timeout=300)
+                         env=env, timeout=300)
     return out.returncode, out.stdout + out.stderr
 
 
@@ -250,15 +253,21 @@ def main() -> int:
         check("PLT-02 rename + rewrite without a snapshot fails", code, 1)
         check("PLT-02 names the new path", "A_Codes/AB_backend/app/renamed.py" in out, True)
 
-        r = new_repo(tmp, "rename_rewrite_ok")
-        write(r, SRC, "x = 1\n" * 20)
-        base = commit(r, "add thing")
-        snapshot_of(r, SRC, 1, "x = 1\n" * 20)            # the source, snapshotted before the rename
-        git(r, "add", "-A")
-        git(r, "mv", SRC, "A_Codes/AB_backend/app/renamed.py")
-        write(r, "A_Codes/AB_backend/app/renamed.py", "x = 1\n" * 19 + "x = 2\n")
-        commit(r, "rename and rewrite, source snapshotted")
-        check("PLT-02 rename + rewrite with the source snapshotted passes", run(r, base)[0], 0)
+        # TR-95: the snapshot is committed *before* the rename, as `snapshot.sh` followed by an edit
+        # would be. In the same commit git paired the source with its identical `_OLD/` copy, so the
+        # rename was never seen and the lookup under test never ran. The count proves it now does.
+        for case, snap_rel in (("source", SRC), ("destination", "A_Codes/AB_backend/app/renamed.py")):
+            r = new_repo(tmp, f"rename_rewrite_ok_{case}")
+            write(r, SRC, "x = 1\n" * 20)
+            base = commit(r, "add thing")
+            snapshot_of(r, snap_rel, 1, "x = 1\n" * 20)
+            commit(r, f"snapshot under the {case} name")
+            git(r, "mv", SRC, "A_Codes/AB_backend/app/renamed.py")
+            write(r, "A_Codes/AB_backend/app/renamed.py", "x = 1\n" * 19 + "x = 2\n")
+            commit(r, "rename and rewrite")
+            code, out = run(r, base)
+            check(f"PLT-02 rename + rewrite with a snapshot named for the {case} passes", code, 0)
+            check(f"PLT-02 the rename was really checked ({case})", "1 file edit(s) checked" in out, True)
 
         r = new_repo(tmp, "rename_only")
         write(r, SRC, "x = 1\n" * 20)

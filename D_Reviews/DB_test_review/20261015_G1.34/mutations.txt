@@ -1,0 +1,73 @@
+=== BASELINE
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+3 failed, 106 passed, 1 warning in 254.01s (0:04:14)
+=== M1_shaped_time
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+4 failed, 105 passed, 1 warning in 262.53s (0:04:22)
+=== M2_no_lock_check
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_reports.py::test_cr_67_a_report_cannot_be_generated_while_a_reset_holds_the_lock
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+4 failed, 105 passed, 1 warning in 262.36s (0:04:22)
+=== M3_lock_before_permission
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+3 failed, 106 passed, 1 warning in 264.06s (0:04:24)
+=== M4_lock_after_latest
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+3 failed, 106 passed, 1 warning in 260.25s (0:04:20)
+=== M5_lock_after_commit
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_reports.py::test_cr_67_a_report_cannot_be_generated_while_a_reset_holds_the_lock
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+4 failed, 105 passed, 1 warning in 263.85s (0:04:23)
+=== M6_lock_after_store_put
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+3 failed, 106 passed, 1 warning in 265.66s (0:04:25)
+=== M7_seed_generated_at_far_past
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+4 failed, 105 passed, 1 warning in 255.34s (0:04:15)
+=== M8_seed_generated_at_future
+        # Check if we were passed a file-like object
+        # Check if we were passed a file-like object
+FAILED tests/test_reports.py::test_reg_16_the_hash_ignores_which_report_came_before
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+FAILED tests/test_imports.py::test_committed_seed_covers_the_policy_baseline
+FAILED tests/test_imports.py::test_reset_from_the_committed_seed_leaves_the_dashboard_working
+FAILED tests/test_imports.py::test_reset_fails_loudly_when_the_seed_omits_a_baseline_setting
+5 failed, 104 passed, 1 warning in 256.44s (0:04:16)
+=== M9_seed_generated_at_naive_local_now (TZ -0400), d17 test only
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+1 failed, 5 passed, 29 deselected, 1 warning in 79.74s (0:01:19)
+TZ=UTC: 1 passed, 34 deselected, 1 warning in 37.51s

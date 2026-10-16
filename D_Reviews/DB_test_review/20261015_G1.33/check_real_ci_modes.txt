@@ -1,0 +1,18 @@
+### event=push before=c72bb97e10cd70e22aeb92e64cf4b2df1963421a
+Range: c72bb97e10cd70e22aeb92e64cf4b2df1963421a..3994f43eb6954837ecb54e5156f1e409100fdedc  (event push)
+Checked 1 non-merge commit(s) between c72bb97e10cd and 3994f43eb695: 2 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+### event=push before=0000000000000000000000000000000000000000
+Range: 0f11fda586d2267f3831941114fe24ed23801a14..3994f43eb6954837ecb54e5156f1e409100fdedc  (event push)
+Checked 36 non-merge commit(s) between 0f11fda586d2 and 3994f43eb695: 108 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+### event=pull_request before=-
+Range: 0f11fda586d2267f3831941114fe24ed23801a14..3994f43eb6954837ecb54e5156f1e409100fdedc  (event pull_request)
+Every enforced commit snapshotted what it edited.
+exit=0
+### dispatch on main (default branch itself)
+Range: 0f11fda586d2267f3831941114fe24ed23801a14..0f11fda586d2267f3831941114fe24ed23801a14  (event workflow_dispatch)
+No non-merge commits between 0f11fda586d2 and 0f11fda586d2.
+exit=0

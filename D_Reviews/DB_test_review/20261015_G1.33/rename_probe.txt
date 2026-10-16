@@ -1,0 +1,59 @@
+== 1. Self-test case 'rename + rewrite with the source snapshotted' reproduced: what does git pair?
+-- git diff-tree -M:
+A	A_Codes/AB_backend/app/renamed.py
+R100	A_Codes/AB_backend/app/thing.py	A_Codes/_OLD/AB_backend/app/thing_v1_20261009.py
+
+Checked 1 non-merge commit(s) between 58a4109be195 and HEAD: 0 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+
+== 2. Same, but the snapshot committed first (separate commit), so the rename pairs thing->renamed
+-- git diff-tree -M:
+R094	A_Codes/AB_backend/app/thing.py	A_Codes/AB_backend/app/renamed.py
+
+Checked 2 non-merge commit(s) between 58a4109be195 and HEAD: 1 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+
+== 3. Snapshot named for the destination, committed first (exercises the dst candidate branch; N1)
+-- git diff-tree -M:
+R094	A_Codes/AB_backend/app/thing.py	A_Codes/AB_backend/app/renamed.py
+
+Checked 2 non-merge commit(s) between 58a4109be195 and HEAD: 1 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+
+== 4. Rename + heavy rewrite (similarity below git's 50% default), no snapshot
+-- git diff-tree -M:
+A	A_Codes/AB_backend/app/renamed.py
+D	A_Codes/AB_backend/app/thing.py
+
+Checked 1 non-merge commit(s) between 58a4109be195 and HEAD: 0 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+
+== 5. Rename + rewrite with an exact decoy copy of the source added elsewhere under A_Codes, no snapshot
+-- git diff-tree -M:
+A	A_Codes/AB_backend/app/renamed.py
+R100	A_Codes/AB_backend/app/thing.py	A_Codes/AB_backend/app/thing_backup.py
+
+Checked 1 non-merge commit(s) between 58a4109be195 and HEAD: 0 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+
+== 6. Rename out of A_Codes/ and rewrite, no snapshot (N3: covered(src) only)
+-- git diff-tree -M:
+R094	A_Codes/AB_backend/app/thing.py	docs/thing.py
+  bash A_Codes/AZ_tools/snapshot.sh <A_Codes|B_Inputs> <path within it>
+To recover one after the fact, as five reviews have had to:
+  git show <commit>^:<path> > A_Codes/_OLD/<same relative path>/<name>_v<N>_<YYYYMMDD>.<ext>
+exit=1
+
+== 7. Delete a covered file outright (out of PLT-02 scope by wording; shown for context)
+-- git diff-tree -M:
+D	A_Codes/AB_backend/app/thing.py
+
+Checked 1 non-merge commit(s) between 58a4109be195 and HEAD: 0 file edit(s) checked.
+Every enforced commit snapshotted what it edited.
+exit=0
+

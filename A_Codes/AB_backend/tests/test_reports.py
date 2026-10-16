@@ -915,3 +915,66 @@ def test_d14_the_pdf_carries_the_label_and_the_reconciliation_line(client, test_
     assert "Seeded example: figures computed from current seed data on 2026-09-30" in seeded_pdf
     assert "dated 2026-08-31 for illustration" in seeded_pdf
     assert "Seeded example" not in generated_pdf, "a report a user generated is not labelled an example"
+
+
+# --- D17 and CR-67 (G1.34) -------------------------------------------------------------------------
+
+def test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed(client, test_settings):
+    """REG-17, S12, D17 (TR-83, TR-84): the seeded example's "at generation" is a true statement.
+
+    Its `generated_at` used to be shaped to 09:00 on its illustrative business date, so the PDF and
+    the screen said "reconciled with the Command Center at generation, 2026-08-31 09:00" one line above
+    "figures computed ... on 2026-09-30". D17 (a): it is the real time the example was computed. The
+    whole reconciliation line is asserted, timestamp included, which is what TR-84 found missing.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    started = datetime.now(UTC) - timedelta(seconds=5)
+    h = login(client, *ADMIN)
+    assert client.post("/api/admin/reset", headers=h).status_code == 202
+    finished = datetime.now(UTC) + timedelta(seconds=5)
+    h = login(client, *ADMIN)
+
+    seeded = next(r for r in _get(client, h, "/api/reports/model-risk") if r["is_seeded"])
+    stamp = datetime.fromisoformat(seeded["generated_at"])
+    assert started <= stamp <= finished, (
+        f"the seeded example says it was generated at {stamp}, but it was computed during the reset "
+        f"({started:%H:%M:%S}-{finished:%H:%M:%S} UTC); a shaped time is a false statement (D17)")
+    assert seeded["business_date"] == "2026-08-31", "its illustrative date is unchanged (D14)"
+
+    text = _pdf_text(client.get(f"/api/reports/model-risk/{seeded['report_id']}/pdf", headers=h).content)
+    line = f"Figures reconciled with the Command Center at generation, {stamp.isoformat(sep=' ', timespec='seconds')}."
+    assert line in text, f"the PDF must carry the true reconciliation time in full: {line!r}"
+
+
+def test_cr_67_a_report_cannot_be_generated_while_a_reset_holds_the_lock(loaded_client, loaded_session):
+    """REG-16 (CR-67): no report over a portfolio that is being deleted and reloaded.
+
+    A report generated mid-reset would be stored for good over an empty or half-loaded portfolio, and
+    because it is the newest it would become the predecessor the next report compares against — a
+    demo's "changes since" section would then report the whole portfolio as added. It is refused with
+    a conflict; nothing is stored and no audit event is written.
+    """
+    from sqlalchemy import func, select
+
+    from app.models import ModelRiskReport
+    from app.services import reset_service
+
+    h = login(loaded_client, *MRC)
+    with loaded_session() as db:
+        before = db.scalar(select(func.count()).select_from(ModelRiskReport))
+    events = audit_count(loaded_client, login(loaded_client, *ADMIN), entity="model_risk_report", action="generate")
+    with loaded_session() as db:
+        assert reset_service.acquire_reset_lock(db, "running", "U-001")
+
+    resp = loaded_client.post("/api/reports/model-risk", headers=h)
+    assert resp.status_code == 409, resp.text
+    assert "reset" in resp.json()["detail"].lower()
+    with loaded_session() as db:
+        assert db.scalar(select(func.count()).select_from(ModelRiskReport)) == before, "nothing stored"
+    assert audit_count(loaded_client, login(loaded_client, *ADMIN), entity="model_risk_report",
+                       action="generate") == events, "and no audit event"
+
+    reset_service.release_reset_lock(loaded_session, "running", "Completed")
+    assert loaded_client.post("/api/reports/model-risk", headers=h).status_code == 201, \
+        "once the reset is over, generating works again"

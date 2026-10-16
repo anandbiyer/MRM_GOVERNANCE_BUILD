@@ -60,6 +60,18 @@
       "tree": "82b3945c0290aca1df648a913d5a8d9190764965",
       "report": "D_Reviews/DB_test_review/20261015_G1.31_risk.md",
       "summary": "0 Critical, 0 High; TR-83 (Medium, owner decision: the seeded reconciliation line carries the shaped generated_at), TR-84..TR-86 Low, held for the Gate 1 exit triage. REG-15, REG-16, REG-17 Proven; 8 of 10 mutants killed."
+    },
+    "G1.33:risk": {
+      "date": "2026-10-15",
+      "tree": "commit 3994f43",
+      "report": "D_Reviews/DB_test_review/20261015_G1.33_risk.md",
+      "summary": "0 Critical, 0 High. TR-87 closed; PLT-02 and PLT-03 Proven (78 of 152). TR-94 (Windows self-test crash, introduced by the row) and TR-95 (a rename test passing for the wrong reason) fixed in-row afterwards; TR-96 (spec: a rename git sees as delete+add is not charged), TR-97, TR-98, TR-99 held for the gate triage."
+    },
+    "G1.34:risk": {
+      "date": "2026-10-15",
+      "tree": "af2e3dbfbc8a5fc50ef0f6f153f00b00449869f1",
+      "report": "D_Reviews/DB_test_review/20261015_G1.34_risk.md",
+      "summary": "0 Critical, 0 High; REG-16, REG-17, GEN-04 Proven. TR-113 (test tagged GEN-04) fixed in-row; TR-110, TR-111, TR-112, TR-114 Low held for the gate triage."
     }
   },
   "gates": {
