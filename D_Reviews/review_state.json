@@ -91,16 +91,16 @@
       "head_note": "Recorded head moved c8deaaf -> 69f867f, approved by owner; diff contains no product code. The four agents reviewed 779e3de / c8deaaf. `head` is moved forward to this commit so the gate can be merged, and the reason is recorded rather than left implicit. Nine protected files changed between c8deaaf and here and NONE is product code: `git diff c8deaaf <head> -- A_Codes/AB_backend/app A_Codes/AC_frontend/src A_Codes/AD_seed B_Inputs` is empty. The nine are: the merge hook and its new test file (ordered after the review); six docstring-only criterion-ID tags in tests/test_imports.py (GEN-04, GEN-05 \u2014 no assertion touched); FS-27 and its catalogue entry (run, and shown to fail against the restored G0.21 defect); and four harness files the parity tester itself wrote as that review's own deliverables. Backend 184 pass / 4 skip and the frontend build were re-run green here, and the hook's own 22 checks pass. This is a judgement call by the author of the change, not an agent verdict: to reverse it, re-run /review-build gate 0 at this commit."
     },
     "1": {
-      "date": "2026-10-15",
-      "verdict": "Not ready",
-      "summary": "D_Reviews/20261015_summary.md",
-      "head": "b8cc1f36b02234d13300e18024fd42cd2b7a52b4",
-      "note": "Full four-agent exit. One open High, TR-87 (= CR-68): the snapshot checker passes a rename-and-rewrite without a snapshot (PLT-02/03). All product criteria in scope Proven; CI green incl. PostgreSQL on GitHub; functional 29/29; parity 0 Missing.",
+      "date": "2026-10-16",
+      "verdict": "Ready",
+      "summary": "D_Reviews/20261016_summary.md",
+      "head": "a4f17ce2bdbce9415c03b203d100eb820ceee7cf",
+      "note": "Owner-scoped re-run after G1.33/G1.34: requirements and test reviewers in full, functional limited to FS-21 and FS-25, no parity run (full parity at b8cc1f3 found 0 Missing). 0 Critical/High; 77 of 152 proven; CI green on GitHub incl. PostgreSQL and the new --ci snapshot job.",
       "previous": {
-        "date": "2026-10-08",
+        "date": "2026-10-15",
         "verdict": "Not ready",
-        "head": "3ec32a7",
-        "summary": "D_Reviews/20261008_summary.md"
+        "head": "b8cc1f36b02234d13300e18024fd42cd2b7a52b4",
+        "summary": "D_Reviews/20261015_summary.md"
       }
     }
   }

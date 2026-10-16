@@ -1,0 +1,34 @@
+C:\Users\anand\OneDrive\Documents\AI_Projects\MRM_Governance_Build\A_Codes\AB_backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+  T01_users.csv: 35 rows
+  T02_models.csv: 79 rows
+  T03_validations.csv: 56 rows
+  T04_findings.csv: 76 rows
+  T05_approvals.csv: 59 rows
+NAIVE: [('POST.sections.changes_since.previous_generated_at', '2026-10-16T04:08:27'), ('/api/reports/model-risk/MRR-20260930-001.sections.changes_since.previous_generated_at', '2026-10-16T04:08:27')]
+F
+================================== FAILURES ===================================
+________________________ test_probe_report_timestamps _________________________
+
+loaded_client = <starlette.testclient.TestClient object at 0x0000022F46331E80>
+loaded_session = sessionmaker(class_='Session', bind=Engine(sqlite://), autoflush=False, expire_on_commit=False)
+
+    def test_probe_report_timestamps(loaded_client, loaded_session):
+        report_service.seed_previous_report(loaded_session)
+        h = login(loaded_client, *MRC)
+        gen = loaded_client.post("/api/reports/model-risk", headers=h).json()
+        naive = list(_walk(gen, "POST"))
+        rid = gen["report_id"]
+        for ep in ("/api/reports/model-risk", f"/api/reports/model-risk/{rid}", "/api/admin/reset/status"):
+            naive += list(_walk(loaded_client.get(ep, headers=login(loaded_client, *ADMIN)).json(), ep))
+        print("NAIVE:", naive)
+>       assert naive == []
+E       AssertionError: assert [('POST.secti...16T04:08:27')] == []
+E         
+E         Left contains 2 more items, first extra item: ('POST.sections.changes_since.previous_generated_at', '2026-10-16T04:08:27')
+E         Use -v to get more diff
+
+..\..\D_Reviews\DB_test_review\20261015_gate1_exit_rerun\mutation\test_probe_plt01.py:30: AssertionError
+=========================== short test summary info ===========================
+FAILED ::test_probe_report_timestamps - AssertionError: assert [('POST.secti....
+1 failed in 40.68s

@@ -1,0 +1,5 @@
+[mut_g1x] applied R20_decisions_all_approvals
+FAILED tests/test_reports.py::test_reg_15_changes_since_lists_exactly_the_differences
+FAILED tests/test_reports.py::test_reg_16_an_approval_between_generations_does_not_split_the_hash
+FAILED tests/test_reports.py::test_s13_only_the_changes_section_depends_on_the_previous_report
+3 failed, 35 passed, 1 warning in 111.57s (0:01:51)

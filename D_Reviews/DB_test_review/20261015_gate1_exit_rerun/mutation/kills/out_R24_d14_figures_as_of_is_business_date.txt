@@ -1,0 +1,4 @@
+[mut_g1x] applied R24_d14_figures_as_of_is_business_date
+FAILED tests/test_reports.py::test_d14_the_seeded_example_states_the_date_of_its_figures_and_its_illustrative_date
+FAILED tests/test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line
+2 failed, 36 passed, 1 warning in 108.22s (0:01:48)

@@ -1,0 +1,3 @@
+[mut_g1x] applied G07_status_never_in_progress
+FAILED tests/test_imports.py::test_reset_status_reports_the_batch_to_watch
+1 failed, 81 passed, 1 warning in 272.36s (0:04:32)

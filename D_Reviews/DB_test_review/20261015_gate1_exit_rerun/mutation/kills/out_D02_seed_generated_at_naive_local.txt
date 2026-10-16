@@ -1,0 +1,3 @@
+[mut_g1x] applied D02_seed_generated_at_naive_local
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+1 failed, 51 passed, 1 warning in 227.37s (0:03:47)

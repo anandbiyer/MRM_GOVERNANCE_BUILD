@@ -1,0 +1,6 @@
+[mut_g1x] applied G06_release_before_report
+FAILED tests/test_reset_lock.py::test_g1_32_after_every_commit_of_a_reset_the_lock_is_held_until_it_is_released
+FAILED tests/test_reset_lock.py::test_g1_32_a_second_reset_during_the_report_write_is_refused_409
+FAILED tests/test_reset_lock.py::test_g1_32_a_failure_in_any_stage_releases_the_lock_and_records_the_stage[Seeded example report-<lambda>]
+FAILED tests/test_imports.py::test_cr_53_the_reset_stays_in_flight_while_the_example_report_is_written
+4 failed, 78 passed, 1 warning in 311.63s (0:05:11)

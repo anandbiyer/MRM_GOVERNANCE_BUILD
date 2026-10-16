@@ -1,0 +1,3 @@
+[mut_g1x] applied R11_lowest_limit_constant
+FAILED tests/test_reports.py::test_reg_15_the_lowest_scoring_count_comes_from_policy
+1 failed, 37 passed, 1 warning in 126.29s (0:02:06)

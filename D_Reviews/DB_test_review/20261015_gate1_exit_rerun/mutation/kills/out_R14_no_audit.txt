@@ -1,0 +1,5 @@
+[mut_g1x] applied R14_no_audit
+        committed it passed every test.
+FAILED tests/test_reports.py::test_reg_16_each_generation_writes_exactly_one_audit_event
+FAILED tests/test_reports.py::test_reg_16_a_refused_generation_writes_no_audit_event
+2 failed, 36 passed, 1 warning in 109.99s (0:01:49)

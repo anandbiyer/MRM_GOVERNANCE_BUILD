@@ -1,0 +1,3 @@
+[mut_g1x] applied R06_overdue_not_tier_ordered
+FAILED tests/test_reports.py::test_reg_15_figures_equal_the_command_center
+1 failed, 37 passed, 1 warning in 126.83s (0:02:06)

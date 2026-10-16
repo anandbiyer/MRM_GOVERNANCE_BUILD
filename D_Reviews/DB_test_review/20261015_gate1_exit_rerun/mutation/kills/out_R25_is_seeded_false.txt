@@ -1,0 +1,6 @@
+[mut_g1x] applied R25_is_seeded_false
+FAILED tests/test_reports.py::test_s12_the_seeded_report_is_labelled_and_a_generated_one_is_not
+FAILED tests/test_reports.py::test_d14_the_seeded_example_states_the_date_of_its_figures_and_its_illustrative_date
+FAILED tests/test_reports.py::test_d14_the_pdf_carries_the_label_and_the_reconciliation_line
+FAILED tests/test_reports.py::test_d17_the_seeded_reconciliation_time_is_when_it_was_really_computed
+4 failed, 34 passed, 1 warning in 122.53s (0:02:02)

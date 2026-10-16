@@ -1,0 +1,4 @@
+[mut_g1x] applied G13_no_startup_recovery
+FAILED tests/test_reset_lock.py::test_g1_32_a_lock_left_by_a_stopped_application_is_recovered_with_a_reason
+FAILED tests/test_reset_lock.py::test_g1_32_starting_the_application_releases_an_interrupted_lock
+2 failed, 80 passed, 1 warning in 289.13s (0:04:49)

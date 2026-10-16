@@ -1,0 +1,8 @@
+[mut_g1x] applied G10_failure_not_marked_on_batch
+                "the batch the caller was given says the reset failed, and where"
+E           AssertionError: the batch the caller was given says the reset failed, and where
+___ test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed ____
+    def test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed(client, test_settings,
+FAILED tests/test_reset_lock.py::test_g1_32_an_analysis_failure_writes_no_report_and_fails_the_reset
+FAILED tests/test_imports.py::test_cr_57_a_failure_writing_the_example_report_marks_the_reset_failed
+2 failed, 80 passed, 1 warning in 331.44s (0:05:31)

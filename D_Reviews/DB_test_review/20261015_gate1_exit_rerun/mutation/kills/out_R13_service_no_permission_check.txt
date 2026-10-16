@@ -1,0 +1,5 @@
+[mut_g1x] applied R13_service_no_permission_check
+        committed it passed every test.
+FAILED tests/test_reports.py::test_reg_16_the_service_refuses_an_unpermitted_principal_too
+FAILED tests/test_reports.py::test_reg_16_a_refused_generation_writes_no_audit_event
+2 failed, 36 passed, 1 warning in 148.67s (0:02:28)

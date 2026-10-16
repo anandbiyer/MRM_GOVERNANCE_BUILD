@@ -1,0 +1,3 @@
+[mut_g1x] applied R12_weakest_is_strongest
+FAILED tests/test_reports.py::test_reg_15_the_score_section_names_the_weakest_component
+1 failed, 37 passed, 1 warning in 110.50s (0:01:50)

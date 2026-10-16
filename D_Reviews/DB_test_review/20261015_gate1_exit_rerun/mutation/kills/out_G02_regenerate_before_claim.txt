@@ -1,0 +1,4 @@
+[mut_g1x] applied G02_regenerate_before_claim
+FAILED tests/test_reset_lock.py::test_g1_32_a_refused_reset_deletes_nothing_regenerates_nothing_and_submits_nothing
+FAILED tests/test_reset_lock.py::test_g1_32_in_thread_mode_every_second_reset_during_a_running_one_gets_409
+2 failed, 80 passed, 1 warning in 931.16s (0:15:31)
